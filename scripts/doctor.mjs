@@ -1,0 +1,102 @@
+#!/usr/bin/env node
+// scripts/doctor.mjs — preflight + onboarding gate.
+// Usage: node scripts/doctor.mjs [--fix] [--json]
+//   --fix  create missing data dirs and copy the _profile template
+// Exit 0 = ready; exit 1 = something blocks normal operation.
+
+import { existsSync, mkdirSync, readFileSync, copyFileSync, statSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const args = process.argv.slice(2);
+const FIX = args.includes('--fix');
+const JSON_OUT = args.includes('--json');
+
+const DATA_DIRS = [
+  'data', 'data/jds', 'data/reports', 'data/output', 'data/writing-samples',
+  'data/interview-prep', 'data/style', 'data/style/edits',
+  'data/batch', 'data/batch/tracker-additions', 'data/batch/merged',
+];
+
+const checks = [];
+const add = (name, ok, detail, level = 'error') => checks.push({ name, ok, detail, level });
+
+function cmdOk(cmd, vArgs = ['--version']) {
+  try { execFileSync(cmd, vArgs, { stdio: 'pipe' }); return true; } catch { return false; }
+}
+
+// --- runtime ---
+const major = Number(process.versions.node.split('.')[0]);
+add('node >= 20', major >= 20, `node ${process.versions.node}`);
+add('tectonic installed', cmdOk('tectonic'), 'brew install tectonic');
+add('pdftotext installed (ATS smoke test)', cmdOk('pdftotext', ['-v']),
+    'brew install poppler — without it the ATS smoke test is skipped', 'warn');
+
+// --- data dirs ---
+let dirsOk = true;
+for (const d of DATA_DIRS) {
+  const p = join(ROOT, d);
+  if (!existsSync(p)) {
+    if (FIX) { mkdirSync(p, { recursive: true }); }
+    else dirsOk = false;
+  }
+}
+add('data directories present', dirsOk, dirsOk ? 'ok' : 'run: node scripts/doctor.mjs --fix');
+
+// --- _profile.md (copy template if missing) ---
+const profileMdPath = join(ROOT, 'data', '_profile.md');
+const profileTpl = join(ROOT, 'modes', '_profile.template.md');
+if (!existsSync(profileMdPath) && FIX && existsSync(profileTpl)) {
+  mkdirSync(join(ROOT, 'data'), { recursive: true });
+  copyFileSync(profileTpl, profileMdPath);
+}
+add('data/_profile.md present', existsSync(profileMdPath),
+    'copied from template on --fix', 'warn');
+
+// --- profile.yml present & not example ---
+const profileYml = join(ROOT, 'data', 'profile.yml');
+if (existsSync(profileYml)) {
+  const txt = readFileSync(profileYml, 'utf8');
+  const isExample = txt.includes('Jane Q. Candidate') || txt.includes('jane@example.com');
+  add('data/profile.yml is real (not example)', !isExample,
+      isExample ? 'still contains example data — fill in your details' : 'ok');
+} else {
+  add('data/profile.yml present', false,
+      'run /og onboard (or copy templates/profile.example.yml -> data/profile.yml and fill it in)');
+}
+
+// --- cv.master.md present & non-trivial ---
+const cvMaster = join(ROOT, 'data', 'cv.master.md');
+if (existsSync(cvMaster) && statSync(cvMaster).size > 200) {
+  add('data/cv.master.md present', true, 'ok');
+} else {
+  add('data/cv.master.md present', false,
+      'run /og onboard — drop in your CV (PDF/Word/text) and it seeds this from your real experience');
+}
+
+// --- templates present (system integrity) ---
+const tplOk = ['templates/cv.tex.tmpl', 'templates/cl.tex.tmpl', 'templates/states.yml']
+  .every((f) => existsSync(join(ROOT, f)));
+add('core templates present', tplOk, 'system files intact');
+
+const errors = checks.filter((c) => !c.ok && c.level === 'error');
+const warns = checks.filter((c) => !c.ok && c.level === 'warn');
+const ready = errors.length === 0;
+
+if (JSON_OUT) {
+  console.log(JSON.stringify({ ready, checks }, null, 2));
+} else {
+  console.log('offerforge doctor\n');
+  for (const c of checks) {
+    const icon = c.ok ? '✅' : c.level === 'warn' ? '⚠️ ' : '❌';
+    console.log(`  ${icon} ${c.name}${c.ok ? '' : ` — ${c.detail}`}`);
+  }
+  console.log('');
+  if (ready && warns.length === 0) console.log('Ready. ✅');
+  else if (ready) console.log('Ready (with warnings). ⚠️');
+  else console.log(`Not ready: ${errors.length} blocking issue(s). Fix above, or run with --fix for the auto-fixable ones.`);
+}
+
+process.exit(ready ? 0 : 1);

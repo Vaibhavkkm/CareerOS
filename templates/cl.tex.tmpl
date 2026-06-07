@@ -1,0 +1,61 @@
+% =====================================================================
+%  OfferForge — ATS-safe cover letter template (tectonic / XeTeX)
+%  Compile:  tectonic <file>.tex
+%
+%  HOW THE BUILDER USES THIS FILE (modes/build-cl.md):
+%   - Replace every <<UPPER_SNAKE>> placeholder with tailored, latex-escaped text.
+%   - Body = exactly 3 paragraphs (hook / proof / close) in the candidate's
+%     learned voice (profile.yml narrative.voice + data/style few-shots).
+%   - If recipient name/address unknown, use "Dear Hiring Manager," and drop the
+%     street-address lines (delete the placeholder lines — never leave <<...>>).
+%   - One page. No "To Whom It May Concern". No "I am writing to apply".
+%
+%  Same verified tectonic rules as the CV template (no glyphtounicode/microtype;
+%  keep the ligature line; font by filename).
+% =====================================================================
+\documentclass[11pt,letterpaper]{article}
+\usepackage[margin=1in]{geometry}
+\pagestyle{empty}
+\usepackage{fontspec}
+\defaultfontfeatures{Ligatures={NoCommon}}
+\setmainfont{<<FONT_FILE>>}[
+  Extension      = .otf,
+  UprightFont    = *-regular,
+  BoldFont       = *-bold,
+  ItalicFont     = *-italic,
+  BoldItalicFont = *-bolditalic ]
+\usepackage[hidelinks]{hyperref}
+\usepackage{parskip}
+\setlength{\parindent}{0pt}
+\linespread{1.05}
+
+\begin{document}
+% --- Sender block ---
+{\bfseries <<FULL_NAME>>}\\
+<<CITY_STATE>> | <<EMAIL>> | <<PHONE>>
+
+\vspace{12pt}
+<<DATE_LONG>>
+
+\vspace{12pt}
+% --- Recipient block (drop unknown lines) ---
+<<RECIPIENT_NAME_OR_HIRING_MANAGER>>\\
+<<COMPANY>>\\
+<<COMPANY_LOCATION>>
+
+\vspace{12pt}
+Dear <<SALUTATION_NAME>>,
+
+\vspace{6pt}
+<<PARA_1: hook — why this company/role specifically; a concrete signal you researched, not flattery>>
+
+<<PARA_2: proof — 1-2 quantified achievements from the master CV mapped to the JD's top needs>>
+
+<<PARA_3: close — fit + forward-looking ask; confident, not pleading>>
+
+\vspace{12pt}
+Sincerely,
+
+\vspace{18pt}
+<<FULL_NAME>>
+\end{document}

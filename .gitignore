@@ -1,0 +1,27 @@
+# dependencies
+node_modules/
+
+# tectonic build artifacts
+*.aux
+*.log
+*.out
+*.synctex.gz
+
+# OS
+.DS_Store
+
+# ─────────────────────────────────────────────────────────────────────────────
+# YOUR DATA & PII — never committed (this repo is PUBLIC)
+# ─────────────────────────────────────────────────────────────────────────────
+# Everything OfferForge generates or learns about you lives in data/ and contains
+# personal info (name, email, phone, address, employers, your CV + letters). It
+# stays on your machine. Back it up with your OWN private git remote, not this one.
+# `node scripts/doctor.mjs --fix` recreates the empty data/ structure on a fresh
+# clone, and templates/*.example.yml are your starting points.
+data/
+
+# Personal source documents kept at the repo root (your CV, drafts, etc.)
+main.tex
+*.pdf
+*.docx
+*.doc

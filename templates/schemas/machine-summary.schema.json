@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "machine-summary.schema.json",
+  "title": "OfferForge evaluation Machine Summary",
+  "description": "The ONLY structured contract emitted by an evaluation report. Embedded as a fenced ```yaml block in data/reports/NNN-slug-date.md. analyze.mjs reads ONLY this block (never scrapes prose tables).",
+  "type": "object",
+  "required": ["company", "role", "score", "archetype", "final_decision", "report_num"],
+  "additionalProperties": true,
+  "properties": {
+    "company": { "type": "string" },
+    "role": { "type": "string" },
+    "score": { "type": ["number", "null"], "minimum": 0, "maximum": 5 },
+    "archetype": { "type": "string" },
+    "legitimacy_tier": { "type": "string", "enum": ["High Confidence", "Proceed with Caution", "Suspicious"] },
+    "final_decision": { "type": "string", "enum": ["Apply", "Consider", "Research first", "Skip"] },
+    "risk_level": { "type": "string", "enum": ["Low", "Medium", "High"] },
+    "confidence": { "type": "string", "enum": ["Low", "Medium", "High"] },
+    "hard_stops": { "type": "array", "items": { "type": "string" } },
+    "soft_gaps": { "type": "array", "items": { "type": "string" } },
+    "top_strengths": { "type": "array", "items": { "type": "string" } },
+    "next_action": { "type": "string" },
+    "url": { "type": "string" },
+    "report_num": { "type": "integer", "minimum": 1 }
+  }
+}

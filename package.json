@@ -1,0 +1,32 @@
+{
+  "name": "offerforge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Claude Code-native, LaTeX-first CV + Cover-Letter builder with a hybrid learning loop and a job-application pipeline.",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "offerforge": "scripts/cli.mjs"
+  },
+  "scripts": {
+    "doctor": "node scripts/doctor.mjs",
+    "compile": "node scripts/compile-latex.mjs",
+    "scan": "node scripts/scan.mjs",
+    "merge": "node scripts/merge-tracker.mjs",
+    "tracker": "node scripts/tracker.mjs",
+    "render": "node scripts/render-views.mjs",
+    "verify": "node scripts/verify-pipeline.mjs",
+    "followup": "node scripts/followup.mjs",
+    "analyze": "node scripts/analyze.mjs",
+    "batch": "node scripts/batch.mjs",
+    "style:diff": "node scripts/style-diff.mjs",
+    "style:profile": "node scripts/style-profile.mjs",
+    "style:retrieve": "node scripts/style-retrieve.mjs",
+    "test": "node scripts/style-diff.mjs --self-test && node scripts/style-profile.mjs --self-test && node scripts/style-retrieve.mjs --self-test && node scripts/style-loop.integration-test.mjs && node scripts/analyze.mjs --self-test && node scripts/followup.mjs --self-test && node lib/_selftest.mjs"
+  },
+  "dependencies": {
+    "js-yaml": "^4.2.0"
+  }
+}

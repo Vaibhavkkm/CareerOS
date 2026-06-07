@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "tracker-record.schema.json",
+  "title": "OfferForge tracker record",
+  "description": "One application record. data/tracker.jsonl holds one of these per line and is the SOURCE OF TRUTH; tracker.md / progress.md are generated views.",
+  "type": "object",
+  "required": ["id", "date", "company", "role", "status"],
+  "additionalProperties": true,
+  "properties": {
+    "id": { "type": "integer", "minimum": 1, "description": "Sequential, stable identifier." },
+    "date": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$", "description": "Date evaluated/added (YYYY-MM-DD)." },
+    "company": { "type": "string", "minLength": 1 },
+    "role": { "type": "string", "minLength": 1 },
+    "score": { "type": ["number", "null"], "minimum": 0, "maximum": 5, "description": "Eval score X.X out of 5, or null for N/A." },
+    "status": { "type": "string", "description": "Canonical id from templates/states.yml." },
+    "archetype": { "type": "string", "description": "Detected role archetype." },
+    "legitimacy": { "type": "string", "enum": ["High Confidence", "Proceed with Caution", "Suspicious", ""], "description": "Posting legitimacy tier." },
+    "url": { "type": "string" },
+    "report": { "type": ["string", "null"], "description": "Relative path to the eval report, e.g. reports/007-acme-2026-06-07.md" },
+    "cv_pdf": { "type": ["string", "null"] },
+    "cl_pdf": { "type": ["string", "null"] },
+    "notes": { "type": "string" },
+    "follow_ups": { "type": "integer", "minimum": 0, "default": 0 },
+    "last_action": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$" }
+  }
+}

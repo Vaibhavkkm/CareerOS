@@ -1,0 +1,29 @@
+# =====================================================================
+#  OfferForge portal config  (EXAMPLE)
+#  Copy to  data/portals.yml  and edit. Consumed ONLY by scripts/scan.mjs.
+# =====================================================================
+
+# Title filtering applied to scraped postings (case-insensitive substring).
+title_filter:
+  positive: ["engineer", "developer", "backend", "platform", "infrastructure", "staff", "senior"]
+  negative: ["intern", "principal", "manager", "sales", "support", "contract", "clearance"]
+
+# Location filtering. always_allow short-circuits; block wins over allow.
+location_filter:
+  always_allow: ["remote", "remote (us)", "united states"]
+  allow: ["san francisco", "sf bay", "new york", "seattle", "austin"]
+  block: ["on-site only", "relocation required", "europe", "india", "uk only"]
+
+# Each company is fetched by a provider plugin (scripts/providers/<id>.mjs).
+#   provider: greenhouse | ashby | lever | workable | smartrecruiters | recruitee | local-parser
+#   api:      the org/board token the provider needs (see each provider file)
+#   parser:   only for local-parser — { command, script } shelled out to produce Job[] JSON
+tracked_companies:
+  - { name: "Anthropic",  provider: greenhouse, api: "anthropic",  enabled: true }
+  - { name: "ExampleCo",  provider: ashby,      api: "exampleco",  enabled: true }
+  - { name: "Lever Demo", provider: lever,      api: "leverdemo",  enabled: false }
+  # Escape hatch for JS-heavy career pages (no Playwright dependency shipped):
+  # - name: "Custom Inc"
+  #   provider: local-parser
+  #   parser: { command: "python3", script: "data/parsers/custom_inc.py" }
+  #   enabled: false

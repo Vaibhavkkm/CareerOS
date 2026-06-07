@@ -1,0 +1,149 @@
+% =====================================================================
+%  OfferForge — CV template (your single-column style), tectonic / XeTeX
+%  Compile:  tectonic <file>.tex
+%
+%  HOW build-cv.md FILLS THIS:
+%   - Replace every <<UPPER_SNAKE>> placeholder with tailored, latex-escaped text.
+%   - Repeat each block between  %% REPEAT X  and  %% END REPEAT X  once per item;
+%     order/include by archetype relevance. Delete an optional section entirely if
+%     empty. Leave NO literal <<...>> behind (compile-latex.mjs fails on leftovers).
+%   - Keep ONE page if possible. Single column. Standard section headings.
+%
+%  VERIFIED ATS RULES (do not "fix"):
+%   - fontspec + Latin Modern by FILENAME + Ligatures={NoCommon}: this is what
+%     keeps "Airflow"/"workflow"/"classification" extractable as plain ASCII
+%     (T1 fontenc alone emits fi/fl ligatures that ATS keyword search misses).
+%   - Never add \input{glyphtounicode}/\pdfgentounicode/microtype DisableLigatures
+%     (they ERROR under tectonic).
+% =====================================================================
+\documentclass[a4paper,10pt]{article}
+
+\usepackage{fontspec}
+\defaultfontfeatures{Ligatures={NoCommon}}
+\setmainfont{lmroman10-regular}[
+  Extension      = .otf,
+  BoldFont       = lmroman10-bold,
+  ItalicFont     = lmroman10-italic,
+  BoldItalicFont = lmroman10-bolditalic ]
+
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% --- Margins ---
+\addtolength{\oddsidemargin}{-0.7in}
+\addtolength{\evensidemargin}{-0.7in}
+\addtolength{\textwidth}{1.4in}
+\addtolength{\topmargin}{-.70in}
+\addtolength{\textheight}{1.45in}
+
+\urlstyle{same}
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+\linespread{1.0}
+
+% --- Section formatting ---
+\titleformat{\section}{
+  \vspace{-8pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule \vspace{-7pt}]
+
+% --- Custom commands ---
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-1pt}\item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & #2 \\
+      \textit{\small#3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-5pt}
+}
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=*]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+
+%-------------------------------------------------------------------------------
+\begin{document}
+
+%----------HEADING----------
+\begin{center}
+    {\Huge \scshape <<FULL_NAME>>} \\ \vspace{2pt}
+    \small
+    \href{mailto:<<EMAIL>>}{<<EMAIL>>} \textbar{} <<PHONE>> \textbar{} \href{https://<<LINKEDIN>>}{<<LINKEDIN>>} \textbar{} \href{https://<<GITHUB>>}{<<GITHUB>>} \textbar{} \href{https://<<PORTFOLIO>>}{<<PORTFOLIO>>} \\ \vspace{2pt}
+    <<LOCATION_LINE: e.g. City | Work authorization | Nationality | Languages>>
+\end{center}
+
+%----------SUMMARY----------
+% TIP: lead the first sentence with the single role you are applying for.
+\section{Summary}
+<<SUMMARY: 2-4 sentences, keyword-rich, third person, tailored to the role>>
+
+%----------SKILLS----------
+\section{Skills}
+\begin{itemize}[leftmargin=*, nosep]
+    \setlength\itemsep{0.08em}
+    %% REPEAT SKILLGROUP
+    \item \textbf{<<SKILL_GROUP>>}: <<COMMA-SEPARATED SKILLS, aligned to the JD>>
+    %% END REPEAT SKILLGROUP
+\end{itemize}
+
+%----------EDUCATION----------
+\section{Education}
+  \resumeSubHeadingListStart
+    %% REPEAT EDUCATION
+    \resumeSubheading
+      {<<SCHOOL>>}{<<CITY_COUNTRY>>}
+      {<<DEGREE_AND_HONORS>>}{<<DATES>>}
+    %% END REPEAT EDUCATION
+  \resumeSubHeadingListEnd
+
+%----------EXPERIENCE----------
+\section{Work Experience}
+  \resumeSubHeadingListStart
+  %% REPEAT EXPERIENCE  (most JD-relevant first)
+  \resumeSubheading
+    {<<ORG>>}{<<CITY_COUNTRY>>}
+    {<<TITLE>>}{<<DATES>>}
+  \begin{itemize}[leftmargin=*, topsep=1pt, itemsep=1pt, parsep=0pt]
+      \item[$\bullet$] <<ACHIEVEMENT BULLET — strong verb + quantified, REAL, JD-keyword aligned>>
+      \item[$\bullet$] <<ACHIEVEMENT BULLET>>
+  \end{itemize}
+  \vspace{2pt}
+  %% END REPEAT EXPERIENCE
+  \resumeSubHeadingListEnd
+
+%----------PROJECTS----------
+% Optional — keep the most JD-relevant; delete the whole section if none fit.
+\section{Projects}
+\begin{itemize}[leftmargin=*, nosep]
+    \setlength\itemsep{0.1em}
+    %% REPEAT PROJECT
+    \item \href{https://<<PROJECT_URL>>}{\textbf{<<PROJECT_NAME>>}}
+    \begin{itemize}[nosep, leftmargin=1.5em]
+        \item[$\circ$] <<WHAT YOU BUILT + METHODS + IMPACT/METRIC>>
+    \end{itemize}
+    %% END REPEAT PROJECT
+\end{itemize}
+
+%----------CERTIFICATIONS---------- (optional)
+\section{Certifications}
+\begin{itemize}[leftmargin=*, nosep]
+    \setlength\itemsep{0.08em}
+    %% REPEAT CERTGROUP
+    \item \textbf{<<CERT_GROUP>>}: <<CERTS, comma-separated>>
+    %% END REPEAT CERTGROUP
+\end{itemize}
+
+%----------ADDITIONAL---------- (optional — delete if not relevant to the JD)
+\section{Additional}
+\begin{itemize}[leftmargin=*, nosep]
+    \item <<ANYTHING DISTINCTIVE — content, open-source, talks, etc.>>
+\end{itemize}
+
+\end{document}

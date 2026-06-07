@@ -1,0 +1,66 @@
+# =====================================================================
+#  OfferForge master profile  (SCHEMA REFERENCE / EXAMPLE DATA)
+#  Copy to  data/profile.yml  and replace every value with your real data.
+#  `node scripts/doctor.mjs` will REFUSE to run other modes while this still
+#  contains example values (the literal name "Jane Q. Candidate" etc.).
+# =====================================================================
+
+candidate:
+  full_name: "Jane Q. Candidate"
+  email: "jane@example.com"
+  phone: "(555) 123-4567"
+  location: "San Francisco, CA"        # appears on the CV contact line
+  linkedin: "linkedin.com/in/janeqc"   # bare host+path, no https://
+  portfolio_url: "janeqc.dev"          # optional — omit if none
+  github: "github.com/janeqc"          # optional
+
+target_roles:
+  primary:
+    - "Senior Backend Engineer"
+    - "Staff Software Engineer"
+  # Archetypes drive evaluation scoring AND which CV fragments get included.
+  # fit: primary | secondary | adjacent.  Add `sell_when:` to note when to pitch it.
+  archetypes:
+    - { name: "Backend/Distributed Systems", level: "Senior", fit: primary }
+    - { name: "Platform/Infra",              level: "Senior", fit: secondary, sell_when: "JD emphasizes k8s, reliability, cost" }
+    - { name: "Full-Stack",                  level: "Mid",    fit: adjacent }
+
+narrative:
+  headline: "Backend engineer who ships reliable distributed systems."
+  exit_story: "Looking for higher-scale ownership and a stronger eng culture."
+  superpowers:
+    - "Turning flaky pipelines into boring, reliable ones"
+    - "Cutting cloud cost without cutting reliability"
+  proof_points:
+    - { name: "Event pipeline rebuild", url: "", hero_metric: "10M events/day, -40% p99 latency" }
+    - { name: "K8s migration",          url: "", hero_metric: "-$200K/yr infra cost" }
+  # voice = the persistence target for the writing-style learning loop.
+  voice:
+    tone: "direct, concrete, understated; lets metrics do the talking"
+    sentence_length: "short-to-medium; avoid run-ons"
+    signature_phrases: []          # filled/curated by the learning loop
+    avoid: ["synergy", "leverage (as verb)", "passionate about", "results-driven"]
+
+compensation:
+  target_range: "$200K-$240K base"
+  currency: "USD"
+  minimum: "$180K base"            # walkaway
+  location_flexibility: "Remote (US) or SF Bay Area"
+  # alternate_ranges:             # optional, per-track
+  #   - { track: "Staff", target_range: "$240K-$280K", minimum: "$220K" }
+
+location:
+  country: "USA"
+  city: "San Francisco"
+  timezone: "America/Los_Angeles"
+  visa_status: "Citizen"          # or e.g. "Needs H-1B sponsorship"
+  onsite_availability: "Hybrid 2 days; relocation negotiable"
+
+cv:
+  cv_template: "templates/cv.tex.tmpl"
+  cl_template: "templates/cl.tex.tmpl"
+  font: "texgyretermes"           # texgyretermes | texgyreheros | texgyrepagella | texgyrebonum
+
+# --- Gates (the analytics loop can retune these from outcomes) ---
+compile_score_threshold: 3.0      # only compile a tailored CV if eval score >= this
+draft_answers_threshold: 4.5      # only pre-draft application answers if score >= this

@@ -1,0 +1,70 @@
+# Canonical application status enum — SINGLE SOURCE OF TRUTH.
+# Loaded by lib/states.mjs and consumed by tracker / merge / verify / analyze.
+# Never duplicate these alias maps anywhere else.
+#
+# rank: higher = "further along / more active". Used for dedup precedence and sorting.
+# group: dashboard bucket. terminal: true => no further action expected.
+states:
+  - id: evaluated
+    label: Evaluated
+    rank: 10
+    group: pipeline
+    terminal: false
+    aliases: [eval, evaluated, assessed, scored, reviewed]
+    description: A–G evaluation written; not yet applied.
+
+  - id: applied
+    label: Applied
+    rank: 20
+    group: pipeline
+    terminal: false
+    aliases: [applied, submitted, sent, application-sent]
+    description: Application submitted (confirmed by the user).
+
+  - id: responded
+    label: Responded
+    rank: 30
+    group: active
+    terminal: false
+    aliases: [responded, recruiter-reply, screen, phone-screen, hr-screen, oa, assessment]
+    description: Company replied / recruiter screen / online assessment.
+
+  - id: interview
+    label: Interview
+    rank: 40
+    group: active
+    terminal: false
+    aliases: [interview, interviewing, onsite, final, loop, panel]
+    description: In an interview process.
+
+  - id: offer
+    label: Offer
+    rank: 50
+    group: won
+    terminal: true
+    aliases: [offer, offered, accepted, hired]
+    description: Offer received (or accepted).
+
+  - id: rejected
+    label: Rejected
+    rank: 5
+    group: closed
+    terminal: true
+    aliases: [rejected, declined-by-company, no, ghosted-closed, turned-down]
+    description: Company declined the candidate.
+
+  - id: discarded
+    label: Discarded
+    rank: 4
+    group: closed
+    terminal: true
+    aliases: [discarded, withdrawn, declined-by-me, passed, not-pursuing]
+    description: Candidate chose not to pursue / withdrew.
+
+  - id: skip
+    label: Skip
+    rank: 1
+    group: closed
+    terminal: true
+    aliases: [skip, skipped, ignore, low-fit, below-threshold]
+    description: Evaluated below threshold or filtered out; not pursued.
