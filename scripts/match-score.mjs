@@ -59,6 +59,10 @@ const JD_BOILERPLATE = new Set([
   'look', 'seek', 'join', 'team', 'role', 'candid', 'year', 'experi', 'requir',
   'prefer', 'abil', 'work', 'want', 'ideal', 'strong', 'plus', 'nice', 'must',
   'responsibl', 'opportun', 'compani', 'help', 'includ', 'etc', 'job', 'posit',
+  // common non-skill noise that slips past the stemmer's stopword list
+  'if', 'range', 'value', 'various', 'tool', 'comfort', 'need', 'someone', 'who',
+  'player', 'align', 'well', 'great', 'good', 'new', 'around', 'within', 'able',
+  'level', 'technology', 'across',
 ]);
 
 // Build a stem→surface-form map so we can DISPLAY readable keywords (e.g. "Airflow"
@@ -146,8 +150,16 @@ function readArg(v, fallback) {
   return String(v);
 }
 
+const USAGE = `match-score — fast CV↔JD match score + band.
+Usage: node scripts/match-score.mjs --jd <file|text> --cv <file|text> [--top 18] [--summary]
+  --jd / --cv accept either a file path (if it exists) OR literal text.
+  --summary  human-readable output (default: JSON)
+  --self-test  run built-in tests`;
+
 function main() {
-  const args = parseArgs(process.argv.slice(2));
+  const argv = process.argv.slice(2);
+  if (argv.includes('--help') || argv.includes('-h')) { console.log(USAGE); process.exit(0); }
+  const args = parseArgs(argv);
   if (args.selfTest) return selfTest();
   const jd = readArg(args.jd, null);
   const cv = readArg(args.cv, DEFAULT_CV);
@@ -197,6 +209,16 @@ export function selfTest() {
 
   // empty inputs are safe
   eq(scoreMatch('', cv).score, 0, 'empty JD → 0'); eq(scoreMatch(strongJd, '').score, 0, 'empty CV → 0');
+
+  // jdKeywords edge cases
+  eq(jdKeywords(strongJd, 0).length, 0, 'topK=0 returns no keywords');
+  const boilerplateJd = 'We are looking for someone who wants to join a great team and work on various tools.';
+  ok(jdKeywords(boilerplateJd, 8).every((k) => !JD_BOILERPLATE.has(k)), 'pure-boilerplate JD yields no skill keywords');
+  ok(!scoreMatch(strongJd, cv).gap.some((g) => /^(if|range|value|various|who)$/i.test(g)), 'noise words no longer surface as gaps');
+
+  // identical text → top score; boilerplate-only JD → low
+  ok(scoreMatch(cv, cv).score >= 0.85, `identical CV/JD scores STRONGEST (got ${scoreMatch(cv, cv).score})`);
+  ok(scoreMatch(boilerplateJd, cv).score < 0.4, 'boilerplate-only JD scores low (no real overlap)');
 
   console.log(`match-score self-test: ${n} checks passed`);
   process.exit(0);

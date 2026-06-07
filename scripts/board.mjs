@@ -36,9 +36,15 @@ export function parseJdMarkdown(text) {
   const out = { role: '', company: '', url: '', location: '', posted: '', content: '' };
   const heading = src.match(/^#\s+(.+)$/m);
   if (heading) {
-    const parts = heading[1].split(' — ');
-    out.role = (parts[0] || '').trim();
-    out.company = (parts[1] || '').trim();
+    // "Role — Company"; split on the LAST em-dash so a role containing an
+    // em-dash isn't truncated (company is the final segment).
+    const parts = heading[1].split(/\s+—\s+/);
+    if (parts.length > 1) {
+      out.company = parts.pop().trim();
+      out.role = parts.join(' — ').trim();
+    } else {
+      out.role = heading[1].trim();
+    }
   }
   const field = (label) => {
     const m = src.match(new RegExp(`^-\\s*${label}:\\s*(.+)$`, 'mi'));
@@ -132,12 +138,15 @@ function readInboxUrls() {
 
 // ─── main ─────────────────────────────────────────────────────────────
 function parseArgs(argv) {
-  const out = { urls: [], min: null, recent: null, json: false, selfTest: false, save: true };
+  // JSON by default (consistent with the other scripts + how the board mode calls
+  // it); --summary/--pretty renders the human board instead.
+  const out = { urls: [], min: null, recent: null, json: true, selfTest: false, save: true };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const val = () => (argv[i + 1] != null && !argv[i + 1].startsWith('--')) ? argv[++i] : '';
     if (a === '--self-test') out.selfTest = true;
     else if (a === '--json') out.json = true;
+    else if (a === '--summary' || a === '--pretty') out.json = false;
     else if (a === '--no-save') out.save = false;
     else if (a === '--urls') out.urls = String(val()).split(',').map((s) => s.trim()).filter(Boolean);
     else if (a.startsWith('--urls=')) out.urls = a.slice(7).split(',').map((s) => s.trim()).filter(Boolean);
@@ -149,11 +158,23 @@ function parseArgs(argv) {
   return out;
 }
 
+const USAGE = `board — rank open roles by how well they match your CV.
+Usage: node scripts/board.mjs [--urls "u1,u2"] [--min <band>] [--recent <days>] [--summary]
+  --min <band>     keep only that band or better (STRONGEST|Very strong|Strong|Moderate|Weak)
+  --recent <days>  keep only postings dated within N days
+  --summary        render the human board (default: JSON)
+  --no-save        don't save fetched postings to data/jds/
+  --self-test      run built-in tests`;
+
 async function main() {
-  const args = parseArgs(process.argv.slice(2));
+  const argv = process.argv.slice(2);
+  if (argv.includes('--help') || argv.includes('-h')) { console.log(USAGE); process.exit(0); }
+  const args = parseArgs(argv);
   if (args.selfTest) return selfTest();
   if (!existsSync(CV_PATH)) {
-    console.error('error: data/cv.master.md not found — run `/og onboard` first.');
+    const msg = 'data/cv.master.md not found — run /og onboard first.';
+    if (args.json) console.log(JSON.stringify({ ok: false, error: msg }, null, 2));
+    else console.error(`error: ${msg}`);
     process.exit(2);
   }
   const cv = readFileSync(CV_PATH, 'utf8');
@@ -210,12 +231,18 @@ export function selfTest() {
   eq(jd.role, 'Senior ML Engineer', 'parse role'); eq(jd.company, 'Acme', 'parse company');
   eq(jd.url, 'https://x.io/j/1', 'parse url'); eq(jd.posted, '2026-05-20', 'parse posted');
   ok(jd.content.includes('Build ML pipelines') && !jd.content.includes('Application questions'), 'parse body excludes later sections');
+  // role containing an em-dash: company is the LAST segment, role keeps the rest
+  const jd2 = parseJdMarkdown('# Senior — Staff Engineer — Acme Inc\n\n## Full posting\n\nx');
+  eq(jd2.company, 'Acme Inc', 'multi-em-dash heading: company = last segment');
+  eq(jd2.role, 'Senior — Staff Engineer', 'multi-em-dash heading: role = all but last');
 
   // parseInboxLine
   const il = parseInboxLine('- [ ] https://acme.io/jobs/1 | Acme Inc | Backend Engineer');
   ok(il && il.url === 'https://acme.io/jobs/1' && il.company === 'Acme Inc' && il.title === 'Backend Engineer', 'parse inbox line');
   ok(parseInboxLine('garbage no url') === null, 'inbox line without url → null');
   ok(parseInboxLine('see https://x.io/y here').url === 'https://x.io/y', 'inbox bare-url fallback');
+  const il2 = parseInboxLine('-  [x]   https://x.io/j   |   Co   |   Role');
+  ok(il2 && il2.url === 'https://x.io/j' && il2.company === 'Co' && il2.title === 'Role', 'inbox line tolerates extra whitespace');
 
   // age helpers
   eq(ageDays('2026-06-01', '2026-06-07'), 6, 'ageDays 6'); eq(ageDays('', '2026-06-07'), null, 'ageDays unknown');

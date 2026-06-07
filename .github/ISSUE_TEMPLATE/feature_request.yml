@@ -1,0 +1,55 @@
+name: "Feature request"
+description: "Suggest an improvement or new capability for OfferForge."
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea! Please keep OfferForge's principles in mind: it stays
+        **local** (no server, no API key), **human-in-the-loop** (it never
+        auto-submits), and it **never fabricates** experience.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: The motivation — what's painful or missing today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What you'd like OfferForge to do. Rough is fine.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of OfferForge does this touch?
+      options:
+        - Onboarding / profile setup
+        - CV / cover-letter generation
+        - Job-match board / scoring
+        - Job scraping (fetch-jd)
+        - Scan / pipeline / tracker
+        - Learning loop (style)
+        - Interview prep / negotiate / analytics
+        - Other / not sure
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you thought about, if any.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and this isn't a duplicate.
+          required: true
+        - label: This keeps OfferForge local, human-in-the-loop, and honest (no fabricated experience).
+          required: true

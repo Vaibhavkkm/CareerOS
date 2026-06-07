@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/Vaibhavkkm/OfferForge/security/advisories/new
+    about: Please report security issues privately, not as a public issue. See SECURITY.md.
+  - name: Questions & help
+    url: https://github.com/Vaibhavkkm/OfferForge/blob/main/SUPPORT.md
+    about: How to get help, ask questions, and find documentation.

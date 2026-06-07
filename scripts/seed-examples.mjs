@@ -124,7 +124,7 @@ export function seedExamples(styleDir, text, { kind = 'cv', archetype = '', skil
   const diff = buildSeedDiff(units, kind, editId);
   const ctx = { archetype, required_skills: skills };
   const res = bankFromDiff(styleDir, diff, ctx, editId, date || todayStr());
-  return { units: units.length, added: res.added, skipped: res.skipped, idfN: res.idfN };
+  return { units: units.length, added: res.added, skipped: res.skipped, idf_n: res.idfN };
 }
 
 // ─── CLI ─────────────────────────────────────────────────────────────
@@ -152,14 +152,20 @@ function parseArgs(argv) {
   return out;
 }
 
+const USAGE = `seed-examples — warm-start the style example bank from your CV/cover-letter.
+Usage: node scripts/seed-examples.mjs --kind cv|cl --from <file> [--archetype X] [--skills a,b] [--summary]
+  --from <file>   the document to bank from (required)
+  --kind cv|cl    cv = bullets, cl = paragraphs (default cv)
+  --self-test     run built-in tests`;
+
 function main() {
-  const args = parseArgs(process.argv.slice(2));
+  const argv = process.argv.slice(2);
+  if (argv.includes('--help') || argv.includes('-h')) { console.log(USAGE); process.exit(0); }
+  const args = parseArgs(argv);
   if (args.selfTest) return selfTest();
   const kind = args.kind === 'cl' ? 'cl' : 'cv';
-  if (!args.from || !existsSync(args.from)) {
-    console.error(`error: --from <file> required and must exist (got: ${args.from || 'none'})`);
-    process.exit(2);
-  }
+  if (!args.from) { console.error('error: --from <file> is required'); process.exit(2); }
+  if (!existsSync(args.from)) { console.error(`error: file not found: ${args.from}`); process.exit(2); }
   const styleDir = args.dir || DEFAULT_STYLE_DIR;
   const source = args.source || (kind === 'cl' ? 'user_cl' : 'user_cv');
   const text = readFileSync(args.from, 'utf8');
@@ -168,7 +174,7 @@ function main() {
   if (args.json) {
     console.log(JSON.stringify({ ok: true, kind, source, ...res }, null, 2));
   } else {
-    console.log(`seed-examples: ${kind} — found ${res.units} unit(s), banked ${res.added}, skipped ${res.skipped} dup(s); idf N=${res.idfN}`);
+    console.log(`seed-examples: ${kind} — found ${res.units} unit(s), banked ${res.added}, skipped ${res.skipped} dup(s); idf N=${res.idf_n}`);
     if (!res.added) console.log('  (nothing banked — file had no qualifying bullets/paragraphs)');
   }
   process.exit(0);

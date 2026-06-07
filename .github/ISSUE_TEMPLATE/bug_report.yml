@@ -1,0 +1,64 @@
+name: "Bug report"
+description: "Report something in OfferForge that isn't working as expected."
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve OfferForge.
+
+        ⚠️ **Privacy:** OfferForge works with CVs and cover letters. **Do not paste
+        your real CV, contact details, or any personal data here** — this issue is
+        public. Redact names/emails/phones and share only the minimum needed to
+        reproduce the problem.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug and what you expected instead.
+      placeholder: "When I ran ..., I expected ..., but ... happened."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The exact steps (commands / mode) that trigger it.
+      placeholder: |
+        1. Run `/og ...`
+        2. ...
+        3. See ...
+    validations:
+      required: true
+  - type: input
+    id: command
+    attributes:
+      label: Command / mode involved
+      description: Which OfferForge command or mode? (e.g. `/og board`, `build-cv`, `fetch-jd`)
+      placeholder: "/og board"
+  - type: textarea
+    id: doctor
+    attributes:
+      label: "`node scripts/doctor.mjs` output"
+      description: Paste the output of the doctor check (it reports your tools/setup). Redact anything personal.
+      render: text
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Node version, and whether tectonic + poppler are installed.
+      placeholder: "macOS 15 · Node 22 · tectonic yes · poppler yes"
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and this isn't a duplicate.
+          required: true
+        - label: I removed all personal data (names, emails, phone numbers, real CV content) from this report.
+          required: true
+        - label: I ran `npm test` and noted any failures above (if relevant).
+          required: false

@@ -6,8 +6,9 @@
 
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
-import { dirname, join, basename, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { dirname, basename, resolve } from 'node:path';
+import assert from 'node:assert/strict';
 import { leftoverPlaceholders, sectionsIn } from '../lib/tex.mjs';
 
 const FORBIDDEN = [
@@ -16,6 +17,35 @@ const FORBIDDEN = [
   { re: /DisableLigatures/, name: 'microtype DisableLigatures (errors on tectonic)' },
 ];
 const CV_REQUIRED_SECTIONS = ['summary', 'experience', 'skills'];
+
+const USAGE = `compile-latex — validate, compile with tectonic, and ATS smoke-test a .tex.
+Usage: node scripts/compile-latex.mjs <file.tex> [--kind cv|cl] [--keywords a,b,c] [--json]
+  --self-test   run built-in validation tests`;
+
+// Pure structural validation — everything checkable WITHOUT compiling. Returns
+// { leftover_placeholders, forbidden_macros, issues }. Exported for tests.
+export function validate(tex, kind) {
+  const out = { leftover_placeholders: [], forbidden_macros: [], issues: [] };
+  out.leftover_placeholders = leftoverPlaceholders(tex);
+  if (out.leftover_placeholders.length) out.issues.push(`unfilled placeholders: ${out.leftover_placeholders.join(', ')}`);
+  out.forbidden_macros = FORBIDDEN.filter((f) => f.re.test(tex)).map((f) => f.name);
+  if (out.forbidden_macros.length) out.issues.push(`forbidden macros: ${out.forbidden_macros.join('; ')}`);
+  if (!/\\begin\{document\}/.test(tex) || !/\\end\{document\}/.test(tex)) out.issues.push('missing \\begin/\\end{document}');
+  if (!/\\setmainfont/.test(tex)) out.issues.push('missing \\setmainfont (fontspec)');
+  if (!/Ligatures=\{NoCommon\}/.test(tex)) out.issues.push('missing \\defaultfontfeatures{Ligatures={NoCommon}} (ATS-critical)');
+  if (kind === 'cv') {
+    const secs = sectionsIn(tex).map((s) => s.toLowerCase());
+    const missing = CV_REQUIRED_SECTIONS.filter((r) => !secs.some((s) => s.includes(r)));
+    if (missing.length) out.issues.push(`CV missing required sections: ${missing.join(', ')}`);
+  }
+  return out;
+}
+
+// A hard failure means don't even spend a tectonic compile.
+export function hardFailed(v) {
+  return Boolean(v.leftover_placeholders.length || v.forbidden_macros.length ||
+    v.issues.some((i) => i.includes('document') || i.includes('setmainfont')));
+}
 
 function parseArgs(argv) {
   const out = { _: [], json: false };
@@ -34,7 +64,9 @@ function parseArgs(argv) {
 function cmdOk(cmd, vArgs) { try { execFileSync(cmd, vArgs, { stdio: 'pipe' }); return true; } catch { return false; } }
 
 function run() {
-  const args = parseArgs(process.argv.slice(2));
+  const argv = process.argv.slice(2);
+  if (argv.includes('--help') || argv.includes('-h')) { console.log(USAGE); process.exit(0); }
+  const args = parseArgs(argv);
   const file = args._[0];
   const report = {
     file, kind: null, ok: false, compiled: false, pdf: null, pages: null,
@@ -51,23 +83,12 @@ function run() {
   const kind = args.kind || (/(^|\/)cl-|cover/i.test(basename(abs)) ? 'cl' : 'cv');
   report.kind = kind;
 
-  // --- validate ---
-  report.leftover_placeholders = leftoverPlaceholders(tex);
-  if (report.leftover_placeholders.length) report.issues.push(`unfilled placeholders: ${report.leftover_placeholders.join(', ')}`);
-  report.forbidden_macros = FORBIDDEN.filter((f) => f.re.test(tex)).map((f) => f.name);
-  if (report.forbidden_macros.length) report.issues.push(`forbidden macros: ${report.forbidden_macros.join('; ')}`);
-  if (!/\\begin\{document\}/.test(tex) || !/\\end\{document\}/.test(tex)) report.issues.push('missing \\begin/\\end{document}');
-  if (!/\\setmainfont/.test(tex)) report.issues.push('missing \\setmainfont (fontspec)');
-  if (!/Ligatures=\{NoCommon\}/.test(tex)) report.issues.push('missing \\defaultfontfeatures{Ligatures={NoCommon}} (ATS-critical)');
-  if (kind === 'cv') {
-    const secs = sectionsIn(tex).map((s) => s.toLowerCase());
-    const missing = CV_REQUIRED_SECTIONS.filter((r) => !secs.some((s) => s.includes(r)));
-    if (missing.length) report.issues.push(`CV missing required sections: ${missing.join(', ')}`);
-  }
-  // Block compile if structural validation already failed hard.
-  const hardFail = report.leftover_placeholders.length || report.forbidden_macros.length ||
-    report.issues.some((i) => i.includes('document') || i.includes('setmainfont'));
-  if (hardFail) return finish(report, args.json);
+  // --- validate (pure) ---
+  const v = validate(tex, kind);
+  report.leftover_placeholders = v.leftover_placeholders;
+  report.forbidden_macros = v.forbidden_macros;
+  report.issues.push(...v.issues);
+  if (hardFailed(v)) return finish(report, args.json); // don't waste a tectonic run
 
   // --- compile ---
   if (!cmdOk('tectonic', ['--version'])) { report.issues.push('tectonic not installed'); return finish(report, args.json); }
@@ -134,4 +155,48 @@ function finish(report, json) {
   process.exit(report.ok ? 0 : 1);
 }
 
-run();
+// ─── self-test (pure validation logic — no tectonic needed) ──────────
+export function selfTest() {
+  let n = 0;
+  const ok = (c, m) => { assert.ok(c, m); n++; };
+  const goodCv = [
+    '\\documentclass{article}', '\\usepackage{fontspec}',
+    '\\defaultfontfeatures{Ligatures={NoCommon}}', '\\setmainfont{texgyretermes}',
+    '\\begin{document}', '\\section{Summary} a', '\\section{Experience} b',
+    '\\section{Skills} c', '\\end{document}',
+  ].join('\n');
+
+  let v = validate(goodCv, 'cv');
+  ok(v.issues.length === 0, `clean CV validates with no issues (got: ${v.issues.join(' | ')})`);
+  ok(!hardFailed(v), 'clean CV is not a hard fail');
+
+  v = validate(goodCv.replace('\\end{document}', '<<NAME>>\n\\end{document}'), 'cv');
+  ok(v.leftover_placeholders.includes('<<NAME>>') && hardFailed(v), 'leftover <<placeholder>> is a hard fail');
+
+  v = validate(goodCv + '\n\\input{glyphtounicode}', 'cv');
+  ok(v.forbidden_macros.length > 0 && hardFailed(v), 'forbidden macro is a hard fail');
+
+  ok(hardFailed(validate('\\setmainfont{x}\\defaultfontfeatures{Ligatures={NoCommon}}\\section{Summary}\\section{Experience}\\section{Skills}', 'cv')),
+    'missing \\begin/\\end{document} is a hard fail');
+  ok(hardFailed(validate(goodCv.replace('\\setmainfont{texgyretermes}', ''), 'cv')), 'missing \\setmainfont is a hard fail');
+
+  v = validate(goodCv.replace('\\defaultfontfeatures{Ligatures={NoCommon}}', ''), 'cv');
+  ok(v.issues.some((i) => i.includes('Ligatures')) && !hardFailed(v), 'missing NoCommon is flagged but not a hard fail');
+
+  v = validate(goodCv.replace('\\section{Skills} c', ''), 'cv');
+  ok(v.issues.some((i) => i.includes('missing required sections')), 'CV missing the Skills section is flagged');
+
+  v = validate(['\\setmainfont{x}', '\\defaultfontfeatures{Ligatures={NoCommon}}', '\\begin{document}', 'Dear team', '\\end{document}'].join('\n'), 'cl');
+  ok(!v.issues.some((i) => i.includes('required sections')), 'a cover letter has no required-section check');
+
+  console.log(`compile-latex self-test: ${n} checks passed`);
+  process.exit(0);
+}
+
+if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
+  if (process.argv.slice(2).includes('--self-test')) {
+    try { selfTest(); } catch (e) { console.error(`compile-latex self-test FAILED: ${e.message}`); process.exit(1); }
+  } else {
+    run();
+  }
+}

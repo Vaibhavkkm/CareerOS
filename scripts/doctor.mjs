@@ -13,6 +13,8 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
 const FIX = args.includes('--fix');
 const JSON_OUT = args.includes('--json');
+// ASCII status markers for non-interactive/piped output (or with --plain); emoji on a TTY.
+const PLAIN = args.includes('--plain') || !process.stdout.isTTY;
 
 const DATA_DIRS = [
   'data', 'data/jds', 'data/reports', 'data/output', 'data/writing-samples',
@@ -90,12 +92,14 @@ if (JSON_OUT) {
 } else {
   console.log('offerforge doctor\n');
   for (const c of checks) {
-    const icon = c.ok ? '✅' : c.level === 'warn' ? '⚠️ ' : '❌';
+    const icon = PLAIN
+      ? (c.ok ? '[OK]  ' : c.level === 'warn' ? '[WARN]' : '[FAIL]')
+      : (c.ok ? '✅' : c.level === 'warn' ? '⚠️ ' : '❌');
     console.log(`  ${icon} ${c.name}${c.ok ? '' : ` — ${c.detail}`}`);
   }
   console.log('');
-  if (ready && warns.length === 0) console.log('Ready. ✅');
-  else if (ready) console.log('Ready (with warnings). ⚠️');
+  if (ready && warns.length === 0) console.log(PLAIN ? 'Ready.' : 'Ready. ✅');
+  else if (ready) console.log(PLAIN ? 'Ready (with warnings).' : 'Ready (with warnings). ⚠️');
   else console.log(`Not ready: ${errors.length} blocking issue(s). Fix above, or run with --fix for the auto-fixable ones.`);
 }
 

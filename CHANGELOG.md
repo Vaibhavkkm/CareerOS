@@ -6,8 +6,25 @@ All notable changes to OfferForge are recorded here. The format is based on
 
 ## [Unreleased]
 
-- Job-match board groundwork is in place; the hosted web UI and large-scale
-  multi-company discovery remain on the roadmap.
+### Added
+- Community/meta files: issue forms (bug + feature), an issue-template config that
+  routes security reports privately, a pull-request template, and `SUPPORT.md`.
+
+### Changed / Hardened
+- CLI robustness pass across the toolchain:
+  - `tracker`/`fetch-jd` now create parent directories when writing to custom
+    paths (no more `ENOENT` on a nested `--file`/`--out`).
+  - `parseScore` no longer silently turns a negative input into a positive score.
+  - The match board filters recruiting boilerplate (e.g. "if", "range", "value")
+    out of the skill keyword/gap lists.
+  - Consistent CLI surface: scripts default to JSON output, accept `--help`/`-h`,
+    use standard exit codes, and emit JSON (not plain text) on error under `--json`.
+  - `htmlToText` strips zero-width / format / bidi / surrogate characters.
+  - `doctor` prints ASCII status markers when output isn't a TTY (or with `--plain`).
+- Test coverage raised to ~380 checks, including a new `compile-latex` self-test
+  and mocked-network tests for the URL scraper's fallback logic.
+
+> The hosted web UI and large-scale multi-company discovery remain on the roadmap.
 
 ## [0.1.0] — 2026-06-07
 

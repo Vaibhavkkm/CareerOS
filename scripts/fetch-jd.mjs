@@ -65,6 +65,8 @@ export function htmlToText(html) {
   s = s.replace(/<\s*\/\s*(p|div|li|ul|ol|tr|h[1-6]|section|article|header|footer)\s*>/gi, '\n');
   s = s.replace(/<[^>]+>/g, ''); // strip any remaining tags
   s = decodeEntities(s);         // decode entities now that the tags are gone
+  // drop control / zero-width / format / bidi / surrogate chars (keep \n and \t)
+  s = s.replace(/[\p{Cf}\p{Cs}]/gu, "");
   s = s.replace(/[ \t\f\v]+/g, ' ');
   s = s.replace(/ *\n */g, '\n').replace(/\n{3,}/g, '\n\n');
   return s.trim();
@@ -407,8 +409,8 @@ export async function fetchPosting(url, ctx = makeHttpCtx()) {
 
 // Save a posting to data/jds/. Returns the absolute path written.
 export function saveJd(posting, fetchedDate, { dir = JDS_DIR, out = null } = {}) {
-  mkdirSync(dir, { recursive: true });
   const path = out || join(dir, buildFilename(posting.company, posting.role, fetchedDate));
+  mkdirSync(dirname(path), { recursive: true }); // create parent dirs for default AND custom --out paths
   writeFileSync(path, toMarkdown(posting, fetchedDate));
   return path;
 }
@@ -429,11 +431,19 @@ function parseArgs(argv) {
   return out;
 }
 
+const USAGE = `fetch-jd — scrape a single job posting URL into the full posting.
+Usage: node scripts/fetch-jd.mjs <url> [--out <file>] [--no-save] [--summary]
+  Saves the full posting to data/jds/ (unless --no-save). Defaults to JSON output.
+  --summary    human-readable output
+  --self-test  run built-in tests`;
+
 async function main() {
-  const args = parseArgs(process.argv.slice(2));
+  const argv = process.argv.slice(2);
+  if (argv.includes('--help') || argv.includes('-h')) { console.log(USAGE); process.exit(0); }
+  const args = parseArgs(argv);
   if (args.selfTest) return selfTest();
   if (!args.url) {
-    console.error('usage: node scripts/fetch-jd.mjs <url> [--out <file>] [--no-save] [--summary]');
+    console.error(USAGE);
     process.exit(2);
   }
   const date = new Date().toISOString().slice(0, 10);
@@ -462,11 +472,12 @@ async function main() {
     console.log(`offerforge fetch-jd — could not scrape: ${res.error}`);
     console.log('  → the in-session agent should WebFetch this URL as a fallback.');
   }
-  process.exit(res.ok ? 0 : 3);
+  // 0 = scraped ok; 1 = couldn't scrape (the JSON `needs_agent_fetch` flag carries the nuance).
+  process.exit(res.ok ? 0 : 1);
 }
 
-// ─── self-test (pure functions only — no network) ────────────────────
-export function selfTest() {
+// ─── self-test (pure functions + mocked fetchPosting — no real network) ──
+export async function selfTest() {
   let n = 0;
   const ok = (c, m) => { assert.ok(c, m); n++; };
   const eq = (a, b, m) => { assert.equal(a, b, m); n++; };
@@ -568,13 +579,28 @@ export function selfTest() {
   ok(md.includes('- Posted: 2026-06-01'), 'md posted line');
   ok(md.includes('## Application questions') && md.includes('- Why Acme?'), 'md questions');
 
+  // control/format chars (zero-width space, soft hyphen) are stripped; \n kept
+  eq(htmlToText("<p>Air&#8203;flow</p>"), "Airflow", "htmlToText strips a decoded zero-width char");
+
+  // fetchPosting orchestration with a MOCKED ctx (no real network)
+  const longHtml = `<html><body><p>${'word '.repeat(20)}</p></body></html>`;
+  const ghJson = { title: 'Staff Eng', company_name: 'Acme', content: `<p>${'duty '.repeat(20)}</p>`, absolute_url: 'u', updated_at: '2026-06-01' };
+  let r = await fetchPosting('https://boards.greenhouse.io/acme/jobs/1', { fetchJson: async () => ghJson, fetchText: async () => '' });
+  ok(r.ok && r.posting.role === 'Staff Eng' && r.source === 'greenhouse' && !r.needs_agent_fetch, 'fetchPosting: ATS API success');
+  r = await fetchPosting('https://boards.greenhouse.io/acme/jobs/1', { fetchJson: async () => { throw new Error('HTTP 403'); }, fetchText: async () => longHtml });
+  ok(r.ok && /html/.test(r.source) && !r.needs_agent_fetch, 'fetchPosting: API failure falls back to HTML');
+  r = await fetchPosting('https://example.com/job', { fetchText: async () => '<html><body>hi</body></html>' });
+  ok(!r.ok && r.needs_agent_fetch, 'fetchPosting: near-empty page → needs_agent_fetch');
+  r = await fetchPosting('http://127.0.0.1/admin', { fetchText: async () => 'SHOULD NOT BE FETCHED' });
+  ok(!r.ok && r.needs_agent_fetch && /private|loopback|blocked/i.test(r.error || ''), 'fetchPosting: SSRF guard blocks a private host');
+
   console.log(`fetch-jd self-test: ${n} checks passed`);
   process.exit(0);
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
   if (process.argv.slice(2).includes('--self-test')) {
-    try { selfTest(); } catch (e) { console.error(`fetch-jd self-test FAILED: ${e.message}`); process.exit(1); }
+    selfTest().catch((e) => { console.error(`fetch-jd self-test FAILED: ${e.message}\n${e.stack}`); process.exit(1); });
   } else {
     main().catch((e) => { console.error(`Fatal: ${e.message}`); process.exit(1); });
   }
