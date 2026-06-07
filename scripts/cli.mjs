@@ -23,6 +23,8 @@ export const COMMANDS = {
   doctor: 'doctor.mjs',
   compile: 'compile-latex.mjs',
   'fetch-jd': 'fetch-jd.mjs',
+  board: 'board.mjs',
+  'match-score': 'match-score.mjs',
   scan: 'scan.mjs',
   merge: 'merge-tracker.mjs',
   tracker: 'tracker.mjs',
@@ -95,7 +97,7 @@ async function selfTest() {
 
   // 1) The routing table covers exactly the documented commands.
   const expected = [
-    'doctor', 'compile', 'fetch-jd', 'scan', 'merge', 'tracker', 'render', 'verify',
+    'doctor', 'compile', 'fetch-jd', 'board', 'match-score', 'scan', 'merge', 'tracker', 'render', 'verify',
     'followup', 'analyze', 'batch', 'seed-examples', 'style:diff', 'style:profile', 'style:retrieve',
   ];
   eq(Object.keys(COMMANDS).length, expected.length, 'command count matches');

@@ -92,6 +92,52 @@ function firstStr(...vals) {
   return '';
 }
 
+// A posting date as YYYY-MM-DD, from an ISO string OR an epoch (sec/ms). '' if unknown.
+export function toISODate(v) {
+  if (v == null || v === '') return '';
+  let d;
+  if (typeof v === 'number' || /^\d+$/.test(String(v))) {
+    let n = Number(v);
+    if (n < 1e12) n *= 1000; // seconds → ms
+    d = new Date(n);
+  } else {
+    d = new Date(String(v));
+  }
+  return Number.isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+}
+
+// Parse every <script type="application/ld+json"> block, flattening @graph arrays.
+function jsonLdObjects(html) {
+  const out = [];
+  const re = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let m;
+  while ((m = re.exec(String(html || '')))) {
+    try {
+      const data = JSON.parse(m[1].trim());
+      for (const o of (Array.isArray(data) ? data : [data])) {
+        if (o && Array.isArray(o['@graph'])) out.push(...o['@graph']);
+        else out.push(o);
+      }
+    } catch { /* skip malformed block */ }
+  }
+  return out;
+}
+function isLdType(o, t) {
+  const ty = o && o['@type'];
+  return ty === t || (Array.isArray(ty) && ty.includes(t));
+}
+// The schema.org JobPosting object many career pages embed — the richest source.
+export function findJobPosting(html) {
+  return jsonLdObjects(html).find((o) => isLdType(o, 'JobPosting')) || null;
+}
+function ldLocation(jobLocation) {
+  const one = Array.isArray(jobLocation) ? jobLocation[0] : jobLocation;
+  const addr = one && one.address;
+  if (!addr) return '';
+  if (typeof addr === 'string') return addr;
+  return [addr.addressLocality, addr.addressRegion, addr.addressCountry].filter(Boolean).join(', ');
+}
+
 // ─── ATS detection (pure) ────────────────────────────────────────────
 // Returns { ats, board?, jobId?, site?, org?, account?, shortcode?, company?,
 // slug?, postingId? } or null. Parses both board URLs and single-posting URLs.
@@ -200,7 +246,8 @@ export function normalizeGreenhouse(json, url = '') {
     location: firstStr(j.location && j.location.name),
     url: firstStr(j.absolute_url, url),
     departments: (j.departments || []).map((d) => d && d.name).filter(Boolean),
-    content: htmlToText(j.content || ''),
+    content: htmlToText(decodeEntities(j.content || '')), // Greenhouse `content` is entity-encoded HTML
+    posted: toISODate(j.updated_at),
     questions: (j.questions || []).map((q) => q && q.label).filter(Boolean),
   };
 }
@@ -218,6 +265,7 @@ export function normalizeLever(json, url = '') {
     url: firstStr(j.hostedUrl, j.applyUrl, url),
     departments: [firstStr(j.categories && j.categories.team)].filter(Boolean),
     content: [body, lists, htmlToText(j.additionalPlain || j.additional || '')].filter(Boolean).join('\n\n').trim(),
+    posted: toISODate(j.createdAt),
     questions: [],
   };
 }
@@ -232,6 +280,7 @@ export function normalizeRecruitee(json, url = '') {
     url: firstStr(o.careers_url, o.url, url),
     departments: [firstStr(o.department)].filter(Boolean),
     content: [htmlToText(o.description || ''), htmlToText(o.requirements || '')].filter(Boolean).join('\n\n').trim(),
+    posted: toISODate(o.published_at || o.created_at),
     questions: [],
   };
 }
@@ -250,6 +299,7 @@ export function normalizeSmartRecruiters(json, url = '') {
     departments: [firstStr(j.department && j.department.label)].filter(Boolean),
     content: [pick(sec.companyDescription), pick(sec.jobDescription), pick(sec.qualifications), pick(sec.additionalInformation)]
       .filter(Boolean).join('\n\n').trim(),
+    posted: toISODate(j.releasedDate || j.createdOn),
     questions: [],
   };
 }
@@ -257,16 +307,35 @@ export function normalizeSmartRecruiters(json, url = '') {
 // Generic HTML page → Posting (best effort). Pulls <title> for the role and the
 // full page text as content. Used for unknown hosts and as the ATS fallback.
 export function normalizeGenericHtml(html, url = '') {
+  // Prefer schema.org JobPosting JSON-LD when the page embeds it — far richer and
+  // cleaner than scraping the DOM.
+  const jp = findJobPosting(html);
+  if (jp) {
+    const org = jp.hiringOrganization;
+    const company = typeof org === 'string' ? org : firstStr(org && org.name);
+    const body = htmlToText(jp.description || '');
+    return {
+      source: 'jsonld',
+      role: firstStr(jp.title),
+      company,
+      location: firstStr(ldLocation(jp.jobLocation), jp.jobLocationType === 'TELECOMMUTE' ? 'Remote' : ''),
+      url: firstStr(jp.url, url),
+      departments: [firstStr(jp.employmentUnit && jp.employmentUnit.name)].filter(Boolean),
+      content: body || htmlToText(html),
+      posted: toISODate(jp.datePosted),
+      questions: [],
+    };
+  }
   const titleMatch = String(html || '').match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-  const title = titleMatch ? htmlToText(titleMatch[1]) : '';
   return {
     source: 'generic-html',
-    role: title,
+    role: titleMatch ? htmlToText(titleMatch[1]) : '',
     company: '',
     location: '',
     url,
     departments: [],
     content: htmlToText(html),
+    posted: '',
     questions: [],
   };
 }
@@ -292,6 +361,7 @@ export function toMarkdown(posting, fetchedDate) {
     `- Location: ${p.location || '(not stated)'}`,
   ];
   if (p.departments && p.departments.length) lines.push(`- Department: ${p.departments.join(', ')}`);
+  if (p.posted) lines.push(`- Posted: ${p.posted}`);
   if (fetchedDate) lines.push(`- Fetched: ${fetchedDate}`);
   lines.push('', '## Full posting', '', (p.content || '').trim() || '(no body text captured — open the URL)');
   if (p.questions && p.questions.length) {
@@ -448,13 +518,26 @@ export function selfTest() {
   // normalizers — feed fixture payloads
   const ghP = normalizeGreenhouse({
     title: 'Staff Engineer', company_name: 'Acme', location: { name: 'Remote' },
-    absolute_url: 'https://boards.greenhouse.io/acme/jobs/1',
+    absolute_url: 'https://boards.greenhouse.io/acme/jobs/1', updated_at: '2026-06-01T00:00:00Z',
     departments: [{ name: 'Eng' }], content: '&lt;p&gt;Build &amp; ship.&lt;/p&gt;',
     questions: [{ label: 'Why Acme?' }],
   });
   eq(ghP.role, 'Staff Engineer', 'gh role'); eq(ghP.company, 'Acme', 'gh company');
   eq(ghP.location, 'Remote', 'gh location'); ok(ghP.content.includes('Build & ship.'), 'gh content decoded');
   ok(ghP.questions[0] === 'Why Acme?', 'gh question'); ok(ghP.departments[0] === 'Eng', 'gh dept');
+  eq(ghP.posted, '2026-06-01', 'gh posted date from updated_at');
+
+  // toISODate: ISO + epoch (sec/ms) + junk
+  eq(toISODate('2026-06-01T10:00:00Z'), '2026-06-01', 'toISODate ISO');
+  eq(toISODate(1700000000000), toISODate(1700000000), 'toISODate ms == sec');
+  eq(toISODate(''), '', 'toISODate empty'); eq(toISODate('not a date'), '', 'toISODate junk');
+
+  // generic page with embedded schema.org JobPosting JSON-LD
+  const ld = '<html><head><script type="application/ld+json">{"@type":"JobPosting","title":"Data Engineer","datePosted":"2026-05-20","hiringOrganization":{"name":"Acme"},"jobLocation":{"address":{"addressLocality":"Paris","addressCountry":"FR"}},"description":"<p>Build pipelines</p>"}</script></head><body>nav junk</body></html>';
+  const ldP = normalizeGenericHtml(ld, 'https://x.io/j/2');
+  ok(ldP.source === 'jsonld' && ldP.role === 'Data Engineer' && ldP.company === 'Acme', 'jsonld role+company');
+  eq(ldP.location, 'Paris, FR', 'jsonld location'); eq(ldP.posted, '2026-05-20', 'jsonld datePosted');
+  ok(ldP.content.includes('Build pipelines'), 'jsonld description body');
 
   const lvP = normalizeLever({
     text: 'Backend Engineer', categories: { location: 'Berlin', team: 'Platform' },
@@ -482,6 +565,7 @@ export function selfTest() {
   const md = toMarkdown(ghP, '2026-06-07');
   ok(md.startsWith('# Staff Engineer — Acme'), 'md heading');
   ok(md.includes('## Full posting') && md.includes('Build & ship.'), 'md body');
+  ok(md.includes('- Posted: 2026-06-01'), 'md posted line');
   ok(md.includes('## Application questions') && md.includes('- Why Acme?'), 'md questions');
 
   console.log(`fetch-jd self-test: ${n} checks passed`);

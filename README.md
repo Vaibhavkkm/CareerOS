@@ -84,6 +84,7 @@ Run the tool with `/offerforge` (or the short alias `/og`):
 | Command | What it does |
 |---|---|
 | `/og onboard` | **Start here.** Turn your uploaded CV + cover letter into a profile, a master CV, and a learned writing voice |
+| `/og board [--min strong] [--recent 14]` | Rank open roles by how well they match *your* CV (STRONGEST → Weak), with how recently each was posted and your has/gap skills — then tailor any one in a click |
 | `/og` *(paste a job post or URL)* | Auto-pilot: read the job → score it → build a tailored CV (if it's a good fit) → draft answers → track it |
 | `/og evaluate <job/url/file>` | Score one job out of 5 across 6 things that matter, with a written report |
 | `/og compare <2+ jobs>` | Rank several postings and recommend which to chase |
@@ -153,9 +154,9 @@ some hidden "memory." Two simple, inspectable parts:
 OfferForge is in **active development**. Here's the honest picture:
 
 ### ✅ Working and tested
-- **The engine.** ~21 "mode" playbooks (onboard, evaluate, build-cv, build-cl, scan,
-  track, follow-up, interview-prep, compare, negotiate, and more), 17 helper scripts,
-  and shared libraries. Automated self-tests pass (`npm test` → **305 checks green**).
+- **The engine.** ~22 "mode" playbooks (onboard, board, evaluate, build-cv, build-cl,
+  scan, track, follow-up, interview-prep, compare, negotiate, and more), 19 helper
+  scripts, and shared libraries. Automated self-tests pass (`npm test` → **358 checks green**).
 - **Share a URL → it scrapes the whole posting.** `fetch-jd` pulls the *complete*
   job from the ATS's own API (Greenhouse, Lever, Recruitee, SmartRecruiters) or the
   page HTML (Ashby, Workable, and any other site), saves it locally, and falls back
@@ -163,6 +164,10 @@ OfferForge is in **active development**. Here's the honest picture:
 - **In-voice from draft #1.** Onboarding warm-starts the example bank from *your*
   existing CV bullets + cover-letter paragraphs (`seed-examples`), so the first
   draft already sounds like you.
+- **Job-match board.** `/og board` ranks open roles by how well they fit *your*
+  CV — STRONGEST / Very strong / Strong / Moderate / Weak — with how recently each
+  was posted, the skills you have vs. the gaps, and one-command tailoring for any
+  pick. Filter by match band (`--min`) and recency (`--recent`).
 - **Self-correcting drafts.** Every CV/cover letter is graded against your voice,
   the job's must-have keywords, and the no-fabrication/no-filler rules, then revised
   before you see it.
