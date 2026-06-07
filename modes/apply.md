@@ -50,6 +50,21 @@ Plain text (these are web forms, not LaTeX — no escaping, no `\` macros).
 If a question needs a fact the user lacks, say so and offer the closest honest
 framing — never fabricate to fill a box.
 
+## Document uploads (references sheet, attachments)
+Some forms ask you to UPLOAD a file — most commonly *"contact details of N references"*.
+For a **references sheet**, GENERATE one (don't ask the user to write it):
+1. Pull the referees from `data/cv.master.md` (References). If there are fewer than
+   the form asks for, tell the user and ask for the missing referee's details —
+   never invent a name, email, or relationship.
+2. Fill `templates/references.tex.tmpl`: centred letterhead; one block per referee;
+   **bold every field label** (Email / LinkedIn / Google Scholar / Relationship);
+   include only the lines a referee actually has; comfortable spacing (it's short —
+   let it breathe).
+3. Compile: `node scripts/compile-latex.mjs <file> --kind cl --json` — require
+   `ok:true`, one page, no leftover `<<...>>`. Save to `data/output/references-...pdf`.
+4. Give the user the path and say it's the file to upload.
+For any other attachment, ask the user what it should contain — never fabricate a document.
+
 ## Step 2 — Present for review (no file yet)
 Output the Q→A pairs in chat as a clean, copy-paste block. Remind the user which
 documents to upload: the `cv_pdf` / `cl_pdf` from the tracker record (or point them

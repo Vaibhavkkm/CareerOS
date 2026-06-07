@@ -1,0 +1,58 @@
+% =====================================================================
+%  OfferForge — references sheet template (tectonic / XeTeX)
+%  For application forms that ask to UPLOAD "contact details of N references".
+%
+%  HOW build/apply fills this:
+%   - Centered letterhead (candidate name + one contact line).
+%   - One REPEAT REFERENCE block per referee, from data/cv.master.md References.
+%   - BOLD every field label (Email/LinkedIn/.../Relationship) — see house style.
+%   - Include only the lines a referee actually has (Email always; LinkedIn,
+%     Google Scholar, phone only if known). Delete unused label lines — leave NO
+%     <<...>> behind (compile-latex.mjs fails on leftovers).
+%   - Comfortable spacing (a references sheet is short — let it breathe).
+%   - Same verified tectonic/ATS rules as the CV/CL templates (keep the ligature
+%     line; font by filename; no glyphtounicode/microtype).
+% =====================================================================
+\documentclass[11pt,letterpaper]{article}
+\usepackage[margin=1in]{geometry}
+\pagestyle{empty}
+\usepackage{fontspec}
+\defaultfontfeatures{Ligatures={NoCommon}}
+\setmainfont{<<FONT_FILE>>}[
+  Extension      = .otf,
+  UprightFont    = *-regular,
+  BoldFont       = *-bold,
+  ItalicFont     = *-italic,
+  BoldItalicFont = *-bolditalic ]
+\usepackage[hidelinks]{hyperref}
+\usepackage{parskip}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\linespread{1.2}
+
+\begin{document}
+
+% --- Centered letterhead ---
+\begin{center}
+{\LARGE\bfseries <<FULL_NAME>>}\\[5pt]
+<<LOCATION>> \quad\textbar\quad \href{mailto:<<EMAIL>>}{<<EMAIL>>}
+\end{center}
+
+\vspace{26pt}
+
+{\Large\bfseries References}\\[3pt]
+For: <<ROLE>> (<<REQ_ID>>), <<COMPANY>>
+
+\vspace{24pt}
+
+%% REPEAT REFERENCE  (one block per referee; BOLD each label; drop lines not known)
+{\bfseries <<N>>.\quad <<REFEREE_NAME>>}\\[4pt]
+<<TITLE>> -- <<ORGANISATION>>\\[4pt]
+\textbf{Email:} \href{mailto:<<REF_EMAIL>>}{<<REF_EMAIL>>}\\[4pt]
+\textbf{LinkedIn:} \href{https://<<REF_LINKEDIN>>}{<<REF_LINKEDIN>>}\\[4pt]
+\textbf{Relationship:} <<HOW THE REFEREE KNOWS THE CANDIDATE'S WORK>>
+
+\vspace{26pt}
+%% END REPEAT REFERENCE
+
+\end{document}

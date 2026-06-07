@@ -56,6 +56,11 @@ Working from `templates/cv.tex.tmpl`:
 - **Projects/Education/Skills**: include Projects only if relevant; Skills line
   aligned to the JD's keywords.
 - Apply the active style rules (Step 5) and imitate the few-shots' voice (Step 6).
+- Apply the candidate's **house formatting** from `data/profile.yml`
+  `narrative.voice.formatting` (e.g. en dashes `--` not em dashes `---`; **bold** the
+  key metric/named system in each experience bullet; include a **References** section
+  when the master CV lists references; render an in-progress degree as a date range
+  with `(expected)`; quantify high output over short tenure with the timeframe).
 - **Escape every raw value** per the `_shared.md` LaTeX table (the `lib/text.mjs`
   `latexEscape` rules) — `& % $ # _ { } ~ ^ \`, smart quotes, dashes. Do not alter
   the preamble. Leave **no** `<<PLACEHOLDER>>` behind.

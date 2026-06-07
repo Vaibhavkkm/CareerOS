@@ -102,6 +102,17 @@ results-driven, detail-oriented, team player, passionate about, various, several
 successfully, in order to, a variety of. Prefer specific strong verbs: designed,
 built, shipped, cut, scaled, automated, led, migrated, reduced, increased, owned.
 
-**Cover letters:** exactly 3 paragraphs (hook with a researched specific signal /
-proof with quantified achievements mapped to the JD / confident close). No "To
-Whom It May Concern", no "I am writing to apply", no pleading.
+**Cover letters:** match the candidate's own reference letter's structure when they
+have one (often 4–5 short paragraphs); otherwise 3 (hook with a researched specific
+signal / proof with quantified achievements mapped to the JD / confident close). No
+"To Whom It May Concern", no "I am writing to apply", no pleading. Use ONE honesty
+cue if any; convert concessions into claims where there's real evidence.
+
+**Document formatting (CV / cover letter / references):** when the candidate has a
+reference document, MATCH its layout (letterhead alignment, justification, sign-off)
+rather than imposing template defaults. **Bold the field labels and key items** —
+Email:/LinkedIn:/Relationship: on a references sheet; named systems + metrics in CV
+and cover-letter bodies. Keep each document to ONE page by TRIMMING content, never
+by compressing line spacing or cramming the header. Apply the candidate's saved
+`data/profile.yml narrative.voice.formatting` every time. Stay strictly within the
+user's explicit request — never edit, or offer to change, a document they didn't ask about.

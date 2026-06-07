@@ -14,6 +14,22 @@ Trigger: `/og build-cl <report# | company | JD>`. Produces a tailored cover-lett
 - A specific, researched **hook signal** about the company (from the report's
   Block D/E, the `research` mode, or ask the user for one). No generic flattery.
 
+## Layout & house style (apply EVERY time — do not regress between drafts)
+- **If the candidate has a reference cover letter** in `data/writing-samples/`, MATCH
+  its layout exactly: letterhead alignment, whether contact lines are **stacked**,
+  body justification, paragraph count, and the sign-off. Their own letter — not this
+  template's defaults — is the source of truth for formatting.
+- **Apply `data/profile.yml narrative.voice.formatting` in full** every draft
+  (dashes, bolding, plain openings, single honesty cue, concessions→claims, phone
+  on/off, …). These are sticky preferences; never silently drop them.
+- **Bold the key metrics and named systems in the body** when the house style calls
+  for it — do not strip body bold unless the user's reference itself has none.
+- **One page is mandatory.** Achieve it by TRIMMING CONTENT, never by compressing
+  line spacing, shrinking the header, or cramming the contact onto one line. Verify
+  with `compile-latex.mjs` page count before handing off.
+- **Stay strictly within the user's explicit request.** Don't edit, remove from, or
+  even *offer* to change other documents (e.g. the CV) that the user didn't ask about.
+
 ## Step 0 — Gate
 Same threshold gate as `build-cv` (Step 0). A cover letter is most worth it for
 ≥4.0 fits or when the JD explicitly requests one.
@@ -25,7 +41,9 @@ Same 7-tier gather as `build-cv` Step 2, with these differences:
 - Lean harder on `data/profile.yml narrative.voice` (tone, sentence length,
   signature phrases, the `avoid` list) and `data/writing-samples/` if present.
 
-## Step 2 — Draft (exactly 3 body paragraphs)
+## Step 2 — Draft the body
+Paragraph count follows the candidate's reference letter when they have one (often
+4–5 short paragraphs); otherwise default to 3 (hook / proof / close).
 Fill `templates/cl.tex.tmpl`:
 - **Para 1 — hook**: why *this* company/role specifically; open with the
   concrete researched signal. No "I am writing to apply", no "To Whom It May Concern".
