@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use OfferForge in your work, please cite it as below."
+title: "OfferForge"
+abstract: >-
+  A Claude Code-native, LaTeX-first CV and cover-letter builder fused with a
+  job-application pipeline that learns from a user's own CV and cover letter to
+  produce tailored, ATS-safe documents. Runs locally with no server and no API key.
+type: software
+authors:
+  - name: "VaibhavKKM"
+version: "0.1.0"
+date-released: "2026-06-07"
+license: MIT
+repository-code: "https://github.com/Vaibhavkkm/OfferForge"
+url: "https://www.vaibhavkkm.com"
+keywords:
+  - curriculum-vitae
+  - cover-letter
+  - resume
+  - applicant-tracking-system
+  - job-search
+  - latex
+  - claude-code

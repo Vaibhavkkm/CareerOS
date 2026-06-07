@@ -228,3 +228,14 @@ data/                                 YOUR private layer — git-ignored, never 
 
 See [`DATA_CONTRACT.md`](DATA_CONTRACT.md) for exactly which files are yours vs. the
 system's, and [`CLAUDE.md`](CLAUDE.md) for how the agent is expected to behave.
+
+---
+
+## License & community
+
+- **License:** [MIT](LICENSE) — © 2026 VaibhavKKM.
+- **Contributing:** see [`CONTRIBUTING.md`](CONTRIBUTING.md).
+- **Code of Conduct:** [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
+- **Security:** report privately per [`SECURITY.md`](SECURITY.md).
+- **Changelog:** [`CHANGELOG.md`](CHANGELOG.md).
+- **Cite it:** [`CITATION.cff`](CITATION.cff).

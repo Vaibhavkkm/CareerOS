@@ -2,6 +2,7 @@
   "name": "offerforge",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "description": "Claude Code-native, LaTeX-first CV + Cover-Letter builder with a hybrid learning loop and a job-application pipeline.",
   "engines": {
