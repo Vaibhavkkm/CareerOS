@@ -61,6 +61,23 @@ Working from `templates/cv.tex.tmpl`:
   the preamble. Leave **no** `<<PLACEHOLDER>>` behind.
 - Keep it **one page** unless the user is clearly senior enough for two.
 
+## Step 3.5 — Self-check & revise (REQUIRED, before the snapshot)
+Before treating the draft as done, critique YOUR OWN output against this checklist
+and **revise until it passes** — the user should rarely have to fix these. This
+self-correction is the single biggest driver of a first draft that lands:
+1. **Truth** — every bullet, metric, employer, title, and date traces to
+   `data/cv.master.md` / `data/profile.yml`. Cut or soften anything you can't ground.
+2. **ATS keywords** — the role's must-have keywords (Step 1) appear, in the JD's
+   casing, but ONLY inside real achievements. Name any required keyword you truthfully
+   can't include (a genuine gap — never fake it).
+3. **Voice** — matches `narrative.voice` (tone, sentence length, signature phrases)
+   and the active style rules (Step 5); contains **no** word from the `avoid`/banned list.
+4. **Bullets** — each is strong-verb + quantified real outcome; no filler ("worked on",
+   "responsible for", "passionate"); most JD-relevant first.
+5. **Format** — one page (unless senior), zero `<<PLACEHOLDER>>` left, every special
+   char escaped per `_shared.md`.
+Do at least one revision pass. Briefly note to yourself what you changed (or "clean").
+
 ## Step 4 — Snapshot for the learning loop (REQUIRED, before compiling)
 1. Choose an `app-id` (e.g. `acme-backend`) and a timestamp `ts` (`YYYYMMDD-HHMMSS`).
 2. Create `data/style/edits/<ts>__<app-id>/` and write:

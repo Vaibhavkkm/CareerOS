@@ -17,13 +17,21 @@ Run the steps in order. If a step fails (bad fetch, compile error, missing fact)
 every failure in the final hand-off. Human-in-the-loop throughout: you stop at
 "present results + recommended action" — you NEVER submit (see `_shared.md`).
 
-## Step 0 — Extract the JD
-1. If the input is a **URL**: fetch it (WebFetch). If the fetch fails or is
-   paywalled/login-walled, say so and ask the user to paste the JD text; mark
-   Step 0 degraded and proceed with whatever you have.
-2. If the input is **pasted text**: use it directly.
-3. Pull `company`, `role`, source `url` (if any), and the full requirements text.
-   If you can't identify company or role, ask once; don't guess into a tracker row.
+## Step 0 — Scrape the FULL posting
+1. If the input is a **URL**: run `node scripts/fetch-jd.mjs "<url>" --json` FIRST.
+   It scrapes the entire posting — via the ATS's own API for Greenhouse / Lever /
+   Ashby / Workable / Recruitee / SmartRecruiters, else the page HTML — and saves
+   the full text to `data/jds/`. Use its `saved_to` file as the JD.
+   - If it returns `needs_agent_fetch: true` (JS-rendered / login-walled / blocked),
+     **WebFetch the URL yourself** as a fallback, then save what you captured to
+     `data/jds/<company>-<role>-<DATE>.md` and continue.
+   - If both fail, say so, ask the user to paste the JD, and mark Step 0 degraded.
+2. If the input is **pasted text** or a `data/jds/<file>`: use it directly.
+3. Capture EVERYTHING the employer posted — not just the requirements: company,
+   role, location/remote, comp + benefits, responsibilities, must-haves AND
+   nice-to-haves, tech stack, team, application questions, deadlines, and any
+   company blurb. Keep the source `url`. If you can't identify company or role, ask
+   once; don't guess into a tracker row.
 
 ## Step 1 — Evaluate (always runs)
 Run the **`evaluate.md`** playbook on the extracted JD. That produces the A–G

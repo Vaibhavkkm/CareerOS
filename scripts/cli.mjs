@@ -22,6 +22,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 export const COMMANDS = {
   doctor: 'doctor.mjs',
   compile: 'compile-latex.mjs',
+  'fetch-jd': 'fetch-jd.mjs',
   scan: 'scan.mjs',
   merge: 'merge-tracker.mjs',
   tracker: 'tracker.mjs',
@@ -30,6 +31,7 @@ export const COMMANDS = {
   followup: 'followup.mjs',
   analyze: 'analyze.mjs',
   batch: 'batch.mjs',
+  'seed-examples': 'seed-examples.mjs',
   'style:diff': 'style-diff.mjs',
   'style:profile': 'style-profile.mjs',
   'style:retrieve': 'style-retrieve.mjs',
@@ -93,8 +95,8 @@ async function selfTest() {
 
   // 1) The routing table covers exactly the documented commands.
   const expected = [
-    'doctor', 'compile', 'scan', 'merge', 'tracker', 'render', 'verify',
-    'followup', 'analyze', 'batch', 'style:diff', 'style:profile', 'style:retrieve',
+    'doctor', 'compile', 'fetch-jd', 'scan', 'merge', 'tracker', 'render', 'verify',
+    'followup', 'analyze', 'batch', 'seed-examples', 'style:diff', 'style:profile', 'style:retrieve',
   ];
   eq(Object.keys(COMMANDS).length, expected.length, 'command count matches');
   for (const c of expected) ok(COMMANDS[c], `command "${c}" is mapped`);

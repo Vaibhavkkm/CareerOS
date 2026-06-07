@@ -18,7 +18,8 @@ cost nothing to run), and every document is a LaTeX file turned into a PDF by
 
 ## What it does, in plain words
 
-1. **You bring three things:** a job description, your own CV, and a cover letter
+1. **You bring three things:** a job posting (paste the text, *or just share the
+   URL* — it scrapes the whole posting for you), your own CV, and a cover letter
    you've written before.
 2. **It learns from you.** It reads your CV for the *facts* (where you worked, what
    you did, your real numbers) and reads your cover letter for your *voice* (how you
@@ -26,9 +27,11 @@ cost nothing to run), and every document is a LaTeX file turned into a PDF by
 3. **It tailors for the job.** For a specific posting, it writes a new CV and cover
    letter that highlight the parts of *your real experience* that match the job, and
    slot in the keywords an applicant-tracking system (ATS) screens for — without
-   ever making up experience you don't have.
+   ever making up experience you don't have. It then **proofreads its own draft**
+   against your voice and the job's must-haves and revises before showing you.
 4. **It gets better the more you use it.** Every time you edit a draft, it notices
-   what you changed and remembers your preferences for next time.
+   what you changed and remembers your preferences for next time (see
+   [how the learning works](#how-the-learning-works-its-not-a-black-box) below).
 5. **It helps with the whole hunt, not just documents:** score a job before you
    apply, scan job boards, track your applications, schedule follow-ups, and prep
    for interviews.
@@ -116,9 +119,32 @@ you edit the draft  ──────────┘
   anything the tool learned about style — so it changes *wording*, never *facts*.
 - **It needs to see a preference twice** before acting on it, so one stray edit
   doesn't throw off your style.
+- **Warm start.** During onboarding it banks your *existing* CV bullets and
+  cover-letter paragraphs as examples, so the very first draft is already in your
+  voice — no cold start, no "train it a few times first."
+- **Self-correcting.** Before you ever see a draft, OfferForge grades it against
+  your voice + the job's must-have keywords + the no-fabrication/no-filler rules,
+  and revises until it passes.
 - **Nothing is lost.** Style preferences are versioned and logged, and the whole
   learned profile can be rebuilt from scratch from your saved drafts.
-- **No cloud, no API.** The matching uses simple, transparent math on your machine.
+
+### How the learning works (it's not a black box)
+
+There's **no trained ML model and no neural network of its own**, and it is **not**
+some hidden "memory." Two simple, inspectable parts:
+
+1. **Claude (a frontier AI model) does the writing and the judgement** — reading
+   your edits and phrasing a rule like *"prefer 'built' over 'worked on'."*
+2. **Plain local files remember it.** Your preferences live as readable JSON in
+   `data/style/` (rules + your banked example bullets). Picking which of your past
+   examples to reuse is done with **TF-IDF** — classic keyword-matching arithmetic,
+   run on your machine. No training, no API, no cloud, no vendor lock-in. You can
+   open the files and read exactly what it learned, and rebuild it any time.
+
+> Why not "train a custom model"? For one person's handful of documents that would
+> overfit and actually write *worse* than a frontier model guided by your real
+> examples. Showing your examples in-context is the stronger, state-of-the-art
+> approach here.
 
 ---
 
@@ -127,9 +153,19 @@ you edit the draft  ──────────┘
 OfferForge is in **active development**. Here's the honest picture:
 
 ### ✅ Working and tested
-- **The engine.** ~20 "mode" playbooks (evaluate, build-cv, build-cl, scan, track,
-  follow-up, interview-prep, compare, negotiate, and more), 15 helper scripts, and
-  shared libraries. Automated self-tests pass (`npm test` → 160 checks green).
+- **The engine.** ~21 "mode" playbooks (onboard, evaluate, build-cv, build-cl, scan,
+  track, follow-up, interview-prep, compare, negotiate, and more), 17 helper scripts,
+  and shared libraries. Automated self-tests pass (`npm test` → **305 checks green**).
+- **Share a URL → it scrapes the whole posting.** `fetch-jd` pulls the *complete*
+  job from the ATS's own API (Greenhouse, Lever, Recruitee, SmartRecruiters) or the
+  page HTML (Ashby, Workable, and any other site), saves it locally, and falls back
+  to an in-session fetch for JS-heavy pages. Verified live against a real posting.
+- **In-voice from draft #1.** Onboarding warm-starts the example bank from *your*
+  existing CV bullets + cover-letter paragraphs (`seed-examples`), so the first
+  draft already sounds like you.
+- **Self-correcting drafts.** Every CV/cover letter is graded against your voice,
+  the job's must-have keywords, and the no-fabrication/no-filler rules, then revised
+  before you see it.
 - **Clean LaTeX → PDF output.** CVs and cover letters compile through `tectonic`
   and pass an automated ATS check (real selectable text, keywords extractable,
   no broken characters, sensible section order).
@@ -145,16 +181,16 @@ OfferForge is in **active development**. Here's the honest picture:
 - **Onboarding for anyone.** The new `/og onboard` flow (upload your CV + cover
   letter → it sets you up) is freshly built and needs testing against many real CV
   formats and layouts.
-- **Reading uploaded files.** Today the agent reads your CV/cover letter directly
-  (with `pdftotext` for PDFs). A dedicated, deterministic parser script is planned
-  for more reliable extraction.
+- **Reading your uploaded CV/cover letter.** Job *postings* from a URL are now
+  scraped deterministically (`fetch-jd`). Turning *your* uploaded CV/Word doc into
+  `cv.master.md` is still done by the agent reading the file (with `pdftotext` for
+  PDFs) — reliable, but a dedicated parser script would make it reproducible.
 - **CV quality checks.** Flagging vague, un-quantified bullets is partly manual
   right now.
 
 ### ⏳ Planned / nice-to-have
-- A standalone CV/cover-letter parsing script.
-- Seeding your example bank directly from an uploaded cover letter (not just from
-  edits over time).
+- A standalone parser for the user's uploaded CV/Word document.
+- Optional semantic (embedding) example search, for when an example bank grows large.
 - More job-board sources and more document templates/themes.
 
 ---
@@ -162,8 +198,9 @@ OfferForge is in **active development**. Here's the honest picture:
 ## For developers
 
 ```bash
-npm test                       # run all script + library self-tests
+npm test                       # run all script + library self-tests (305 checks)
 node scripts/doctor.mjs        # check your environment and setup
+node scripts/fetch-jd.mjs "https://boards.greenhouse.io/acme/jobs/123" --summary   # scrape a posting
 node scripts/compile-latex.mjs data/output/cv-*.tex --kind cv --keywords "Python,SQL" --json
 ```
 
@@ -179,7 +216,7 @@ CLAUDE.md   DATA_CONTRACT.md          project notes + the data rules
 modes/                                the playbooks the agent follows (incl. onboard.md)
 templates/                            CV/cover-letter LaTeX templates, schemas, example configs
 lib/                                  shared helper code
-scripts/                              the zero-cost tools (compile, scan, track, learn, …)
+scripts/                              the zero-cost tools (fetch-jd, seed-examples, compile, scan, track, learn, …)
 scripts/providers/                    job-board sources (greenhouse, ashby, lever, …)
 data/                                 YOUR private layer — git-ignored, never committed
 ```

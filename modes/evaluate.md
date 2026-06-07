@@ -8,8 +8,12 @@ registers/advances the tracker. No CV is built here — that's `build-cv`.
 > + `data/cv.master.md` (+ `data/article-digest.md`) → `data/_profile.md` (last wins).
 
 ## Inputs you need
-- The **JD**: pasted text, a URL (fetch it; if you can't, ask the user to paste),
-  or `data/jds/<file>`. Capture the source `url` if there is one.
+- The **JD**: pasted text, a `data/jds/<file>`, or a URL. For a URL, scrape the
+  WHOLE posting with `node scripts/fetch-jd.mjs "<url>" --json` (it works via the
+  ATS API or the page HTML and saves the full posting to `data/jds/`); if it
+  returns `needs_agent_fetch: true`, WebFetch the URL yourself and save it to
+  `data/jds/`. Capture everything the employer posted — comp, benefits, team,
+  application questions, not just requirements. Keep the source `url`.
 - **Master facts**: `data/cv.master.md` + `data/profile.yml` (identity,
   `target_roles`, `compensation`, `location`, `narrative`). Ground truth — these
   win every conflict. **Never invent** experience, metrics, or qualifications.

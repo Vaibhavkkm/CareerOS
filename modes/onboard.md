@@ -62,22 +62,36 @@ the user's answers; leave judgment fields for the user:
 - `cv.font`: default `texgyretermes` unless they prefer another installed font.
 Show a diff/preview and get explicit approval before writing `data/profile.yml`.
 
-## Step 4 — Learn the user's voice from their cover letter + samples
-This is the "learn from your uploaded cover letter" step, and it reuses the
-verified voice machinery:
-1. Save each uploaded cover letter / writing sample into `data/writing-samples/`
-   (e.g. `data/writing-samples/cover-letter-2026.md`). These are prose the user
-   actually wrote — `build-cv`/`build-cl` read this folder directly.
-2. Run the **`recalibrate-voice`** flow (`modes/recalibrate-voice.md`): infer
-   `tone`, `sentence_length`, `signature_phrases`, and `avoid` from those samples,
-   cite the evidence, show the diff, and (on approval) write ONLY the
-   `narrative.voice` block of `data/profile.yml`.
-3. If no samples were provided, say so and proceed with a neutral default voice —
-   the loop will sharpen it from the user's edits later via `style-learn`.
+## Step 4 — Learn the user's voice from their CV + cover letter (warm start)
+This is the "learn from your uploaded CV and cover letter" step. It reuses the
+verified machinery and means the FIRST draft is already in-voice — no cold start:
+
+1. **Save prose samples.** Put each uploaded cover letter / writing sample into
+   `data/writing-samples/` (e.g. `data/writing-samples/cover-letter-2026.md`).
+   `build-cv`/`build-cl` read this folder directly.
+
+2. **Warm-start the example bank** from what they wrote, so the loop has real
+   in-voice few-shots before any edit happens:
+   - From their CV bullets:
+     `node scripts/seed-examples.mjs --kind cv --from <their-cv.md|jds-style text> --archetype "<primary archetype>" --skills "<their top skills>"`
+   - From their cover letter (if uploaded):
+     `node scripts/seed-examples.mjs --kind cl --from data/writing-samples/<their-cl>.md`
+   This banks their real bullets/paragraphs into `data/style/examples.jsonl`
+   (same TF/IDF + near-dup guard as the learning loop), so the first `build-cv`/
+   `build-cl` retrieves THEIR wording as examples, not a generic template.
+
+3. **Distil the voice rules.** Run the **`recalibrate-voice`** flow
+   (`modes/recalibrate-voice.md`): infer `tone`, `sentence_length`,
+   `signature_phrases`, and `avoid` from the samples, cite the evidence, show the
+   diff, and (on approval) write ONLY the `narrative.voice` block of
+   `data/profile.yml`.
+
+4. If no CV/CL prose was provided, say so and proceed with a neutral default
+   voice — the loop will sharpen it from the user's edits later via `style-learn`.
 
 > Result: before the first generation, `narrative.voice` + `data/writing-samples/`
-> already encode how this user writes. The `data/style/` example bank then grows
-> automatically as they edit drafts and run **"learn from my edits"**.
+> + a warm `data/style/examples.jsonl` already encode how this user writes. The
+> bank keeps growing as they edit drafts and run **"learn from my edits"**.
 
 ## Step 5 — Verify setup
 Run `node scripts/doctor.mjs`. Resolve any remaining ❌ (most commonly: a still-

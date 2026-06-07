@@ -37,6 +37,19 @@ Fill `templates/cl.tex.tmpl`:
 - `<<FONT_FILE>>` = `data/profile.yml cv.font` (default `texgyretermes`).
 - Escape every raw value (the `_shared.md` LaTeX table). No `<<...>>` left behind.
 
+## Step 2.5 — Self-check & revise (REQUIRED, before the snapshot)
+Critique your OWN letter against this checklist and **revise until it passes** —
+this pass is what makes it sound like the user, not a template:
+1. **Truth** — every claim and number is grounded in `cv.master.md` / `profile.yml`.
+2. **Hook** — para 1 opens with the specific researched signal; no generic flattery,
+   no "I am writing to apply", no "To Whom It May Concern".
+3. **Proof** — para 2 maps 1–2 quantified REAL achievements to the JD's top needs.
+4. **Voice** — matches `narrative.voice` + `data/writing-samples/` + `doc:cl` style
+   rules; no word from the `avoid`/banned list; confident, not pleading.
+5. **Format** — exactly 3 body paragraphs, one page, NO compensation and NO phone
+   number on the letter, zero `<<PLACEHOLDER>>`, specials escaped per `_shared.md`.
+Do at least one revision pass, then proceed.
+
 ## Step 3 — Snapshot (REQUIRED, before compiling)
 Create `data/style/edits/<ts>__<app-id>/` with `ai_draft.tex` (this letter) and
 `context.json` (`doc_kind:"cl"`, archetype, jd_path, target_role, etc.). Write the
