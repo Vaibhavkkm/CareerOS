@@ -36,24 +36,40 @@ export function assertSafeUrl(url) {
   return parsed;
 }
 
-async function fetchWithTimeout(url, {
+// One request under a single timeout that ALSO covers reading the body — aborting
+// the controller cancels an in-flight body stream, so a server that returns 200
+// then slow-drips a huge body can't hang us. When maxRedirects > 0 we follow
+// redirects MANUALLY and re-run the SSRF guard on every hop, so a 3xx pointing at
+// a private/internal host can't slip past the initial assertSafeUrl(url).
+async function fetchParsed(url, {
   timeoutMs = DEFAULT_TIMEOUT_MS,
   headers = {},
   method = 'GET',
   body = null,
   redirect = 'follow',
+  maxRedirects = 0,
+  parse = 'text',
 } = {}) {
   assertSafeUrl(url);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const hdrs = { 'user-agent': DEFAULT_USER_AGENT, ...headers };
   try {
-    const res = await fetch(url, {
-      method,
-      headers: { 'user-agent': DEFAULT_USER_AGENT, ...headers },
-      body,
-      redirect,
-      signal: controller.signal,
-    });
+    let res;
+    if (maxRedirects > 0) {
+      let current = String(url);
+      let hops = 0;
+      for (;;) {
+        res = await fetch(current, { method, headers: hdrs, body, redirect: 'manual', signal: controller.signal });
+        const loc = (res.status >= 300 && res.status < 400) ? res.headers.get('location') : null;
+        if (!loc) break;
+        if (++hops > maxRedirects) throw new Error(`too many redirects (>${maxRedirects}): ${url}`);
+        current = new URL(loc, current).toString();
+        assertSafeUrl(current); // re-validate EVERY hop — closes the redirect SSRF hole
+      }
+    } else {
+      res = await fetch(url, { method, headers: hdrs, body, redirect, signal: controller.signal });
+    }
     if (!res.ok) {
       const text = await res.text().catch(() => '');
       const snippet = text.replace(/\s+/g, ' ').trim().slice(0, 300);
@@ -61,7 +77,7 @@ async function fetchWithTimeout(url, {
       err.status = res.status;
       throw err;
     }
-    return res;
+    return parse === 'json' ? await res.json() : await res.text();
   } catch (err) {
     if (err.name === 'AbortError') {
       throw new Error(`request timed out after ${timeoutMs}ms: ${url}`);
@@ -72,15 +88,8 @@ async function fetchWithTimeout(url, {
   }
 }
 
-export async function fetchJson(url, opts = {}) {
-  const res = await fetchWithTimeout(url, opts);
-  return res.json();
-}
-
-export async function fetchText(url, opts = {}) {
-  const res = await fetchWithTimeout(url, opts);
-  return res.text();
-}
+export async function fetchJson(url, opts = {}) { return fetchParsed(url, { ...opts, parse: 'json' }); }
+export async function fetchText(url, opts = {}) { return fetchParsed(url, { ...opts, parse: 'text' }); }
 
 // The ctx object handed to every provider.fetch(entry, ctx).
 export function makeHttpCtx() {

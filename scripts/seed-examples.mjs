@@ -45,7 +45,7 @@ function stripMarker(line) {
 // A line that's a section header / contact line, not a bullet (ALL CAPS, ends
 // with ':', or looks like an email/phone/URL).
 function looksLikeHeaderOrContact(line) {
-  const t = line.trim();
+  const t = String(line).trim();
   if (!t) return true;
   if (/^[A-Z0-9 &/]+:?$/.test(t) && t.length < 40) return true;  // SUMMARY, SKILLS, EXPERIENCE
   if (/[\w.+-]+@[\w-]+\.[\w.]+/.test(t)) return true;             // email
@@ -63,7 +63,7 @@ export function splitCvUnits(text) {
     if (/^\s*(\\item|[-*•·▪]|\d+[.)])\s+/.test(raw)) {
       const t = stripMarker(raw);
       if (wc(t) >= MIN_BULLET_WORDS) markered.push(t);
-    } else if (!looksLikeHeaderOrContact(raw) && wc(raw) >= 5) {
+    } else if (!looksLikeHeaderOrContact(raw) && wc(raw) >= MIN_BULLET_WORDS + 1) {
       plain.push(raw.trim());
     }
   }
@@ -79,7 +79,7 @@ export function splitClUnits(text) {
     .map((p) => p.replace(/\s+/g, ' ').trim())
     .filter((p) => wc(p) >= MIN_PARA_WORDS)
     // drop greeting/sign-off lines that slipped through
-    .filter((p) => !/^(dear|hi|hello|sincerely|regards|best|thank you|yours)\b/i.test(p) || wc(p) >= MIN_PARA_WORDS + 8);
+    .filter((p) => !/^(dear|hi|hello|sincerely|regards|best|warm regards|kind regards|thank you|thanks|yours|cheers)\b/i.test(p) || wc(p) >= MIN_PARA_WORDS + 8);
   return dedupeExact(paras);
 }
 
@@ -205,6 +205,9 @@ export function selfTest() {
   eq(clUnits.length, 2, `cl: 2 real paragraphs (got ${clUnits.length})`);
   ok(clUnits[0].includes('privacy-preserving'), 'cl: first body paragraph kept');
   ok(!clUnits.some((u) => /^Thanks$/.test(u)), 'cl: short sign-off dropped');
+  // a longer "Thanks ..." sign-off (18 words, < the keep-anyway threshold) is dropped
+  const thanksSignoff = 'Thanks so much for taking the time to review my application and considering me for this role today.';
+  eq(splitClUnits(thanksSignoff).length, 0, 'cl: a "Thanks ..." sign-off paragraph is dropped');
 
   // buildSeedDiff shape
   const d = buildSeedDiff(['a bullet here ok'], 'cv', 'seed-user_cv');

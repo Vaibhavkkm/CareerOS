@@ -52,16 +52,19 @@ function safeCodePoint(n) {
 // block-level tags into line breaks, list items into "- ", strip the rest, then
 // decode entities and tidy whitespace. Tolerant — never throws on weird markup.
 export function htmlToText(html) {
+  // Strip tags FIRST, decode entities AFTER — the correct order. Decoding first
+  // would turn an entity-encoded ">" inside an attribute (e.g. data-x="&gt;") into
+  // a literal ">" and corrupt the tag-strip regex. Content that arrives FULLY
+  // entity-encoded (e.g. Greenhouse's `content`, where the tags themselves are
+  // "&lt;p&gt;") must be decodeEntities()'d ONCE by the caller before reaching
+  // here — see normalizeGreenhouse.
   let s = String(html == null ? '' : html);
-  // entity-decode FIRST so entity-encoded markup (e.g. Greenhouse "&lt;p&gt;")
-  // becomes real tags we can then convert to line breaks.
-  s = decodeEntities(s);
   s = s.replace(/<\s*(script|style|noscript|svg|head)[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, ' ');
   s = s.replace(/<\s*(br|hr)\s*\/?\s*>/gi, '\n');
   s = s.replace(/<\s*li[^>]*>/gi, '\n- ');
   s = s.replace(/<\s*\/\s*(p|div|li|ul|ol|tr|h[1-6]|section|article|header|footer)\s*>/gi, '\n');
   s = s.replace(/<[^>]+>/g, ''); // strip any remaining tags
-  s = decodeEntities(s); // decode entities that were themselves encoded
+  s = decodeEntities(s);         // decode entities now that the tags are gone
   s = s.replace(/[ \t\f\v]+/g, ' ');
   s = s.replace(/ *\n */g, '\n').replace(/\n{3,}/g, '\n\n');
   return s.trim();
@@ -140,8 +143,10 @@ export function detectAts(url) {
   // Recruitee: <company>.recruitee.com/o/<slug> (or /career/...)
   if (host.endsWith('.recruitee.com')) {
     const company = host.slice(0, -'.recruitee.com'.length);
-    const oIdx = segs.indexOf('o');
-    const slug = oIdx >= 0 ? (segs[oIdx + 1] || '') : '';
+    const oIdx = segs.indexOf('o');         // .../o/<slug>
+    const careerIdx = segs.indexOf('career'); // .../career/<id>-<slug>
+    const slug = oIdx >= 0 ? (segs[oIdx + 1] || '')
+      : (careerIdx >= 0 ? (segs[careerIdx + 1] || '') : '');
     if (company && company !== 'www') return { ats: 'recruitee', company, slug };
   }
 
@@ -307,15 +312,16 @@ export async function fetchPosting(url, ctx = makeHttpCtx()) {
   // 1) ATS JSON API (most complete).
   if (apiReq) {
     try {
-      const json = await ctx.fetchJson(apiReq.url, { method: apiReq.method || 'GET', headers: apiReq.headers, body: apiReq.body, redirect: 'follow' });
+      const json = await ctx.fetchJson(apiReq.url, { method: apiReq.method || 'GET', headers: apiReq.headers, body: apiReq.body, redirect: 'error' });
       const posting = normalizeByAts(detected.ats, json, url);
       if (posting && posting.content) return { ok: true, posting, source: posting.source, needs_agent_fetch: false };
     } catch { /* fall through to HTML */ }
   }
 
-  // 2) Generic HTML scrape of the page itself.
+  // 2) Generic HTML scrape of the page itself. Follow up to 5 redirects, each
+  //    re-checked against the SSRF guard (see _http.mjs fetchParsed).
   try {
-    const html = await ctx.fetchText(url, { redirect: 'follow' });
+    const html = await ctx.fetchText(url, { maxRedirects: 5 });
     const posting = normalizeGenericHtml(html, url);
     if (posting.content && posting.content.length > 40) {
       // tag the ATS we detected even though we scraped HTML, for transparency
@@ -402,7 +408,8 @@ export function selfTest() {
   eq(htmlToText('<p>Hello <b>world</b></p>'), 'Hello world', 'htmlToText basic');
   eq(htmlToText('<script>var x=1<2;</script><p>Body</p>'), 'Body', 'htmlToText drops script');
   ok(htmlToText('<ul><li>One</li><li>Two</li></ul>').includes('- One'), 'htmlToText li → bullet');
-  eq(htmlToText('&lt;p&gt;Encoded&lt;/p&gt;'), 'Encoded', 'htmlToText decodes entity-encoded markup (Greenhouse-style)');
+  eq(htmlToText(decodeEntities('&lt;p&gt;Encoded&lt;/p&gt;')), 'Encoded', 'htmlToText after caller pre-decode (Greenhouse path)');
+  eq(htmlToText('<div data-x="&gt;">text</div>'), 'text', 'htmlToText: entity-encoded > in an attribute does not corrupt output');
 
   // slug + filename
   eq(slugify('Senior Backend Engineer (Remote)!'), 'senior-backend-engineer-remote', 'slugify');
@@ -423,6 +430,8 @@ export function selfTest() {
   ok(wk && wk.ats === 'workable' && wk.account === 'acme' && wk.shortcode === 'ABC123', 'detect workable job');
   const rc = detectAts('https://acme.recruitee.com/o/senior-engineer');
   ok(rc && rc.ats === 'recruitee' && rc.company === 'acme' && rc.slug === 'senior-engineer', 'detect recruitee job');
+  const rcCareer = detectAts('https://acme.recruitee.com/career/12345-senior-engineer');
+  ok(rcCareer && rcCareer.ats === 'recruitee' && rcCareer.slug === '12345-senior-engineer', 'detect recruitee /career/ job');
   const sr = detectAts('https://jobs.smartrecruiters.com/Acme/743999992-staff-engineer');
   ok(sr && sr.ats === 'smartrecruiters' && sr.company === 'Acme' && sr.postingId === '743999992', 'detect smartrecruiters job');
   ok(detectAts('https://example.com/careers/123') === null, 'detect unknown host → null');
