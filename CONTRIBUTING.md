@@ -1,14 +1,14 @@
-# Contributing to OfferForge
+# Contributing to CareerOS
 
-Thanks for your interest in improving OfferForge. This guide explains how the
+Thanks for your interest in improving CareerOS. This guide explains how the
 project is laid out, how to set up a dev environment, and the conventions a change
 needs to follow to be merged.
 
 By participating you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
 
-## What OfferForge is (and the rules that follow from it)
+## What CareerOS is (and the rules that follow from it)
 
-OfferForge is a **Claude Code-native, LaTeX-first** CV + cover-letter builder fused
+CareerOS is a **Claude Code-native, LaTeX-first** CV + cover-letter builder fused
 with a job-application pipeline. The "AI" is the in-session Claude Code agent —
 **there is no server and no API key.** Deterministic, mechanical work lives in
 `scripts/*.mjs` (zero tokens); judgment and writing live in `modes/*.md` playbooks;
@@ -21,7 +21,7 @@ Three non-negotiables for any contribution:
    phone numbers, or generated PDFs to the repo. See [DATA_CONTRACT.md](DATA_CONTRACT.md).
 2. **Never fabricate.** The system grounds every claim in the user's own data and
    refuses to invent experience, metrics, employers, or dates. Keep it that way.
-3. **Human-in-the-loop, local-first.** OfferForge generates and recommends; it never
+3. **Human-in-the-loop, local-first.** CareerOS generates and recommends; it never
    auto-submits an application, and it never phones home. No new network dependency
    should be added without a strong reason and the SSRF-guarded transport in
    `scripts/providers/_http.mjs`.
@@ -30,7 +30,7 @@ Three non-negotiables for any contribution:
 
 | Path | What it is |
 |------|------------|
-| `.claude/skills/offerforge/SKILL.md` | The `/og` command router |
+| `.claude/skills/careeros/SKILL.md` | The `/cos` command router |
 | `modes/*.md` | Prompt-as-program playbooks (the judgement layer) |
 | `modes/_shared.md` | Shared rubric, archetypes, guardrails, LaTeX/ATS rules |
 | `scripts/*.mjs` | Deterministic zero-token tools; each ships a `--self-test` |
@@ -73,7 +73,7 @@ PDF reading. Node 20+ is required.
 
 - **A new mode** — write `modes/<name>.md` as a playbook (state the trigger, load
   order, numbered steps, and a "Never" list), then add a row to the router table in
-  `.claude/skills/offerforge/SKILL.md`.
+  `.claude/skills/careeros/SKILL.md`.
 - **A new script/tool** — follow the conventions above, register it in
   `scripts/cli.mjs` (`COMMANDS` + the self-test's `expected` list) and in
   `package.json` (`scripts` + `test`).

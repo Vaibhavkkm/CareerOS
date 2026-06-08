@@ -365,4 +365,4 @@ function selfTest() {
   process.exit(0);
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) { main(); }
+if (import.meta.url === pathToFileURL(process.argv[1] || '').href) { main(); }

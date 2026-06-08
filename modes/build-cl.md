@@ -1,6 +1,6 @@
 # mode: build-cl — generate a tailored, ATS-safe LaTeX cover letter
 
-Trigger: `/og build-cl <report# | company | JD>`. Produces a tailored cover-letter
+Trigger: `/cos build-cl <report# | company | JD>`. Produces a tailored cover-letter
 `.tex`, compiles it, and snapshots the draft for the learning loop. Same loop as
 `build-cv`, tuned for prose voice.
 

@@ -1,5 +1,5 @@
 # =====================================================================
-#  OfferForge portal config  (EXAMPLE)
+#  CareerOS portal config  (EXAMPLE)
 #  Copy to  data/portals.yml  and edit. Consumed ONLY by scripts/scan.mjs.
 # =====================================================================
 

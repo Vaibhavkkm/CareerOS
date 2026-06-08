@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// scripts/cli.mjs — thin dispatcher for the offerforge toolchain.
+// scripts/cli.mjs — thin dispatcher for the careeros toolchain.
 //
-// Forwards `node scripts/cli.mjs <cmd> [...args]` (and the `offerforge` bin)
+// Forwards `node scripts/cli.mjs <cmd> [...args]` (and the `careeros` bin)
 // to the matching script in scripts/, preserving stdio and exit status.
 //
 // Usage:
 //   node scripts/cli.mjs <cmd> [...args]
-//   offerforge <cmd> [...args]            # via package "bin"
+//   careeros <cmd> [...args]            # via package "bin"
 //   node scripts/cli.mjs                   # prints the command list
 //   node scripts/cli.mjs --self-test       # asserts the routing table
 //
@@ -37,6 +37,8 @@ export const COMMANDS = {
   'style:diff': 'style-diff.mjs',
   'style:profile': 'style-profile.mjs',
   'style:retrieve': 'style-retrieve.mjs',
+  'hunt-ingest': 'hunt-ingest.mjs',
+  'ui-queue': 'ui-queue.mjs',
 };
 
 // Resolve a command name to an absolute script path, or null if unknown.
@@ -49,9 +51,9 @@ export function helpText() {
   const names = Object.keys(COMMANDS);
   const width = Math.max(...names.map((n) => n.length));
   const lines = [
-    'offerforge — Claude Code-native CV + cover-letter pipeline',
+    'careeros — Claude Code-native CV + cover-letter pipeline',
     '',
-    'Usage: offerforge <command> [...args]',
+    'Usage: careeros <command> [...args]',
     '',
     'Commands:',
     ...names.map((n) => `  ${n.padEnd(width)}  ->  scripts/${COMMANDS[n]}`),
@@ -99,6 +101,7 @@ async function selfTest() {
   const expected = [
     'doctor', 'compile', 'fetch-jd', 'board', 'match-score', 'scan', 'merge', 'tracker', 'render', 'verify',
     'followup', 'analyze', 'batch', 'seed-examples', 'style:diff', 'style:profile', 'style:retrieve',
+    'hunt-ingest', 'ui-queue',
   ];
   eq(Object.keys(COMMANDS).length, expected.length, 'command count matches');
   for (const c of expected) ok(COMMANDS[c], `command "${c}" is mapped`);
@@ -110,6 +113,8 @@ async function selfTest() {
   eq(COMMANDS.verify, 'verify-pipeline.mjs', 'verify -> verify-pipeline.mjs');
   eq(COMMANDS['style:diff'], 'style-diff.mjs', 'style:diff -> style-diff.mjs');
   eq(COMMANDS['style:retrieve'], 'style-retrieve.mjs', 'style:retrieve -> style-retrieve.mjs');
+  eq(COMMANDS['hunt-ingest'], 'hunt-ingest.mjs', 'hunt-ingest -> hunt-ingest.mjs');
+  eq(COMMANDS['ui-queue'], 'ui-queue.mjs', 'ui-queue -> ui-queue.mjs');
 
   // 3) resolveScript returns absolute paths inside scripts/ for known cmds, null otherwise.
   const p = resolveScript('doctor');

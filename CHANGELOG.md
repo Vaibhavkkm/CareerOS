@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to OfferForge are recorded here. The format is based on
+All notable changes to CareerOS are recorded here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and the project aims to follow
 [Semantic Versioning](https://semver.org/).
 
@@ -28,7 +28,7 @@ All notable changes to OfferForge are recorded here. The format is based on
 
 ## [0.1.0] — 2026-06-07
 
-First public release. OfferForge is a Claude Code-native, LaTeX-first CV +
+First public release. CareerOS is a Claude Code-native, LaTeX-first CV +
 cover-letter builder fused with a job-application pipeline that learns from your
 own documents — no server, no API key.
 

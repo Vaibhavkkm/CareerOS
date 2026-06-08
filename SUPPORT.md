@@ -1,6 +1,6 @@
 # Support
 
-Need help with OfferForge? Here's where to go.
+Need help with CareerOS? Here's where to go.
 
 ## First steps
 
@@ -11,11 +11,11 @@ Need help with OfferForge? Here's where to go.
 
 ## Asking a question or reporting a problem
 
-- **Bugs:** open a [bug report](https://github.com/Vaibhavkkm/OfferForge/issues/new?template=bug_report.yml).
-- **Ideas / feature requests:** open a [feature request](https://github.com/Vaibhavkkm/OfferForge/issues/new?template=feature_request.yml).
+- **Bugs:** open a [bug report](https://github.com/Vaibhavkkm/CareerOS/issues/new?template=bug_report.yml).
+- **Ideas / feature requests:** open a [feature request](https://github.com/Vaibhavkkm/CareerOS/issues/new?template=feature_request.yml).
 - **Questions / discussion:** open an issue describing what you're trying to do.
 
-⚠️ **Privacy:** OfferForge handles CVs and cover letters. When sharing logs or
+⚠️ **Privacy:** CareerOS handles CVs and cover letters. When sharing logs or
 examples in a public issue, **remove your real name, email, phone number, and any
 real CV content** — share only the minimum needed to reproduce the problem. Your own
 data normally lives only in the git-ignored `data/` folder on your machine.

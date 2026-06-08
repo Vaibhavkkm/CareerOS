@@ -1,6 +1,6 @@
 # mode: pipeline — work the `data/inbox.md` URL queue end-to-end
 
-Trigger: `/og pipeline`. Drains the human's bookmarked queue: for every unchecked
+Trigger: `/cos pipeline`. Drains the human's bookmarked queue: for every unchecked
 item in `data/inbox.md`, run the full auto-pipeline, tick the item, and report a
 roll-up table. This is the *light* queue runner; for tens/hundreds of URLs that
 need a resumable TSV state machine, use `batch` instead.
@@ -76,7 +76,7 @@ Print one table over everything processed this run:
 Pull `score`/`final_decision` from each report's Machine Summary. Then state, per
 `_shared.md` decision bands: which CVs were built (≥ compile threshold) vs gated, any
 **Suspicious** legitimacy tiers to warn on, and the queue tally (e.g. "4 done, 1 left
-for retry"). Recommend next actions (e.g. `/og build-cl <report#>` for the priority
+for retry"). Recommend next actions (e.g. `/cos build-cl <report#>` for the priority
 Applys); do not act on them unprompted.
 
 ## Never

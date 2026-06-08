@@ -1,6 +1,6 @@
 # mode: batch — resumable mass evaluation of a queue of postings
 
-Trigger: `/og batch`. Drives `scripts/batch.mjs` to evaluate a whole list of
+Trigger: `/cos batch`. Drives `scripts/batch.mjs` to evaluate a whole list of
 postings one at a time, reserving report numbers so the run can be **stopped and
 resumed at any point** without losing or colliding work. The script only
 orchestrates state — YOU do each per-row evaluation by running the `evaluate`
@@ -54,7 +54,7 @@ For each row:
      why; do not fabricate a report to "succeed".
 5. `node scripts/batch.mjs status --summary`, then go back to (1).
 
-> **Resumability:** the whole loop is restartable. If the session ends, `/og batch`
+> **Resumability:** the whole loop is restartable. If the session ends, `/cos batch`
 > again and just resume from Step 2 — `next` only ever hands out `pending` rows and a
 > fresh report number, and `completed` rows are never revisited. Re-running `init`
 > never disturbs in-flight or finished rows.
@@ -84,7 +84,7 @@ unmeetable visa) — those are honest `Skip`s, not failures.
 ## Step 5 — Hand off
 Report: how many evaluated, the score distribution / decision bands, the top
 **Apply** candidates (company · score · report path), and any `failed` rows with the
-reason. Suggest `/og build-cv <NNN>` for the priority hits (≥ `compile_score_threshold`).
+reason. Suggest `/cos build-cv <NNN>` for the priority hits (≥ `compile_score_threshold`).
 Do **not** auto-build CVs, auto-submit, or flip any record past `evaluated` — that
 stays a per-application, human-confirmed decision.
 

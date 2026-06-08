@@ -1,6 +1,6 @@
 # mode: research — deep company/role research for a specific candidate
 
-Trigger: `/og research <company> <role>`. Builds a structured **6-axis research
+Trigger: `/cos research <company> <role>`. Builds a structured **6-axis research
 plan**, runs your own WebSearch/WebFetch to fill it, and returns a sourced brief.
 Output feeds `evaluate` (Block D company signals + Block G legitimacy), the
 `build-cl` hook, and `interview-prep`. No script — this is a pure agent playbook.
@@ -62,7 +62,7 @@ Output, tight:
 Offer to persist the brief to `data/interview-prep/<company>-<role>.md` (slugify
 both; this is User data — see DATA_CONTRACT.md — so confirm before writing and
 never clobber an existing file; append a dated section instead). Tell the user
-they can now run `/og evaluate`, `/og build-cl`, or `/og interview-prep`, which
+they can now run `/cos evaluate`, `/cos build-cl`, or `/cos interview-prep`, which
 will reuse this brief.
 
 ## Never

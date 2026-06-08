@@ -1,6 +1,6 @@
 # mode: style-learn — distill your edits into the style profile + example bank
 
-Trigger: `/og style-learn` (or the user says **"learn from my edits"** / "I'm
+Trigger: `/cos style-learn` (or the user says **"learn from my edits"** / "I'm
 done editing"). This is the brain of the learning loop: it turns the difference
 between the AI draft and your hand-edited final into durable, reusable knowledge.
 

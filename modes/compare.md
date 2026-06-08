@@ -1,6 +1,6 @@
 # mode: compare — rank 2+ postings into an apply-order
 
-Trigger: `/og compare <2+ JDs | report#s | tracker refs>`. Builds a weighted
+Trigger: `/cos compare <2+ JDs | report#s | tracker refs>`. Builds a weighted
 scoring matrix across the 6 `_shared.md` dimensions, ranks the postings, names
 the deciding factors, and recommends an apply-order. This is **analysis only** —
 it writes no report and changes no tracker record.
@@ -61,11 +61,11 @@ Give a clear, ranked recommendation:
   separator that isn't there.
 
 ## Step 5 — Hand off
-- Suggest building for the top pick: `/og build-cv #<top report#>` (or the company
-  name). If the top pick was a raw JD with no report, suggest `/og evaluate` on it
+- Suggest building for the top pick: `/cos build-cv #<top report#>` (or the company
+  name). If the top pick was a raw JD with no report, suggest `/cos evaluate` on it
   first so there's a report + Machine Summary to build from and track.
 - This mode does not create/modify reports or tracker records. If the user wants
-  the comparison persisted, point them to `/og evaluate` per posting.
+  the comparison persisted, point them to `/cos evaluate` per posting.
 
 ## Never
 Write a report or `pattern-analysis` file · flip or create a tracker record ·

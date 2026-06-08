@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "machine-summary.schema.json",
-  "title": "OfferForge evaluation Machine Summary",
+  "title": "CareerOS evaluation Machine Summary",
   "description": "The ONLY structured contract emitted by an evaluation report. Embedded as a fenced ```yaml block in data/reports/NNN-slug-date.md. analyze.mjs reads ONLY this block (never scrapes prose tables).",
   "type": "object",
   "required": ["company", "role", "score", "archetype", "final_decision", "report_num"],

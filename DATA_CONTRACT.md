@@ -1,17 +1,17 @@
 # Data Contract
 
-OfferForge separates **System** files (shipped, safe to overwrite/update) from
+CareerOS separates **System** files (shipped, safe to overwrite/update) from
 **User** files (your data — *never* auto-modified without your say-so). This is
 the single most important rule in the system: an update or regeneration must
 never clobber your work.
 
 ## System Layer — safe to regenerate / update
-These are part of OfferForge itself. Edit them to customize behavior, but an
+These are part of CareerOS itself. Edit them to customize behavior, but an
 "update the system" action may overwrite them.
 
 | Path | What it is |
 |------|------------|
-| `.claude/skills/offerforge/SKILL.md` | The router skill (dispatches `/og <mode>`) |
+| `.claude/skills/careeros/SKILL.md` | The router skill (dispatches `/cos <mode>`) |
 | `CLAUDE.md` | Project memory: data contract, routing, guardrails |
 | `modes/*.md` | Prompt-as-program playbooks (the "intelligence") |
 | `modes/_shared.md` | Shared rubric, archetypes, guardrails, LaTeX rules |
@@ -19,6 +19,7 @@ These are part of OfferForge itself. Edit them to customize behavior, but an
 | `lib/*.mjs` | Shared deterministic libraries |
 | `scripts/*.mjs` | Deterministic, zero-token tools |
 | `scripts/providers/*.mjs` | ATS source plugins |
+| `web/*` | Local Next.js control panel (isolated — its OWN `package.json`; wraps the engine) |
 
 > `modes/_profile.template.md` is System, but its **copy** at `data/_profile.md` is User.
 
@@ -42,6 +43,11 @@ Everything under `data/`. This is yours. Back it up with your own git.
 | `data/interview-prep/*` | Story bank + per-process prep |
 | `data/style/*` | The hybrid learning-loop state (profile, examples, edits) |
 | `data/batch/*` | Batch input/state |
+| `data/ui/*` | Local web-app request queue + results (git-ignored handshake to the agent) |
+
+> The web app writes **only** to `data/ui/`; every other data mutation goes through the
+> engine scripts (`tracker.mjs`, `render-views.mjs`, `fetch-jd.mjs`, …). It never edits
+> `tracker.jsonl`, `profile.yml`, or any `.tex` directly.
 
 ## The two generated-vs-truth pairs
 1. **Tracker**: `tracker.jsonl` is truth → `tracker.md` + `progress.md` are rendered. Edit the JSONL (via `tracker` mode), never the markdown.

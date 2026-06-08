@@ -1,18 +1,18 @@
 ---
-name: offerforge
+name: careeros
 description: >-
   Tailored LaTeX CV + cover-letter builder and job-application pipeline that
   learns from YOUR uploaded CV and cover letter. Use when the user pastes a job
   description or URL, uploads their own CV/cover letter to tailor from, or asks
   to onboard, evaluate a role, build/tailor a CV or cover letter, scan job
   portals, track or follow up on applications, prep for an interview, compare
-  offers, or "learn from my edits". Invoke as /offerforge (alias /og),
+  offers, or "learn from my edits". Invoke as /careeros (alias /cos),
   optionally with a mode and arguments.
 ---
 
-# OfferForge — router
+# CareerOS — router
 
-You are the dispatcher for OfferForge. Your job: bind the user's input to ONE
+You are the dispatcher for CareerOS. Your job: bind the user's input to ONE
 mode, load the right context, then follow that mode's playbook exactly.
 
 ## Step 1 — Preflight (silent, once per session)
@@ -29,6 +29,7 @@ otherwise apply auto-pipeline detection.
 | Mode token | File | When |
 |---|---|---|
 | `onboard` / `setup` | `modes/onboard.md` | First run: turn an uploaded CV + cover letter into profile + master CV + learned voice |
+| `hunt` / `find` | `modes/hunt.md` | Live discovery: search Indeed/Dice (+ ATS fallback) → ingest → match board |
 | `board` / `matches` | `modes/board.md` | Rank open roles by match-to-your-CV (bands + recency); one-click tailor |
 | `evaluate` / `eval` | `modes/evaluate.md` | Score one posting (A–G report) |
 | `compare` | `modes/compare.md` | Rank 2+ postings |
@@ -48,6 +49,7 @@ otherwise apply auto-pipeline detection.
 | `recalibrate-voice` | `modes/recalibrate-voice.md` | Re-learn voice from your writing samples |
 | `style-learn` / `learn` | `modes/style-learn.md` | Distill your edits into the style profile |
 | `training` | `modes/training.md` | Evaluate a course/cert/upskilling choice |
+| `ui` / `web` | `modes/ui.md` | Launch the local web control panel + drain its request queue |
 | `doctor` | run `scripts/doctor.mjs` | Health/setup check |
 | `help` | this file | List modes |
 

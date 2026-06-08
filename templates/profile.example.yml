@@ -1,5 +1,5 @@
 # =====================================================================
-#  OfferForge master profile  (SCHEMA REFERENCE / EXAMPLE DATA)
+#  CareerOS master profile  (SCHEMA REFERENCE / EXAMPLE DATA)
 #  Copy to  data/profile.yml  and replace every value with your real data.
 #  `node scripts/doctor.mjs` will REFUSE to run other modes while this still
 #  contains example values (the literal name "Jane Q. Candidate" etc.).

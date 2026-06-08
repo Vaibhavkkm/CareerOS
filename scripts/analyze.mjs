@@ -147,12 +147,14 @@ function conversionTable(enriched, keyFn) {
     .map(([key, data]) => ({
       key,
       ...data,
-      // Conversion among DECIDED applications (exclude pending), so a backlog of
-      // not-yet-applied evals doesn't artificially depress the rate.
-      decided: data.total - data.pending,
+      // Conversion among applications that got a REAL outcome: exclude pending
+      // (not yet decided) AND self_filtered (roles you chose to skip — never
+      // applied to). Denominator is positive+negative, so the rate reflects
+      // responses to actual applications, not a backlog or your own skips.
+      decided: data.positive + data.negative,
       conversion_rate:
-        data.total - data.pending > 0
-          ? Math.round((data.positive / (data.total - data.pending)) * 100)
+        (data.positive + data.negative) > 0
+          ? Math.round((data.positive / (data.positive + data.negative)) * 100)
           : null,
     }))
     .sort((a, b) => b.total - a.total);
@@ -284,13 +286,13 @@ export function analyze(records, summaries = []) {
 export function renderSummary(result) {
   const L = [];
   if (!result.ok) {
-    L.push('offerforge analyze');
+    L.push('careeros analyze');
     L.push('');
     L.push(`  ${result.reason}`);
     return L.join('\n');
   }
   const dr = result.date_range ? ` (${result.date_range.from} to ${result.date_range.to})` : '';
-  L.push('offerforge analyze');
+  L.push('careeros analyze');
   L.push('');
   L.push(`  ${result.total} applications${dr}`);
   L.push(

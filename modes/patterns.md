@@ -1,6 +1,6 @@
 # mode: patterns — outcome analytics + threshold retune (close the loop)
 
-Trigger: `/og patterns`. Read what actually happened across your pipeline —
+Trigger: `/cos patterns`. Read what actually happened across your pipeline —
 funnel, conversion by archetype, blocker frequency, score-vs-outcome — then
 recommend (and, with your OK, write back) a tuned `compile_score_threshold`.
 This is the analytics half of the learning loop: `style-learn` learns from your
@@ -74,7 +74,7 @@ untouched — the snapshot already records the recommendation for later.
 Point the user to `data/reports/pattern-analysis-<today>.md`. Suggest the obvious
 next moves the data implies, e.g.: re-target away from a low-converting archetype,
 address a recurring `soft_gap` in `data/cv.master.md`, stop sourcing `Suspicious`
-postings, or run `/og patterns` again after the next batch of decisions lands.
+postings, or run `/cos patterns` again after the next batch of decisions lands.
 
 ## Never
 Treat <5 decided apps as conclusive · scrape report prose instead of the Machine

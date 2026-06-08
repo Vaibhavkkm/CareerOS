@@ -1,6 +1,6 @@
-# OfferForge — project memory
+# CareerOS — project memory
 
-OfferForge is a Claude Code-native, **LaTeX-first** CV + cover-letter builder
+CareerOS is a Claude Code-native, **LaTeX-first** CV + cover-letter builder
 fused with a job-application pipeline, with a **hybrid learning loop**. It is a
 generic, **public** tool meant to work for ANY user: a person feeds in a job
 description plus their own CV and cover letter; the system learns their facts and
@@ -12,11 +12,11 @@ work lives in `scripts/*.mjs` (zero tokens); judgment and writing live in
 PDF by **tectonic**.
 
 ## How to operate
-- The user drives this via the `/offerforge` (`/og`) skill — see
-  `.claude/skills/offerforge/SKILL.md` for routing. When a request matches a
+- The user drives this via the `/careeros` (`/cos`) skill — see
+  `.claude/skills/careeros/SKILL.md` for routing. When a request matches a
   mode, follow that mode's playbook.
 - On session start, silently run `node scripts/doctor.mjs`. If setup is
-  incomplete, run the `modes/onboard.md` flow (`/og onboard`) before anything
+  incomplete, run the `modes/onboard.md` flow (`/cos onboard`) before anything
   else — it turns the user's uploaded CV + cover letter into `data/profile.yml`,
   `data/cv.master.md`, and a learned `narrative.voice`.
 
@@ -40,6 +40,10 @@ PDF by **tectonic**.
 - NEVER add `\input{glyphtounicode}`, `\pdfgentounicode`, or microtype
   `DisableLigatures` to a `.tex` — they ERROR under tectonic. Keep the
   `\defaultfontfeatures{Ligatures={NoCommon}}` line (load-bearing for ATS).
+- NEVER let the web app write under `data/` except `data/ui/`; all other data
+  mutations go through engine scripts. The UI must NEVER flip a tracker record to
+  `applied` without an explicit user confirm step, and the request queue
+  (`data/ui/requests.jsonl`) carries only generation work — never an `applied` flip.
 
 ## Guardrails (ALWAYS)
 - ALWAYS keep the human in the loop; recommend against sub-threshold fits.
@@ -57,9 +61,20 @@ PDF by **tectonic**.
 - Tracker: `data/tracker.jsonl` (truth)
 - Learning loop: `data/style/{profile.json,examples.jsonl,idf.json,edits/}`
 - Tooling: `scripts/`, shared libs `lib/`, templates `templates/`
+- Web UI: `web/` (local Next.js control panel, runs on `127.0.0.1`); request queue
+  `data/ui/requests.jsonl` (the UI↔agent handshake — see `modes/ui.md`)
+- Job hunting: `modes/hunt.md` (`/cos hunt`) → MCP Indeed/Dice + ATS scan →
+  `scripts/hunt-ingest.mjs` → `data/jds/`+inbox → `scripts/board.mjs`
+- Multi-board fetch (zero-token, no MCP): `scripts/jobspy.mjs` → python sidecar
+  `scripts/jobspy_fetch.py` (python-jobspy: Indeed/ZipRecruiter/Google; LinkedIn
+  deferred) → `scripts/hunt-ingest.mjs` → board. Powers the web "fetch recent"
+  button (`web/app/api/fetch-recent/route.ts`) and `npm run fetch`; country/city
+  filters. Install via `npm run jobspy:install` (`.venv/`, git-ignored).
 
 ## Conventions
-- Node ESM (`type: module`), the only dependency is `js-yaml`.
+- Node ESM (`type: module`), the only Node dependency is `js-yaml`. The ONLY
+  non-Node piece is the optional `python-jobspy` sidecar (multi-board fetch); it
+  lives behind `scripts/jobspy.mjs` and degrades with a clear hint if absent.
 - Scripts print JSON to stdout (or `--summary` for humans), guard CLI with
   `import.meta.url`, and ship a `--self-test`. Run `npm test` to check them all.
 - Status strings always go through `lib/states.mjs` (`templates/states.yml` is

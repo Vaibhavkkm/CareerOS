@@ -219,14 +219,18 @@ export function classifyJobs(jobs, { titleFilter, locationFilter, seen }) {
       continue;
     }
     const key = dedupKey(job.company, job.title);
-    if (seen.urls.has(job.url) || seen.keys.has(key)) {
+    // A blank company makes the key title-only (`::title`), which over-merges two
+    // DIFFERENT employers' same-titled roles into one false duplicate. URLs are
+    // unique per posting, so for blank-company rows rely on URL dedup alone.
+    const hasCompanyKey = normalizeCompany(job.company).length > 0;
+    if (seen.urls.has(job.url) || (hasCompanyKey && seen.keys.has(key))) {
       counts.dup++;
       ledger.push({ job, status: 'skipped_dup' });
       continue;
     }
     // mark seen to block intra-scan dupes
     seen.urls.add(job.url);
-    seen.keys.add(key);
+    if (hasCompanyKey) seen.keys.add(key);
     added.push(job);
     ledger.push({ job, status: 'added' });
     counts.added++;
@@ -373,7 +377,7 @@ function parseArgs(argv) {
 function printSummary(result, persisted, dryRun) {
   const c = result.counts;
   const lines = [
-    `offerforge scan — ${result.date}${dryRun ? ' (dry run)' : ''}`,
+    `careeros scan — ${result.date}${dryRun ? ' (dry run)' : ''}`,
     '',
     `  companies scanned:    ${result.companies}`,
     `  no provider matched:  ${result.skippedNoProvider}`,

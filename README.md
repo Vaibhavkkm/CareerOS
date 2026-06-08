@@ -1,10 +1,10 @@
-# OfferForge
+# CareerOS
 
 **Give it a job post, your CV, and a cover letter you wrote. It learns how *you*
 write, then builds a new CV and cover letter tailored to that job — as clean,
 ATS-safe PDFs.**
 
-OfferForge runs *inside* [Claude Code](https://claude.com/claude-code). There's no
+CareerOS runs *inside* [Claude Code](https://claude.com/claude-code). There's no
 website, no sign-up, and no API key — the "AI" is the Claude Code agent you're
 already running. The boring, mechanical work is done by small Node scripts (which
 cost nothing to run), and every document is a LaTeX file turned into a PDF by
@@ -36,7 +36,7 @@ cost nothing to run), and every document is a LaTeX file turned into a PDF by
    apply, scan job boards, track your applications, schedule follow-ups, and prep
    for interviews.
 
-**You are always in control.** OfferForge writes and recommends — it never submits
+**You are always in control.** CareerOS writes and recommends — it never submits
 an application for you, and it never invents facts.
 
 ---
@@ -44,7 +44,7 @@ an application for you, and it never invents facts.
 ## Your privacy
 
 This is a **public** repository, so it ships with **no personal data**. Everything
-OfferForge learns about you — your profile, your master CV, your generated
+CareerOS learns about you — your profile, your master CV, your generated
 documents, your application tracker — lives in a local `data/` folder that is
 **git-ignored**. It stays on your computer and is never part of this repo. Back it
 up with your *own* private git if you want a backup.
@@ -67,43 +67,113 @@ npm install                    # installs js-yaml
 node scripts/doctor.mjs --fix  # checks your tools and creates the data/ folders
 ```
 
+**Optional — multi-board fetch (Indeed / ZipRecruiter / Google Jobs):** the one
+non-Node piece is a small Python sidecar ([python-jobspy](https://github.com/speedyapply/JobSpy)).
+Install it once to enable the **"fetch recent"** button and `npm run fetch`:
+```bash
+npm run jobspy:install         # creates ./.venv and installs python-jobspy (needs Python 3.10+)
+```
+Skip this and everything else still works; `node scripts/doctor.mjs` tells you if it's missing.
+
 **Then, in Claude Code, just say:**
 ```
-/og onboard
+/cos onboard
 ```
 …and follow along. It'll ask for your CV (PDF, Word, or text) and a cover letter,
 pull your facts and your voice out of them, and get you ready to build your first
-tailored application. (`/og` is short for `/offerforge`.)
+tailored application. (`/cos` is short for `/careeros`.)
 
 ---
 
 ## How to use it (inside Claude Code)
 
-Run the tool with `/offerforge` (or the short alias `/og`):
+Run the tool with `/careeros` (or the short alias `/cos`):
 
 | Command | What it does |
 |---|---|
-| `/og onboard` | **Start here.** Turn your uploaded CV + cover letter into a profile, a master CV, and a learned writing voice |
-| `/og board [--min strong] [--recent 14]` | Rank open roles by how well they match *your* CV (STRONGEST → Weak), with how recently each was posted and your has/gap skills — then tailor any one in a click |
-| `/og` *(paste a job post or URL)* | Auto-pilot: read the job → score it → build a tailored CV (if it's a good fit) → draft answers → track it |
-| `/og evaluate <job/url/file>` | Score one job out of 5 across 6 things that matter, with a written report |
-| `/og compare <2+ jobs>` | Rank several postings and recommend which to chase |
-| `/og build-cv <job/company>` | Build a tailored, ATS-safe CV → PDF |
-| `/og build-cl <job/company>` | Build a tailored cover letter → PDF |
-| `/og` *"learn from my edits"* | Look at how you edited a draft and remember your style |
-| `/og apply <job/company>` | Draft answers for an application form (never auto-submits) |
-| `/og scan` | Find new postings from the companies you're watching |
-| `/og tracker` | See and update where each application stands |
-| `/og followup` | Who to follow up with, and a draft message |
-| `/og patterns` | What's working in your search, and retune the scoring |
-| `/og interview-prep <co> <role>` | Interview prep tailored to the company and role |
-| `/og research <company> <role>` | Deep-dive research on a company and role |
+| `/cos onboard` | **Start here.** Turn your uploaded CV + cover letter into a profile, a master CV, and a learned writing voice |
+| `/cos hunt [role] [location]` | **Auto-fetch jobs from multiple portals** matched to *your* profile — searches Indeed + Dice (and your tracked ATS companies), dedups, and drops the matches on your board |
+| `/cos board [--min strong] [--recent 14]` | Rank open roles by how well they match *your* CV (STRONGEST → Weak), with how recently each was posted and your has/gap skills — then tailor any one in a click |
+| `/cos ui` | Launch the **local web control panel** (a dark trading-desk dashboard) and process anything you queued from the browser |
+| `/cos` *(paste a job post or URL)* | Auto-pilot: read the job → score it → build a tailored CV (if it's a good fit) → draft answers → track it |
+| `/cos evaluate <job/url/file>` | Score one job out of 5 across 6 things that matter, with a written report |
+| `/cos compare <2+ jobs>` | Rank several postings and recommend which to chase |
+| `/cos build-cv <job/company>` | Build a tailored, ATS-safe CV → PDF |
+| `/cos build-cl <job/company>` | Build a tailored cover letter → PDF |
+| `/cos` *"learn from my edits"* | Look at how you edited a draft and remember your style |
+| `/cos apply <job/company>` | Draft answers for an application form (never auto-submits) |
+| `/cos scan` | Find new postings from the companies you're watching |
+| `/cos tracker` | See and update where each application stands |
+| `/cos followup` | Who to follow up with, and a draft message |
+| `/cos patterns` | What's working in your search, and retune the scoring |
+| `/cos interview-prep <co> <role>` | Interview prep tailored to the company and role |
+| `/cos research <company> <role>` | Deep-dive research on a company and role |
+
+---
+
+## Auto-fetch jobs from multiple portals (`/cos hunt`)
+
+`/cos hunt` reads your **profile** (target roles, locations, seniority) and pulls fresh
+openings from **Indeed + Dice** and your tracked **ATS** companies, dedups them against
+everything you've already seen, and drops the matches straight onto your board — ranked
+by how well they fit your CV. You can also target a specific search: `/cos hunt "ML engineer" remote`.
+Nothing is ever applied for you; you review the matches and tailor with one command.
+
+> The job-board connectors run inside Claude Code (the agent half), so `/cos hunt` does
+> the search; a zero-token script (`scripts/hunt-ingest.mjs`) does the dedup + saving.
+> If a connector isn't connected, it degrades gracefully to the ATS scanner + pasted URLs.
+
+**No-agent option — the "fetch recent" button (and `npm run fetch`).** Once the Python
+sidecar is installed (see Getting started), the board's **fetch recent** control pulls live
+openings from **Indeed + ZipRecruiter + Google Jobs** straight from the browser — no agent,
+no MCP — filtered by **country** (Luxembourg, Germany, Switzerland, Italy, India, France,
+Belgium) and **city**, deduped and ranked onto your board in one click. Same from the CLI:
+```bash
+node scripts/jobspy.mjs --country Germany --city Berlin --recent 7 --summary
+```
+Because it's a plain script, it can also run from a **cron**. **LinkedIn is deferred**
+(it rate-limits scrapers); enable it explicitly with `--boards indeed,zip_recruiter,google,linkedin`
+and expect partial results, or paste a LinkedIn job URL for a one-off.
+
+## The web control panel (`/cos ui`)
+
+A local, **dark "trading-desk" dashboard** for everything above — a filterable match
+board, application pipeline funnel, and a one-page hunt form. It runs on `127.0.0.1`
+(never exposed to the network), has **no database** (it reads your real files live), and
+lives in its own `web/` folder so the core engine stays zero-dependency.
+
+```bash
+cd web && npm install      # first run only
+npm run dev                # → http://127.0.0.1:4317   (or: /cos ui)
+```
+
+Because a browser has no LLM, the panel runs the zero-token scripts itself (scan, board,
+fetch, tracker, PDF preview) and **queues** the judgment work — Evaluate, Build CV/CL,
+Apply, Hunt — for the `/cos` agent to run. Click a button in the browser, then run
+`/cos ui` in Claude Code to process the queue; status updates live. It can never
+auto-submit an application or mark a role "applied" without your explicit confirmation.
+
+### Hosting a public demo (`NEXT_PUBLIC_CAREEROS_PUBLIC=1`)
+
+You can host the board as a **read-only showcase** (e.g. `careeros.example.com`). Because
+CareerOS is Claude Code-native — the AI is the agent in _your_ editor, not a server — a
+public instance can't run a visitor's generation. Set the flag at build/deploy time:
+
+```bash
+NEXT_PUBLIC_CAREEROS_PUBLIC=1 npm run build   # demo mode
+```
+
+In demo mode the board stays browsable, but every **mutating** action (generate, fetch,
+scan, enqueue) is **gated server-side** (HTTP 403) and a **fork-gate** modal invites the
+visitor to fork the repo, ⭐ it, and run it in their own Claude Code. Enforcement lives in
+`web/lib/gate.ts` (not just hidden buttons). Locally, with the flag unset, you get the full
+tool. See `web/.env.example`.
 
 ---
 
 ## What makes it different: it learns your style
 
-Most CV tools give everyone the same generic output. OfferForge adapts to *you*:
+Most CV tools give everyone the same generic output. CareerOS adapts to *you*:
 
 ```
 your CV         ──► the facts it's allowed to use (never invents any)
@@ -123,7 +193,7 @@ you edit the draft  ──────────┘
 - **Warm start.** During onboarding it banks your *existing* CV bullets and
   cover-letter paragraphs as examples, so the very first draft is already in your
   voice — no cold start, no "train it a few times first."
-- **Self-correcting.** Before you ever see a draft, OfferForge grades it against
+- **Self-correcting.** Before you ever see a draft, CareerOS grades it against
   your voice + the job's must-have keywords + the no-fabrication/no-filler rules,
   and revises until it passes.
 - **Nothing is lost.** Style preferences are versioned and logged, and the whole
@@ -151,12 +221,12 @@ some hidden "memory." Two simple, inspectable parts:
 
 ## Project status
 
-OfferForge is in **active development**. Here's the honest picture:
+CareerOS is in **active development**. Here's the honest picture:
 
 ### ✅ Working and tested
-- **The engine.** ~22 "mode" playbooks (onboard, board, evaluate, build-cv, build-cl,
-  scan, track, follow-up, interview-prep, compare, negotiate, and more), 19 helper
-  scripts, and shared libraries. Automated self-tests pass (`npm test` → **358 checks green**).
+- **The engine.** ~24 "mode" playbooks (onboard, board, hunt, ui, evaluate, build-cv,
+  build-cl, scan, track, follow-up, interview-prep, compare, negotiate, and more), 21
+  helper scripts, and shared libraries. Automated self-tests pass (`npm test` → **443 checks green**).
 - **Share a URL → it scrapes the whole posting.** `fetch-jd` pulls the *complete*
   job from the ATS's own API (Greenhouse, Lever, Recruitee, SmartRecruiters) or the
   page HTML (Ashby, Workable, and any other site), saves it locally, and falls back
@@ -164,7 +234,7 @@ OfferForge is in **active development**. Here's the honest picture:
 - **In-voice from draft #1.** Onboarding warm-starts the example bank from *your*
   existing CV bullets + cover-letter paragraphs (`seed-examples`), so the first
   draft already sounds like you.
-- **Job-match board.** `/og board` ranks open roles by how well they fit *your*
+- **Job-match board.** `/cos board` ranks open roles by how well they fit *your*
   CV — STRONGEST / Very strong / Strong / Moderate / Weak — with how recently each
   was posted, the skills you have vs. the gaps, and one-command tailoring for any
   pick. Filter by match band (`--min`) and recency (`--recent`).
@@ -179,11 +249,18 @@ OfferForge is in **active development**. Here's the honest picture:
 - **Job-pipeline tools.** Scoring, multi-job comparison, portal scanning (7
   sources — Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, plus a
   generic parser), a JSON application tracker, follow-up cadence, and analytics.
-- **Public-ready.** Rebranded to OfferForge, and all personal data is git-ignored
+- **Auto-fetch from multiple portals.** `/cos hunt` pulls live openings from Indeed +
+  Dice (and your ATS companies) based on your profile, dedups them through the same
+  ledger as the scanner (`hunt-ingest`), and ranks them on your board.
+- **Local web control panel.** A dark "trading-desk" dashboard (`web/`, `/cos ui`) over
+  the engine: filterable match board, pipeline funnel, hunt form. Zero-token scripts run
+  in the browser; judgment work queues for the agent. Builds clean; guardrails (no
+  auto-submit, no silent "applied", sandboxed file reads) verified.
+- **Public-ready.** Rebranded to CareerOS, and all personal data is git-ignored
   so the repo ships clean.
 
 ### 🚧 In progress
-- **Onboarding for anyone.** The new `/og onboard` flow (upload your CV + cover
+- **Onboarding for anyone.** The new `/cos onboard` flow (upload your CV + cover
   letter → it sets you up) is freshly built and needs testing against many real CV
   formats and layouts.
 - **Reading your uploaded CV/cover letter.** Job *postings* from a URL are now
@@ -196,17 +273,21 @@ OfferForge is in **active development**. Here's the honest picture:
 ### ⏳ Planned / nice-to-have
 - A standalone parser for the user's uploaded CV/Word document.
 - Optional semantic (embedding) example search, for when an example bank grows large.
-- More job-board sources and more document templates/themes.
+- More hunt sources (beyond Indeed + Dice) and more document templates/themes.
+- A *hosted*, multi-user version of the web panel (auth + a database). v1 is
+  deliberately local-only and file-backed — it runs on your machine over your own data.
 
 ---
 
 ## For developers
 
 ```bash
-npm test                       # run all script + library self-tests (305 checks)
+npm test                       # run all script + library self-tests (443 checks)
 node scripts/doctor.mjs        # check your environment and setup
 node scripts/fetch-jd.mjs "https://boards.greenhouse.io/acme/jobs/123" --summary   # scrape a posting
 node scripts/compile-latex.mjs data/output/cv-*.tex --kind cv --keywords "Python,SQL" --json
+echo '[{"title":"Data Engineer","company":"Acme","url":"https://x/1"}]' | node scripts/hunt-ingest.mjs --dry-run --summary
+npm run web:dev                # the local web control panel → http://127.0.0.1:4317
 ```
 
 A generated document is only considered "good" if `compile-latex.mjs` reports
@@ -216,12 +297,13 @@ in a sensible order.
 
 ### Layout
 ```
-.claude/skills/offerforge/SKILL.md   the /og command router
+.claude/skills/careeros/SKILL.md   the /cos command router
 CLAUDE.md   DATA_CONTRACT.md          project notes + the data rules
-modes/                                the playbooks the agent follows (incl. onboard.md)
+modes/                                the playbooks the agent follows (incl. onboard.md, hunt.md, ui.md)
 templates/                            CV/cover-letter LaTeX templates, schemas, example configs
 lib/                                  shared helper code
-scripts/                              the zero-cost tools (fetch-jd, seed-examples, compile, scan, track, learn, …)
+scripts/                              the zero-cost tools (fetch-jd, hunt-ingest, ui-queue, compile, scan, track, learn, …)
+web/                                  the local web control panel (own package.json; Next.js; not part of the core engine)
 scripts/providers/                    job-board sources (greenhouse, ashby, lever, …)
 data/                                 YOUR private layer — git-ignored, never committed
 ```

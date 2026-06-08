@@ -1,0 +1,6 @@
+# CareerOS — Python sidecar dependency (the ONLY non-Node dependency).
+# Powers the zero-token multi-board fetch (Indeed / ZipRecruiter / Google Jobs)
+# in scripts/jobspy_fetch.py. Install into a local venv with:
+#     npm run jobspy:install
+# (creates ./.venv and installs this). Everything else in the project is Node.
+python-jobspy>=1.1.79

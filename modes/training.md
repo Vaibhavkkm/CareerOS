@@ -1,6 +1,6 @@
 # mode: training — evaluate a course / certification / upskilling choice
 
-Trigger: `/og training <course|cert|degree name or URL>`. Decides whether a piece
+Trigger: `/cos training <course|cert|degree name or URL>`. Decides whether a piece
 of training is worth the user's time/money given their target roles and current gaps.
 
 > Load order: `_shared.md` → this file → `data/profile.yml` (`target_roles`,

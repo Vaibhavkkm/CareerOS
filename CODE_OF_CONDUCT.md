@@ -2,7 +2,7 @@
 
 ## Our commitment
 
-OfferForge is built to help people present their real work honestly and land roles
+CareerOS is built to help people present their real work honestly and land roles
 that fit them. We want the community around it to reflect the same spirit: helpful,
 honest, and respectful. Everyone is welcome to take part regardless of background,
 identity, experience level, or the kind of job hunt that brought them here.
@@ -48,5 +48,5 @@ project spaces, for behaviour they consider inappropriate, threatening, or harmf
 Decisions will be made in good faith and explained to the people involved where it is
 reasonable to do so.
 
-These are community guidelines specific to OfferForge; they may evolve as the
+These are community guidelines specific to CareerOS; they may evolve as the
 project grows.

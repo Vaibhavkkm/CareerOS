@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "tracker-record.schema.json",
-  "title": "OfferForge tracker record",
+  "title": "CareerOS tracker record",
   "description": "One application record. data/tracker.jsonl holds one of these per line and is the SOURCE OF TRUTH; tracker.md / progress.md are generated views.",
   "type": "object",
   "required": ["id", "date", "company", "role", "status"],

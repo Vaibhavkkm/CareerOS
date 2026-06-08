@@ -1,4 +1,4 @@
-<!-- Thanks for contributing to OfferForge! Please fill this in. -->
+<!-- Thanks for contributing to CareerOS! Please fill this in. -->
 
 ## What & why
 

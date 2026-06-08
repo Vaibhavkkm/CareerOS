@@ -1,6 +1,6 @@
 # mode: interview-prep — audience-segmented prep + STAR+R story mapping
 
-Trigger: `/og interview-prep <company> <role>`. Auto-suggest this when a tracker
+Trigger: `/cos interview-prep <company> <role>`. Auto-suggest this when a tracker
 record reaches status `interview` (see `templates/states.yml`). Produces an
 audience-segmented prep doc (round breakdown, likely Qs per audience, a technical
 checklist, behavioral-Q → story map) and grows an append-only story bank. No

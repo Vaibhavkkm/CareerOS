@@ -1,14 +1,14 @@
 name: "Bug report"
-description: "Report something in OfferForge that isn't working as expected."
+description: "Report something in CareerOS that isn't working as expected."
 title: "[Bug]: "
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for helping improve OfferForge.
+        Thanks for helping improve CareerOS.
 
-        ⚠️ **Privacy:** OfferForge works with CVs and cover letters. **Do not paste
+        ⚠️ **Privacy:** CareerOS works with CVs and cover letters. **Do not paste
         your real CV, contact details, or any personal data here** — this issue is
         public. Redact names/emails/phones and share only the minimum needed to
         reproduce the problem.
@@ -26,7 +26,7 @@ body:
       label: Steps to reproduce
       description: The exact steps (commands / mode) that trigger it.
       placeholder: |
-        1. Run `/og ...`
+        1. Run `/cos ...`
         2. ...
         3. See ...
     validations:
@@ -35,8 +35,8 @@ body:
     id: command
     attributes:
       label: Command / mode involved
-      description: Which OfferForge command or mode? (e.g. `/og board`, `build-cv`, `fetch-jd`)
-      placeholder: "/og board"
+      description: Which CareerOS command or mode? (e.g. `/cos board`, `build-cv`, `fetch-jd`)
+      placeholder: "/cos board"
   - type: textarea
     id: doctor
     attributes:

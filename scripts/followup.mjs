@@ -178,7 +178,7 @@ const ICONS = { cold: '🧊', overdue: '🔴', urgent: '🟠', waiting: '⚪' };
 function renderSummary(items, today) {
   const groups = groupByUrgency(items);
   const lines = [];
-  lines.push(`offerforge follow-ups — as of ${today}\n`);
+  lines.push(`careeros follow-ups — as of ${today}\n`);
   const total = items.length;
   if (!total) {
     lines.push('  Nothing actionable. Inbox zero. ✅');
@@ -336,4 +336,4 @@ function selfTest() {
   process.exit(0);
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) { main(); }
+if (import.meta.url === pathToFileURL(process.argv[1] || '').href) { main(); }

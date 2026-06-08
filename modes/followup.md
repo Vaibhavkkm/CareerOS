@@ -1,6 +1,6 @@
 # mode: followup — nudge the right applications, in your own voice
 
-Trigger: `/og followup [--overdue-only]`. Surfaces which live applications are due
+Trigger: `/cos followup [--overdue-only]`. Surfaces which live applications are due
 for a nudge, drafts the follow-up messages (never auto-sends), and — only after
 you confirm you sent one — bumps the tracker record so the cadence resets.
 

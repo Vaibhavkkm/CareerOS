@@ -1,12 +1,12 @@
 name: "Feature request"
-description: "Suggest an improvement or new capability for OfferForge."
+description: "Suggest an improvement or new capability for CareerOS."
 title: "[Feature]: "
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for the idea! Please keep OfferForge's principles in mind: it stays
+        Thanks for the idea! Please keep CareerOS's principles in mind: it stays
         **local** (no server, no API key), **human-in-the-loop** (it never
         auto-submits), and it **never fabricates** experience.
   - type: textarea
@@ -20,14 +20,14 @@ body:
     id: proposal
     attributes:
       label: Proposed solution
-      description: What you'd like OfferForge to do. Rough is fine.
+      description: What you'd like CareerOS to do. Rough is fine.
     validations:
       required: true
   - type: dropdown
     id: area
     attributes:
       label: Area
-      description: Which part of OfferForge does this touch?
+      description: Which part of CareerOS does this touch?
       options:
         - Onboarding / profile setup
         - CV / cover-letter generation
@@ -51,5 +51,5 @@ body:
       options:
         - label: I searched existing issues and this isn't a duplicate.
           required: true
-        - label: This keeps OfferForge local, human-in-the-loop, and honest (no fabricated experience).
+        - label: This keeps CareerOS local, human-in-the-loop, and honest (no fabricated experience).
           required: true

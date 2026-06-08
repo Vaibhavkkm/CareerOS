@@ -1,8 +1,8 @@
 # mode: onboard — turn an uploaded CV + cover letter into your profile, master CV, and voice
 
-Trigger: `/og onboard` (or the user is new and `doctor` reports setup incomplete,
+Trigger: `/cos onboard` (or the user is new and `doctor` reports setup incomplete,
 or they say **"set me up"** / **"here's my CV and cover letter"**). This is the
-guided first run that makes OfferForge work for THIS user: it reads the documents
+guided first run that makes CareerOS work for THIS user: it reads the documents
 they already have, grounds the system in their real facts, and learns their
 writing voice — so the very first tailored draft already sounds like them.
 

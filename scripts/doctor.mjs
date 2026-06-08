@@ -20,6 +20,7 @@ const DATA_DIRS = [
   'data', 'data/jds', 'data/reports', 'data/output', 'data/writing-samples',
   'data/interview-prep', 'data/style', 'data/style/edits',
   'data/batch', 'data/batch/tracker-additions', 'data/batch/merged',
+  'data/ui', 'data/ui/results',
 ];
 
 const checks = [];
@@ -66,7 +67,7 @@ if (existsSync(profileYml)) {
       isExample ? 'still contains example data — fill in your details' : 'ok');
 } else {
   add('data/profile.yml present', false,
-      'run /og onboard (or copy templates/profile.example.yml -> data/profile.yml and fill it in)');
+      'run /cos onboard (or copy templates/profile.example.yml -> data/profile.yml and fill it in)');
 }
 
 // --- cv.master.md present & non-trivial ---
@@ -75,13 +76,28 @@ if (existsSync(cvMaster) && statSync(cvMaster).size > 200) {
   add('data/cv.master.md present', true, 'ok');
 } else {
   add('data/cv.master.md present', false,
-      'run /og onboard — drop in your CV (PDF/Word/text) and it seeds this from your real experience');
+      'run /cos onboard — drop in your CV (PDF/Word/text) and it seeds this from your real experience');
 }
 
 // --- templates present (system integrity) ---
 const tplOk = ['templates/cv.tex.tmpl', 'templates/cl.tex.tmpl', 'templates/states.yml']
   .every((f) => existsSync(join(ROOT, f)));
 add('core templates present', tplOk, 'system files intact');
+
+// --- web UI deps (optional; only needed to run the local control panel) ---
+add('web UI deps installed', existsSync(join(ROOT, 'web', 'node_modules')),
+    'optional — run `cd web && npm install` then `npm run dev` (or /cos ui) for the dashboard', 'warn');
+
+// --- python-jobspy sidecar (optional; powers the multi-board "fetch recent") ---
+const venvPy = existsSync(join(ROOT, '.venv', 'bin', 'python'))
+  ? join(ROOT, '.venv', 'bin', 'python')
+  : existsSync(join(ROOT, '.venv', 'Scripts', 'python.exe'))
+    ? join(ROOT, '.venv', 'Scripts', 'python.exe')
+    : null;
+let jobspyOk = false;
+if (venvPy) { try { execFileSync(venvPy, ['-c', 'import jobspy'], { stdio: 'pipe' }); jobspyOk = true; } catch { /* not installed */ } }
+add('job-board fetch (python-jobspy) ready', jobspyOk,
+    'optional — run `npm run jobspy:install` to enable multi-board Fetch recent (Indeed/ZipRecruiter/Google)', 'warn');
 
 const errors = checks.filter((c) => !c.ok && c.level === 'error');
 const warns = checks.filter((c) => !c.ok && c.level === 'warn');
@@ -90,7 +106,7 @@ const ready = errors.length === 0;
 if (JSON_OUT) {
   console.log(JSON.stringify({ ready, checks }, null, 2));
 } else {
-  console.log('offerforge doctor\n');
+  console.log('careeros doctor\n');
   for (const c of checks) {
     const icon = PLAIN
       ? (c.ok ? '[OK]  ' : c.level === 'warn' ? '[WARN]' : '[FAIL]')

@@ -1,6 +1,6 @@
 # mode: negotiate — salary & offer negotiation assistant
 
-Trigger: `/og negotiate <company | report# | paste the offer>`. Produces
+Trigger: `/cos negotiate <company | report# | paste the offer>`. Produces
 negotiation strategy + ready-to-send language in the candidate's voice. Strictly
 human-in-the-loop: you draft; the user decides and sends.
 

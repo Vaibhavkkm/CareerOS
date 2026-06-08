@@ -85,7 +85,7 @@ Present in a few lines:
 - **Step status line**: e.g. `extract ok · eval ok · cv ok · cl skipped · answers
   skipped (score<gate) · tracker ok` — list any failure reasons.
 - **Recommended next action** (the user decides): for an Apply-band fit, "review
-  the CV, then run `/og apply` when you submit"; for a Skip, recommend against and
+  the CV, then run `/cos apply` when you submit"; for a Skip, recommend against and
   stop. Offer to override any gate on request.
 
 ## Never

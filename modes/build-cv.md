@@ -1,6 +1,6 @@
 # mode: build-cv — generate a tailored, ATS-safe LaTeX CV
 
-Trigger: `/og build-cv <report# | company | JD>`. Produces a tailored CV `.tex`,
+Trigger: `/cos build-cv <report# | company | JD>`. Produces a tailored CV `.tex`,
 compiles it to PDF, and snapshots the draft so the learning loop can run later.
 
 > Load order (the router already did this): `modes/_shared.md` → this file →
@@ -104,7 +104,7 @@ Run:
 ## Step 6 — Hand off + invite the loop
 Tell the user: the PDF path, what you tailored (1–3 lines), and that they can edit
 `data/output/cv-<...>.tex` directly. When they're done editing, they say **"learn
-from my edits"** (or `/og style-learn`) and the system will diff their changes and
+from my edits"** (or `/cos style-learn`) and the system will diff their changes and
 get better next time. If a tracker record exists, update its `cv_pdf` via
 `node scripts/tracker.mjs update --id <id> --cv_pdf "<path>"`.
 

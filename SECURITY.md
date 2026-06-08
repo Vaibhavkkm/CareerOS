@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-OfferForge is in early, active development. Security fixes are applied to the latest
+CareerOS is in early, active development. Security fixes are applied to the latest
 `main` and the most recent `0.1.x` release.
 
 | Version | Supported |
@@ -25,7 +25,7 @@ fix before any public disclosure.
 
 ## What's in scope
 
-OfferForge runs locally inside Claude Code with **no server and no API key**, so its
+CareerOS runs locally inside Claude Code with **no server and no API key**, so its
 attack surface is small. The areas most worth scrutiny:
 
 - **Outbound fetching.** Job-posting scraping and portal scanning make HTTP requests.

@@ -6,8 +6,9 @@
 // (The agent's `evaluate` mode is the deep, judged score for the postings the
 // user actually cares about — this is the cheap pre-rank.)
 //
-// Score = 0.6 * keyword-coverage + 0.4 * TF-IDF cosine, in [0,1], mapped to a band:
-//   STRONGEST >=0.85 · Very strong >=0.70 · Strong >=0.55 · Moderate >=0.40 · Weak
+// Score = 0.45*coverage(JD→CV) + 0.35*relevance(CV→JD) + 0.2*TF-IDF cosine, in
+// [0,1], mapped to a band:
+//   STRONGEST >=0.48 · Very strong >=0.42 · Strong >=0.36 · Moderate >=0.28 · Weak
 // Also returns `have` (JD keywords found in the CV) and `gap` (JD keywords missing).
 //
 // Usage:
@@ -26,11 +27,19 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_CV = join(ROOT, 'data', 'cv.master.md');
 
 // Bands, best → worst. A score maps to the first band whose floor it clears.
+// CALIBRATED to the score's REAL range: score = 0.6*coverage + 0.4*cosine only
+// approaches 1.0 for near-identical text. For real CV↔JD pairs, coverage tops out
+// ~0.5 (a JD always has many terms a CV won't) and cosine ~0.35, so even an
+// excellent on-paper match lands ~0.45–0.55, a solid match ~0.38–0.45. The old
+// floors (0.85/0.70/0.55) were unreachable in practice, so every real posting read
+// as "Weak". These floors map the achievable range to bands that actually
+// discriminate your best fits. (Absolute fit still depends on how relevant the
+// fetched jobs are — target the search to raise real matches, not just the label.)
 export const BANDS = [
-  ['STRONGEST', 0.85],
-  ['Very strong', 0.70],
-  ['Strong', 0.55],
-  ['Moderate', 0.40],
+  ['STRONGEST', 0.48],
+  ['Very strong', 0.42],
+  ['Strong', 0.36],
+  ['Moderate', 0.28],
   ['Weak', 0],
 ];
 export function bandFor(score) {
@@ -43,6 +52,23 @@ export function bandRank(label) {
   return i === -1 ? BANDS.length : i;
 }
 export const STARS = { STRONGEST: '★★★★', 'Very strong': '★★★', Strong: '★★', Moderate: '★', Weak: '·' };
+
+// Calibrated 0–10 "fit" for DISPLAY. The raw score is a lexical-overlap proxy whose
+// realistic ceiling is ~0.5 (a CV and a JD are different document types — a JD is
+// half boilerplate no CV contains), so a raw 0.50 is an EXCELLENT match, not "5/10".
+// This maps the raw score's real range onto 0–10 anchored to the band floors, so a
+// STRONGEST match reads ~8.5–10 and the number is interpretable. Monotonic, so it
+// never changes the ranking. It is NOT a probability of getting hired.
+const FIT_ANCHORS = [[0, 0], [0.20, 3], [0.28, 4], [0.36, 5.5], [0.42, 7], [0.48, 8.5], [0.55, 9.5], [0.70, 10]];
+export function fitScore(raw) {
+  const x = Math.max(0, Math.min(1, Number(raw) || 0));
+  for (let i = 1; i < FIT_ANCHORS.length; i++) {
+    const [x0, y0] = FIT_ANCHORS[i - 1];
+    const [x1, y1] = FIT_ANCHORS[i];
+    if (x <= x1) return +(y0 + (y1 - y0) * ((x - x0) / (x1 - x0))).toFixed(1);
+  }
+  return 10;
+}
 
 // stemTokens can leave trailing sentence punctuation stuck to a token ("aws."
 // vs "aws", "etl." vs "etl"), which silently breaks matching. Strip edge
@@ -81,6 +107,7 @@ function surfaceMap(text) {
 // The most salient JD keywords: distinct content stems (minus boilerplate),
 // ranked by frequency then length (longer terms tend to be specific skills).
 export function jdKeywords(jdText, topK = 18) {
+  const k = Math.max(0, Math.floor(Number(topK) || 0)); // a negative --top must mean "none", not slice(0,-1) dropping the last
   const freq = new Map();
   for (const t of normTokens(jdText)) {
     if (JD_BOILERPLATE.has(t)) continue;
@@ -88,37 +115,67 @@ export function jdKeywords(jdText, topK = 18) {
   }
   return [...freq.entries()]
     .sort((a, b) => (b[1] - a[1]) || (b[0].length - a[0].length) || (a[0] < b[0] ? -1 : 1))
-    .slice(0, topK)
+    .slice(0, k)
     .map(([t]) => t);
 }
 
+// Build ONE TF-IDF document-frequency index across MANY documents (every JD on the
+// board + the CV). Pass it to scoreMatch({ idf }) so the cosine term becomes
+// discriminative board-wide: terms common across the corpus are down-weighted and
+// rare, specific skills shared by a JD and the CV dominate. This lets a genuinely
+// strong match score well above the ~0.45 ceiling that a per-JD 2-document corpus
+// imposes (where a shared term gets df==N and the minimum idf weight).
+export function buildCorpusIdf(texts) {
+  const idf = emptyIdf();
+  for (const t of texts) indexAdd(idf, buildTf(normTokens(t || '')));
+  return idf;
+}
+
 // The core: returns { score, band, coverage, cosine, have:[surface], gap:[surface] }.
-export function scoreMatch(jdText, cvText, { topK = 18 } = {}) {
+export function scoreMatch(jdText, cvText, { topK = 18, idf = null, cvKeywords = null } = {}) {
   const jdToks = normTokens(jdText);
   const cvToks = normTokens(cvText);
   if (!jdToks.length || !cvToks.length) {
     return { score: 0, band: 'Weak', coverage: 0, cosine: 0, have: [], gap: [], keywords: [] };
   }
   const cvSet = new Set(cvToks);
+  const jdSet = new Set(jdToks);
   const keywords = jdKeywords(jdText, topK);
   const matched = keywords.filter((k) => cvSet.has(k));
+  // coverage (JD→CV): of the JD's salient asks, how many does the candidate have.
   const coverage = keywords.length ? matched.length / keywords.length : 0;
+  // relevance (CV→JD): of the candidate's OWN salient terms (skills/domains), how
+  // many does this JD mention. A job in the candidate's field hits many; an
+  // off-field job hits few. This is the half the old score ignored — without it a
+  // perfect-domain match and a vaguely-overlapping one scored nearly the same.
+  // cvKeywords is the same for every JD scored against one CV — the caller (board)
+  // precomputes it ONCE and passes it in, instead of re-tokenizing the CV per JD.
+  const cvKw = cvKeywords || jdKeywords(cvText, Math.max(topK, 24));
+  const relevance = cvKw.length ? cvKw.filter((k) => jdSet.has(k)).length / cvKw.length : 0;
 
-  // TF-IDF cosine over a 2-doc corpus (JD, CV) as a lexical-similarity proxy.
-  const idf = emptyIdf();
+  // TF-IDF cosine as a lexical-similarity proxy. A caller (board.mjs) can pass a
+  // CORPUS idf built over every posting + the CV so shared rare skills carry real
+  // weight; without one we fall back to a 2-doc (JD, CV) corpus for standalone use.
   const jdTf = buildTf(jdToks);
   const cvTf = buildTf(cvToks);
-  indexAdd(idf, jdTf);
-  indexAdd(idf, cvTf);
-  const cos = cosine(tfidfVec(jdTf, idf), tfidfVec(cvTf, idf));
+  let useIdf = idf;
+  if (!useIdf) {
+    useIdf = emptyIdf();
+    indexAdd(useIdf, jdTf);
+    indexAdd(useIdf, cvTf);
+  }
+  const cos = cosine(tfidfVec(jdTf, useIdf), tfidfVec(cvTf, useIdf));
 
-  const score = +(0.6 * coverage + 0.4 * cos).toFixed(4);
+  // Bidirectional blend: qualification (coverage) + field-relevance (relevance) +
+  // overall lexical similarity (cosine).
+  const score = +(0.45 * coverage + 0.35 * relevance + 0.2 * cos).toFixed(4);
   const jdSurface = surfaceMap(jdText);
   const display = (stems) => stems.map((s) => jdSurface.get(s) || s);
   return {
     score,
     band: bandFor(score),
     coverage: +coverage.toFixed(4),
+    relevance: +relevance.toFixed(4),
     cosine: +cos.toFixed(4),
     have: display(matched),
     gap: display(keywords.filter((k) => !cvSet.has(k))),
@@ -182,10 +239,15 @@ export function selfTest() {
   const ok = (c, m) => { assert.ok(c, m); n++; };
   const eq = (a, b, m) => { assert.equal(a, b, m); n++; };
 
-  // bands
-  eq(bandFor(0.90), 'STRONGEST', 'band STRONGEST'); eq(bandFor(0.72), 'Very strong', 'band Very strong');
-  eq(bandFor(0.6), 'Strong', 'band Strong'); eq(bandFor(0.45), 'Moderate', 'band Moderate');
-  eq(bandFor(0.1), 'Weak', 'band Weak');
+  // bands (calibrated floors: STRONGEST 0.52 · Very strong 0.45 · Strong 0.38 · Moderate 0.30)
+  eq(bandFor(0.90), 'STRONGEST', 'band STRONGEST'); eq(bandFor(0.48), 'STRONGEST', 'band STRONGEST at floor');
+  eq(bandFor(0.44), 'Very strong', 'band Very strong'); eq(bandFor(0.38), 'Strong', 'band Strong');
+  eq(bandFor(0.30), 'Moderate', 'band Moderate'); eq(bandFor(0.1), 'Weak', 'band Weak');
+
+  // fitScore: calibrated 0–10, monotonic, anchored to band floors
+  eq(fitScore(0), 0, 'fit 0 → 0'); eq(fitScore(1), 10, 'fit 1 caps at 10');
+  ok(fitScore(0.48) >= 8.4 && fitScore(0.48) <= 8.6, `fit at STRONGEST floor ≈ 8.5 (got ${fitScore(0.48)})`);
+  ok(fitScore(0.50) > fitScore(0.40) && fitScore(0.40) > fitScore(0.30), 'fit is monotonic in raw score');
   ok(bandRank('STRONGEST') < bandRank('Strong') && bandRank('Strong') < bandRank('Weak'), 'bandRank orders best→worst');
 
   // jdKeywords surfaces the salient terms
@@ -199,7 +261,7 @@ export function selfTest() {
   const strong = scoreMatch(strongJd, cv);
   const weak = scoreMatch(weakJd, cv);
   ok(strong.score > weak.score, `strong JD scores higher than weak (${strong.score} > ${weak.score})`);
-  ok(strong.score >= 0.55, `well-matched JD reaches at least Strong (got ${strong.score} ${strong.band})`);
+  ok(bandRank(strong.band) <= bandRank('Strong'), `well-matched JD reaches at least Strong (got ${strong.score} ${strong.band})`);
   ok(strong.have.some((h) => /python/i.test(h)), 'have[] surfaces a matched skill (Python)');
   ok(weak.gap.length > 0, 'weak JD reports gaps');
   ok(weak.band === 'Weak' || weak.band === 'Moderate', `mismatched JD lands low (got ${weak.band})`);

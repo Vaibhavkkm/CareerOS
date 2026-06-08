@@ -97,13 +97,20 @@ function firstStr(...vals) {
 // A posting date as YYYY-MM-DD, from an ISO string OR an epoch (sec/ms). '' if unknown.
 export function toISODate(v) {
   if (v == null || v === '') return '';
+  const str = String(v);
+  // Already starts with a YYYY-MM-DD date (incl. space-separated pandas Timestamps
+  // like "2026-06-01 00:00:00")? Take the date part VERBATIM. Round-tripping it
+  // through new Date()+toISOString() reinterprets a space-separated stamp as LOCAL
+  // time and can shift the day across the UTC boundary (off-by-one date).
+  const iso = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
   let d;
-  if (typeof v === 'number' || /^\d+$/.test(String(v))) {
+  if (typeof v === 'number' || /^\d+$/.test(str)) {
     let n = Number(v);
     if (n < 1e12) n *= 1000; // seconds → ms
     d = new Date(n);
   } else {
-    d = new Date(String(v));
+    d = new Date(str);
   }
   return Number.isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
 }
@@ -148,10 +155,14 @@ export function detectAts(url) {
   try { u = new URL(String(url)); } catch { return null; }
   const host = u.hostname.toLowerCase();
   const segs = u.pathname.split('/').filter(Boolean);
+  // Match the EXACT ATS domain or a subdomain of it — not a look-alike. endsWith
+  // alone treats "evilgreenhouse.io" / "notlever.co" as the real ATS and would
+  // mislabel an attacker-controlled posting as a trusted provider.
+  const hostIs = (domain) => host === domain || host.endsWith('.' + domain);
 
   // Greenhouse: boards.greenhouse.io/<board>[/jobs/<id>], job-boards[.eu].greenhouse.io/...,
   // and the embed form boards.greenhouse.io/embed/job_app?token=<id>&for=<board>.
-  if (host.endsWith('greenhouse.io')) {
+  if (hostIs('greenhouse.io')) {
     if (segs[0] === 'embed') {
       const board = u.searchParams.get('for') || '';
       const jobId = u.searchParams.get('token') || '';
@@ -164,14 +175,14 @@ export function detectAts(url) {
   }
 
   // Lever: jobs.lever.co/<site>[/<id>], jobs.eu.lever.co/<site>/<id>
-  if (host.endsWith('lever.co')) {
+  if (hostIs('lever.co')) {
     const site = segs[0] || '';
     const jobId = segs[1] || '';
     if (site) return { ats: 'lever', site, jobId };
   }
 
   // Ashby: jobs.ashbyhq.com/<org>[/<jobId>]
-  if (host.endsWith('ashbyhq.com')) {
+  if (hostIs('ashbyhq.com')) {
     const org = segs[0] || '';
     const jobId = segs[1] || '';
     if (org) return { ats: 'ashby', org, jobId };
@@ -199,7 +210,7 @@ export function detectAts(url) {
   }
 
   // SmartRecruiters: jobs.smartrecruiters.com/<company>/<postingId>-<slug>
-  if (host.endsWith('smartrecruiters.com')) {
+  if (hostIs('smartrecruiters.com')) {
     const company = segs[0] || '';
     const last = segs[segs.length - 1] || '';
     const m = last.match(/^(\d{6,})/); // posting id is a long leading number
@@ -462,14 +473,14 @@ async function main() {
     }, null, 2));
   } else if (res.ok) {
     const p = res.posting;
-    console.log(`offerforge fetch-jd — ${res.source}\n`);
+    console.log(`careeros fetch-jd — ${res.source}\n`);
     console.log(`  role:     ${p.role || '(unknown)'}`);
     console.log(`  company:  ${p.company || '(unknown)'}`);
     console.log(`  location: ${p.location || '(not stated)'}`);
     console.log(`  text:     ${p.content.length} chars captured`);
     console.log(savedTo ? `  saved:    ${savedTo.replace(ROOT + '/', '')}` : '  (not saved)');
   } else {
-    console.log(`offerforge fetch-jd — could not scrape: ${res.error}`);
+    console.log(`careeros fetch-jd — could not scrape: ${res.error}`);
     console.log('  → the in-session agent should WebFetch this URL as a fallback.');
   }
   // 0 = scraped ok; 1 = couldn't scrape (the JSON `needs_agent_fetch` flag carries the nuance).

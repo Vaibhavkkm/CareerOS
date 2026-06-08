@@ -138,7 +138,7 @@ function main() {
   const ok = errors.length === 0;
 
   if (args.summary && !args.json) {
-    console.log('offerforge verify-pipeline\n');
+    console.log('careeros verify-pipeline\n');
     console.log(`  tracker: ${trackerPath}`);
     console.log(`  records: ${records.length}`);
     console.log(`  errors: ${errors.length}, warnings: ${warnings.length}\n`);

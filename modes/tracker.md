@@ -1,6 +1,6 @@
 # mode: tracker — view & update the application pipeline
 
-Trigger: `/og tracker [status <X>]` (also "show my tracker", "what have I applied
+Trigger: `/cos tracker [status <X>]` (also "show my tracker", "what have I applied
 to", "mark #N as ...", "move Acme to interview"). View the pipeline, filter by
 status, and update a record's status/notes — then refresh the generated views.
 

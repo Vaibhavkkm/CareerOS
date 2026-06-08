@@ -1,6 +1,6 @@
 # mode: recalibrate-voice — cold-start your voice from your prose corpus
 
-Trigger: `/og recalibrate-voice` (or the user says **"recalibrate my writing
+Trigger: `/cos recalibrate-voice` (or the user says **"recalibrate my writing
 style"**). Re-scan `data/writing-samples/*`, infer how the user actually writes,
 and propose an update to **only** the `narrative.voice` block of
 `data/profile.yml`. Pure agent work — there is no script to run.

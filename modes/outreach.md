@@ -1,6 +1,6 @@
 # mode: outreach — draft cold LinkedIn/email messages to real people at a company
 
-Trigger: `/og outreach <company>` (optionally `<company> for report#` / a role).
+Trigger: `/cos outreach <company>` (optionally `<company> for report#` / a role).
 Identifies likely human targets and drafts a short, specific message for each, in
 the candidate's voice. Pure agent playbook — no script of its own.
 

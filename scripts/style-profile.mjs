@@ -447,7 +447,10 @@ export function bankFromDiff(styleDir, diff, ctx, editId, theToday) {
       skills,
       accepted_as: u.op, // 'kept' | 'reworded'
       source_edit: editId,
-      created: theToday,
+      // Use the edit's OWN date so a full `--rebuild` replay preserves per-edit
+      // recency (retrieval weights newer examples). theToday is only a fallback for
+      // edits whose context.json has no `created`.
+      created: (ctx && ctx.created) || theToday,
       tf,
     };
     records.push(rec);

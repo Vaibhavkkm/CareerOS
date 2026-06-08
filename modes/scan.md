@@ -1,6 +1,6 @@
 # mode: scan — discover open roles from tracked portals (zero-token)
 
-Trigger: `/og scan [--company X]`. Runs the pure-script portal scanner: it reads
+Trigger: `/cos scan [--company X]`. Runs the pure-script portal scanner: it reads
 `data/portals.yml`, fetches open roles via provider plugins, filters by title +
 location, dedups against everything already seen, and appends the survivors to
 `data/inbox.md` (the pipeline's URL queue). **No Claude tokens are spent** — this
@@ -59,7 +59,7 @@ to embed — those belong to `evaluate`/`pipeline`. Don't write to `data/reports
 
 ## Step 4 — Hand off to the pipeline
 New offers are queued but **not yet evaluated**. Tell the user to run
-**`/og pipeline`** to process `data/inbox.md` (extract → evaluate → recommend) and
+**`/cos pipeline`** to process `data/inbox.md` (extract → evaluate → recommend) and
 only then decide whether to build a CV. Never auto-advance or treat a queued URL
 as "applied" — see guardrails in `_shared.md`.
 

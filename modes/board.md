@@ -1,6 +1,6 @@
 # mode: board — rank open roles by how well they match YOUR CV
 
-Trigger: `/og board` (or "show me my matches", "which jobs fit me"). Produces a
+Trigger: `/cos board` (or "show me my matches", "which jobs fit me"). Produces a
 ranked board of openings — each labelled with a match band (STRONGEST / Very
 strong / Strong / Moderate / Weak), how recently it was posted, and the skills
 you HAVE vs the GAPs — then lets the user tailor a CV+CL for any pick in one step.
@@ -23,7 +23,7 @@ Run `node scripts/board.mjs --json` (pass through any filters the user gave):
 
 With no `--urls`, the board draws from everything already scraped in `data/jds/`
 plus the scan queue `data/inbox.md` (URLs there are fetched and saved). If both are
-empty, tell the user to run `/og scan`, share a URL, or pass `--urls`.
+empty, tell the user to run `/cos scan`, share a URL, or pass `--urls`.
 
 ## Step 2 — Present the board
 Render the rows (the script's `--json` gives you `company, role, url, posted,
@@ -42,8 +42,8 @@ missing requirements at a glance). Note the legitimacy/recency caveats honestly
 (a deterministic pre-rank can miss nuance; `evaluate` is the real judge).
 
 ## Step 3 — One-click tailor
-Tell the user they can tailor for any row in one step: **`/og build-cv <number>`**
-(and `/og build-cl <number>` for a letter). When they pick a number:
+Tell the user they can tailor for any row in one step: **`/cos build-cv <number>`**
+(and `/cos build-cl <number>` for a letter). When they pick a number:
 1. Map it to that row's posting (`jd_path` if saved, else its `url` → ensure it's
    fetched to `data/jds/` via `fetch-jd`).
 2. Run **`evaluate`** on it first if there's no report yet (so the build reuses the
@@ -52,8 +52,8 @@ Tell the user they can tailor for any row in one step: **`/og build-cv <number>`
    the warm-started example bank. One command, a tailored, ATS-safe PDF out.
 
 ## Step 4 — Offptional follow-ups
-Suggest: narrow with `--min`/`--recent`, add more sources with `/og scan`, or
-deep-evaluate a specific one with `/og evaluate <n>`.
+Suggest: narrow with `--min`/`--recent`, add more sources with `/cos scan`, or
+deep-evaluate a specific one with `/cos evaluate <n>`.
 
 ## Never
 Present the deterministic match score as a final verdict (it's a pre-rank — say so)

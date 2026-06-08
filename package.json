@@ -1,5 +1,5 @@
 {
-  "name": "offerforge",
+  "name": "careeros",
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
@@ -9,7 +9,7 @@
     "node": ">=20"
   },
   "bin": {
-    "offerforge": "scripts/cli.mjs"
+    "careeros": "scripts/cli.mjs"
   },
   "scripts": {
     "doctor": "node scripts/doctor.mjs",
@@ -18,6 +18,12 @@
     "board": "node scripts/board.mjs",
     "match-score": "node scripts/match-score.mjs",
     "scan": "node scripts/scan.mjs",
+    "fetch": "node scripts/jobspy.mjs",
+    "jobspy:install": "python3 -m venv .venv && ./.venv/bin/python -m pip install -U pip -r requirements.txt",
+    "hunt-ingest": "node scripts/hunt-ingest.mjs",
+    "ui-queue": "node scripts/ui-queue.mjs",
+    "web:dev": "npm --prefix web run dev",
+    "web:build": "npm --prefix web run build",
     "merge": "node scripts/merge-tracker.mjs",
     "tracker": "node scripts/tracker.mjs",
     "render": "node scripts/render-views.mjs",
@@ -29,7 +35,7 @@
     "style:diff": "node scripts/style-diff.mjs",
     "style:profile": "node scripts/style-profile.mjs",
     "style:retrieve": "node scripts/style-retrieve.mjs",
-    "test": "node scripts/fetch-jd.mjs --self-test && node scripts/match-score.mjs --self-test && node scripts/board.mjs --self-test && node scripts/seed-examples.mjs --self-test && node scripts/cli.mjs --self-test && node scripts/scan.mjs --self-test && node scripts/compile-latex.mjs --self-test && node scripts/style-diff.mjs --self-test && node scripts/style-profile.mjs --self-test && node scripts/style-retrieve.mjs --self-test && node scripts/style-loop.integration-test.mjs && node scripts/analyze.mjs --self-test && node scripts/followup.mjs --self-test && node lib/_selftest.mjs"
+    "test": "node scripts/fetch-jd.mjs --self-test && node scripts/match-score.mjs --self-test && node scripts/board.mjs --self-test && node scripts/seed-examples.mjs --self-test && node scripts/cli.mjs --self-test && node scripts/scan.mjs --self-test && node scripts/compile-latex.mjs --self-test && node scripts/style-diff.mjs --self-test && node scripts/style-profile.mjs --self-test && node scripts/style-retrieve.mjs --self-test && node scripts/style-loop.integration-test.mjs && node scripts/analyze.mjs --self-test && node scripts/followup.mjs --self-test && node scripts/hunt-ingest.mjs --self-test && node scripts/jobspy.mjs --self-test && node scripts/ui-queue.mjs --self-test && node lib/_selftest.mjs"
   },
   "dependencies": {
     "js-yaml": "^4.2.0"

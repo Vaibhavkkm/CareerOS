@@ -1,6 +1,6 @@
 cff-version: 1.2.0
-message: "If you use OfferForge in your work, please cite it as below."
-title: "OfferForge"
+message: "If you use CareerOS in your work, please cite it as below."
+title: "CareerOS"
 abstract: >-
   A Claude Code-native, LaTeX-first CV and cover-letter builder fused with a
   job-application pipeline that learns from a user's own CV and cover letter to
@@ -11,7 +11,7 @@ authors:
 version: "0.1.0"
 date-released: "2026-06-07"
 license: MIT
-repository-code: "https://github.com/Vaibhavkkm/OfferForge"
+repository-code: "https://github.com/Vaibhavkkm/CareerOS"
 url: "https://www.vaibhavkkm.com"
 keywords:
   - curriculum-vitae

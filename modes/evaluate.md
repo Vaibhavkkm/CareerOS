@@ -1,6 +1,6 @@
 # mode: evaluate — score ONE posting into an A–G report + Machine Summary
 
-Trigger: `/og evaluate <JD-text | url | jds/file>`. Produces a numbered report at
+Trigger: `/cos evaluate <JD-text | url | jds/file>`. Produces a numbered report at
 `data/reports/NNN-slug-DATE.md` ending in a fenced `yaml` Machine Summary, then
 registers/advances the tracker. No CV is built here — that's `build-cv`.
 
@@ -100,7 +100,7 @@ flip status beyond `evaluated` here.
 ## Step 6 — Hand off
 Report the **score, decision band, and the report path**. If overall is
 **≥ `compile_score_threshold`** (default 3.0 — see `_shared.md` Gates), suggest
-**`/og build-cv <NNN>`**; otherwise recommend **Skip** and ask before building.
+**`/cos build-cv <NNN>`**; otherwise recommend **Skip** and ask before building.
 
 ## Never
 Fabricate experience/metrics/qualifications to lift a score · score around a hard

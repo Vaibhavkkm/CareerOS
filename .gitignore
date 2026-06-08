@@ -1,6 +1,18 @@
 # dependencies
 node_modules/
 
+# web app (isolated; has its OWN package.json so the root stays zero-dependency)
+web/node_modules/
+web/.next/
+web/out/
+web/next-env.d.ts
+web/tsconfig.tsbuildinfo
+
+# Python sidecar venv (job-board fetch via python-jobspy) — local, never committed
+.venv/
+__pycache__/
+*.pyc
+
 # tectonic build artifacts
 *.aux
 *.log
@@ -13,7 +25,7 @@ node_modules/
 # ─────────────────────────────────────────────────────────────────────────────
 # YOUR DATA & PII — never committed (this repo is PUBLIC)
 # ─────────────────────────────────────────────────────────────────────────────
-# Everything OfferForge generates or learns about you lives in data/ and contains
+# Everything CareerOS generates or learns about you lives in data/ and contains
 # personal info (name, email, phone, address, employers, your CV + letters). It
 # stays on your machine. Back it up with your OWN private git remote, not this one.
 # `node scripts/doctor.mjs --fix` recreates the empty data/ structure on a fresh
