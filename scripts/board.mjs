@@ -233,7 +233,9 @@ export function matchesType(text, type) {
   const isIntern = /\b(intern|interns|internship|trainee|working student|praktik\w*|stage|stagiaire|apprentic\w*|placement|graduate program(?:me)?)\b/.test(t);
   const isPart = /\b(part[-\s]?time|teilzeit)\b/.test(t);
   const isTemp = /\b(fixed[-\s]?term|temporary|\btemp\b|cdd|interim|seasonal)\b/.test(t);
-  const isContract = /\b(contract|contractor|freelance|consultant|b2b)\b/.test(t);
+  // 'consultant' alone is dropped — it's a permanent job title at consulting firms
+  // ("Senior Consultant"), not a contract signal. Keep contractor/freelance/b2b.
+  const isContract = /\b(contract|contractor|freelance|freelancer|b2b)\b/.test(t);
   switch (ty) {
     case 'internship': return isIntern;
     case 'phd': return isPhd;
@@ -241,7 +243,9 @@ export function matchesType(text, type) {
     case 'parttime': return isPart;
     case 'temporary': return isTemp;
     case 'contract': return isContract;
-    case 'fulltime': return !isIntern && !isPart && !isTemp && !isPhd && !isPostdoc; // permanent
+    // permanent = none of the non-permanent classes (incl. contract, so the bands
+    // are mutually exclusive — a "Contract Engineer" is not full-time).
+    case 'fulltime': return !isIntern && !isPart && !isTemp && !isPhd && !isPostdoc && !isContract;
     default: return true;
   }
 }
@@ -485,6 +489,11 @@ export function selfTest() {
   ok(matchesType('PhD Internship - Summer 2026', 'internship') && matchesType('PhD Internship - Summer 2026', 'phd'),
     'matchesType: PhD Internship lists under BOTH internship and phd');
   ok(!matchesType('PhD Internship - Summer 2026', 'fulltime'), 'matchesType: PhD Internship is not fulltime');
+  // contract vs fulltime are mutually exclusive; bare "consultant" stays permanent
+  ok(matchesType('Contract Data Engineer', 'contract') && !matchesType('Contract Data Engineer', 'fulltime'),
+    'matchesType: contract role excluded from fulltime');
+  ok(matchesType('Senior Consultant', 'fulltime') && !matchesType('Senior Consultant', 'contract'),
+    'matchesType: bare "consultant" is permanent, not contract');
   eq(extractExperience('We need 3-5 years of experience'), '3–5 yrs', 'experience: range');
   eq(extractExperience('Requires 5+ years in data'), '5+ yrs', 'experience: N+');
   eq(extractExperience('Join our great team'), '', 'experience: none');

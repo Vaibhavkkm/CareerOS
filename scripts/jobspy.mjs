@@ -96,7 +96,9 @@ export function deriveConfig(profile, args) {
   };
   if (ACADEMIC[rawType]) {
     const a = ACADEMIC[rawType];
-    search_terms = [...new Set([...search_terms.map((t) => `${a.prefix} ${t}`), ...a.extra])].slice(0, 6);
+    // extras FIRST so the curated academic anchors survive the cap even when the
+    // profile has many primary roles (the prefixed roles fill the remaining slots).
+    search_terms = [...new Set([...a.extra, ...search_terms.map((t) => `${a.prefix} ${t}`)])].slice(0, 6);
   }
   const job_type = JOBSPY_TYPES.has(rawType) ? rawType : null;
 

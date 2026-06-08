@@ -74,11 +74,13 @@ export function BoardTable({
               <td className="cell-lang" title={r.languages || ''}>{r.languages || '—'}</td>
               <td className="cell-skills">
                 <div className="chips chips--clip">
-                  {have.slice(0, 3).map((h, j) => (
-                    <span key={`h${j}`} className="chip chip--have">
-                      {h}
-                    </span>
-                  ))}
+                  <span className="chips__row">
+                    {have.slice(0, 3).map((h, j) => (
+                      <span key={`h${j}`} className="chip chip--have">
+                        {h}
+                      </span>
+                    ))}
+                  </span>
                   {have.length > 3 && <span className="chip chip--more">+{have.length - 3}</span>}
                 </div>
               </td>

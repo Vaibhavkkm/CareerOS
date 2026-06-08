@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { QueueRequest } from '@/lib/types';
 import { api } from './util';
+import { IS_PUBLIC } from '@/lib/public';
 import { IconPulse } from './Icons';
 
 // Polls the request queue and shows how many agent tasks are waiting. Clicking
@@ -16,6 +17,9 @@ export function QueueIndicator() {
   }, []);
 
   useEffect(() => {
+    // The public demo has no queue (always empty) — don't poll a serverless
+    // function every few seconds for nothing.
+    if (IS_PUBLIC) return;
     load();
     const t = setInterval(load, 4000);
     return () => clearInterval(t);

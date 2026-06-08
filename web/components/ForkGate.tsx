@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { GATE_EVENT, REPO_URL, FORK_URL } from '@/lib/public';
 import { IconExternal } from './Icons';
 
@@ -33,6 +33,14 @@ const STEPS: [string, string][] = [
 ];
 
 function ForkGate({ onClose }: { onClose: () => void }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  // Move focus into the dialog on open; restore it to the trigger on close.
+  useEffect(() => {
+    const prev = document.activeElement as HTMLElement | null;
+    cardRef.current?.focus();
+    return () => prev?.focus?.();
+  }, []);
+
   return (
     <div
       className="modal"
@@ -41,7 +49,7 @@ function ForkGate({ onClose }: { onClose: () => void }) {
       aria-modal="true"
       aria-label="Run CareerOS in your own Claude Code"
     >
-      <div className="modal__card forkgate">
+      <div className="modal__card forkgate" ref={cardRef} tabIndex={-1}>
         <div className="modal__h">Run CareerOS in your own Claude Code</div>
         <div className="modal__p">
           This is a public demo. CareerOS is <b>Claude Code-native</b> — the AI that reads your CV

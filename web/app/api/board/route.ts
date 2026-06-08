@@ -11,7 +11,10 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   // Public demo: serve the bundled snapshot (the engine scripts + private data/
   // aren't on a serverless host). Filters are inert here — it's a showcase.
-  if (isPublicMode()) return NextResponse.json(demoBoard);
+  // `today` advances to the current date so the recency framing stays honest.
+  if (isPublicMode()) {
+    return NextResponse.json({ ...demoBoard, today: new Date().toISOString().slice(0, 10) });
+  }
 
   const sp = new URL(request.url).searchParams;
   const args = ['--json'];

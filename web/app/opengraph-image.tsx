@@ -1,8 +1,8 @@
 import { ImageResponse } from 'next/og';
 
 // Link-preview card (1200×630) for careeros.vaibhavkkm.com — Next wires this into
-// both the OpenGraph and Twitter image tags automatically.
-export const runtime = 'edge';
+// both the OpenGraph and Twitter image tags automatically. Node runtime (default)
+// — next/og works there and it's the better-supported path on Netlify than edge.
 export const alt = 'CareerOS — AI-tailored CVs and a CV-ranked job board';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';

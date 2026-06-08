@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { safeDataPath } from '@/lib/paths';
+import { isPublicMode } from '@/lib/gate';
 import { bad } from '@/lib/http';
 
 export const runtime = 'nodejs';
@@ -9,6 +10,8 @@ export const dynamic = 'force-dynamic';
 
 // GET /api/pdf?path=data/output/x.pdf — stream a generated PDF (sandboxed read).
 export async function GET(request: Request) {
+  // Public demo: never stream the owner's generated CVs/cover letters (PII).
+  if (isPublicMode()) return NextResponse.json({ ok: false, error: 'not found' }, { status: 404 });
   const rel = new URL(request.url).searchParams.get('path') || '';
   if (!rel.toLowerCase().endsWith('.pdf')) return bad('only .pdf files can be served');
   const abs = safeDataPath(rel);

@@ -34,6 +34,13 @@ export function runScript<T = unknown>(
   opts: { timeoutMs?: number; input?: string } = {},
 ): Promise<RunResult<T>> {
   return new Promise((resolve) => {
+    // Defense-in-depth: the public demo must NEVER spawn an engine child process,
+    // even if a route forgets its gate. The single backstop under the per-route
+    // public-mode guards.
+    if (process.env.CAREEROS_PUBLIC === '1' || process.env.NEXT_PUBLIC_CAREEROS_PUBLIC === '1') {
+      resolve({ ok: false, error: 'engine disabled in public demo mode' });
+      return;
+    }
     if (!ALLOW.has(script)) {
       resolve({ ok: false, error: `script not allowed: ${script}` });
       return;

@@ -117,6 +117,7 @@ export function FilterBar({
         <span className="field__label">country</span>
         <select
           className="input"
+          aria-label="Country"
           value={place.country}
           onChange={(e) => onPlaceChange({ ...place, country: e.target.value })}
           style={{ width: 170 }}
@@ -134,6 +135,7 @@ export function FilterBar({
         <span className="field__label">type</span>
         <select
           className="input"
+          aria-label="Job type"
           value={place.jobType}
           onChange={(e) => onPlaceChange({ ...place, jobType: e.target.value })}
           style={{ width: 150 }}
@@ -156,6 +158,7 @@ export function FilterBar({
       >
         <input
           className="input"
+          aria-label="City"
           placeholder={place.country === ALL_COUNTRIES ? 'city — n/a for all' : 'city (optional)…'}
           value={place.country === ALL_COUNTRIES ? '' : place.city}
           onChange={(e) => onPlaceChange({ ...place, city: e.target.value })}
@@ -186,6 +189,7 @@ export function FilterBar({
       >
         <input
           className="input"
+          aria-label="Paste a job URL"
           placeholder="paste a job URL…"
           value={url}
           onChange={(e) => setUrl(e.target.value)}

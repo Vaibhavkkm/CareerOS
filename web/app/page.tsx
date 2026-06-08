@@ -244,7 +244,8 @@ export default function BoardPage() {
           <span>{today}</span>
         </div>
       </div>
-      <div className="main">
+      <main className="main">
+        <h1 className="sr-only">CareerOS — CV-ranked job board</h1>
         <FilterBar
           filters={filters}
           onChange={setFilters}
@@ -272,7 +273,7 @@ export default function BoardPage() {
         ) : (
           <BoardTable rows={rows} today={today} selected={drawer} onSelect={(i) => setDrawer(i)} />
         )}
-      </div>
+      </main>
       {drawer >= 0 && rows[drawer] && (
         <DetailDrawer row={rows[drawer]} today={today} onClose={() => setDrawer(-1)} onEnqueue={enqueue} />
       )}
