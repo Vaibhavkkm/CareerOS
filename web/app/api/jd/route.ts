@@ -5,9 +5,13 @@ import { safeDataPath } from '@/lib/paths';
 import { repoRoot } from '@/lib/repo';
 import { isPublicMode } from '@/lib/gate';
 import { bad } from '@/lib/http';
+import { DEMO_JDS_B64 } from '@/lib/demo/jds.b64';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+// Demo JD bodies, decoded once from base64 (see jds.b64.ts for why it's encoded).
+const DEMO_JDS = JSON.parse(Buffer.from(DEMO_JDS_B64, 'base64').toString('utf8')) as Record<string, unknown>;
 
 // Parse a data/jds/*.md file (the format fetch-jd writes) — mirrors
 // scripts/board.mjs `parseJdMarkdown`.
@@ -57,9 +61,14 @@ function findByUrl(url: string): string | null {
 // GET /api/jd?path=data/jds/x.md — the saved posting (sandboxed read).
 // GET /api/jd?url=<posting url> — fallback lookup by URL when no jd_path exists.
 export async function GET(request: Request) {
-  // Public demo: no private data/jds on a serverless host. The drawer renders its
-  // "no description captured — open the original posting" fallback gracefully.
-  if (isPublicMode()) return NextResponse.json({ ok: false, error: 'not found' }, { status: 404 });
+  // Public demo: serve the bundled (public) job descriptions for the demo rows;
+  // never touch the private data/ filesystem on the serverless host.
+  if (isPublicMode()) {
+    const rel = new URL(request.url).searchParams.get('path') || '';
+    const hit = DEMO_JDS[rel];
+    if (hit) return NextResponse.json(hit);
+    return NextResponse.json({ ok: false, error: 'not found' }, { status: 404 });
+  }
 
   const sp = new URL(request.url).searchParams;
   const rel = sp.get('path') || '';

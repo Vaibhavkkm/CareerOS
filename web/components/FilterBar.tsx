@@ -80,6 +80,9 @@ export function FilterBar({
   busy?: boolean;
 }) {
   const [url, setUrl] = useState('');
+  // On mobile the secondary fetch/source controls collapse behind a toggle so the
+  // board is visible immediately; on desktop they're always shown (CSS handles it).
+  const [moreOpen, setMoreOpen] = useState(false);
   return (
     <div className="toolbar">
       <div className="field">
@@ -110,10 +113,20 @@ export function FilterBar({
           ))}
         </div>
       </div>
-      <div className="toolbar__spacer" />
+      <button
+        type="button"
+        className="toolbar__more-toggle"
+        aria-expanded={moreOpen}
+        onClick={() => setMoreOpen((o) => !o)}
+      >
+        {moreOpen ? '× close' : '+ filters & sources'}
+      </button>
 
-      {/* Live multi-board fetch: country + city → Indeed/ZipRecruiter/Google */}
-      <div className="field">
+      <div className={`toolbar__more ${moreOpen ? 'is-open' : ''}`}>
+        <div className="toolbar__spacer" />
+
+        {/* Live multi-board fetch: country + city → Indeed/ZipRecruiter/Google */}
+        <div className="field">
         <span className="field__label">country</span>
         <select
           className="input"
@@ -207,6 +220,7 @@ export function FilterBar({
       >
         <IconRefresh /> refresh
       </button>
+      </div>
     </div>
   );
 }
