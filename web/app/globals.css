@@ -1202,9 +1202,11 @@ select {
   /* dynamic viewport height so mobile browser chrome doesn't clip content */
   .app { height: 100dvh; }
 
-  /* tighter shell padding */
-  .topbar { gap: var(--s3); padding: 0 var(--s3); }
-  .statusline { padding: 0 var(--s3); gap: var(--s2); font-size: var(--fs-micro); }
+  /* tighter shell padding; clip so nothing here can stretch the grid column wider
+     than the viewport (which would drag the board out with it). */
+  .topbar { gap: var(--s3); padding: 0 var(--s3); overflow: hidden; }
+  .statusline { padding: 0 var(--s3); gap: var(--s2); font-size: var(--fs-micro); overflow: hidden; }
+  .statusline__right { display: none; } /* LIVE dot + date — not needed on a phone */
 
   /* top bar: keep brand + nav, drop the desktop-only ⌘K hint; tap-friendly nav */
   .kbd { display: none; }
@@ -1249,27 +1251,39 @@ select {
     gap: var(--s2);
   }
 
-  /* segmented filters (match / posted): each field is its own full-width row; the
-     bar FILLS the space left of its label (flex, NOT width:100% — that overflowed
-     past the label and made the whole page scroll sideways) and splits evenly. */
-  .toolbar .field { flex: 1 1 100%; gap: var(--s2); }
+  /* segmented filters (match / posted): each field is its own full-width row, with
+     the LABEL on its own line above a FULL-WIDTH segmented bar (so the label never
+     steals width). The bar is a grid of equal columns — robust + minifier-safe. */
+  .toolbar .field {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    gap: var(--s1) var(--s2);
+    min-width: 0;
+  }
+  .toolbar .field__label {
+    flex: 1 1 100%;
+  }
   .toolbar .seg {
-    display: flex;
-    flex: 1 1 auto;
-    width: auto;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr); /* minmax(0,…) — plain 1fr is minmax(auto,1fr)
+                                          and won't shrink below the buttons' content,
+                                          which pushed the bar past the viewport. */
+    flex: 1 1 100%;
+    width: 100%;
     min-width: 0;
   }
   .toolbar .seg__btn {
-    flex: 1 1 0;
     min-width: 0;
-    justify-content: center;
-    padding: 10px 4px;
+    padding: 10px 2px;
     min-height: 40px;
     font-size: var(--fs-micro);
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    display: inline-flex;
+    display: flex;
     align-items: center;
+    justify-content: center;
   }
 
   /* country/type/city/url controls: full-width, >=40px (they carry inline widths) */
@@ -1288,9 +1302,10 @@ select {
   .board th.col-exp, .cell-exp,
   .board th.col-posted, .cell-age,
   .board th.col-lang, .cell-lang,
-  .board th.col-skills, .cell-skills { display: none; }
-  .board th.col-fit, .cell-fit { width: 58px; }
-  .board th.col-match, .cell-band { width: 76px; }
+  .board th.col-match, .cell-band,
+  .board th.col-skills, .cell-skills { display: none; } /* MATCH redundant with Fit */
+  .board { width: 100%; max-width: 100%; }
+  .board th.col-fit, .cell-fit { width: 64px; }
   .board__headrow th { top: 0; } /* toolbar isn't sticky here, so pin to scroll top */
   .board__row td { padding-top: 8px; padding-bottom: 8px; }
   .cell-role .role,
