@@ -1,6 +1,7 @@
+import { NextResponse } from 'next/server';
 import { runScript } from '@/lib/run';
 import { readJson, fromRun, bad } from '@/lib/http';
-import { gateMutation } from '@/lib/gate';
+import { gateMutation, isPublicMode } from '@/lib/gate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,6 +12,9 @@ const KINDS = new Set(['evaluate', 'build-cv', 'build-cl', 'apply', 'hunt']);
 
 // GET /api/queue?status=queued — list requests (the UI polls this).
 export async function GET(request: Request) {
+  // Public demo: no queue file / engine on a serverless host — report an empty queue.
+  if (isPublicMode()) return NextResponse.json({ ok: true, requests: [] });
+
   const status = new URL(request.url).searchParams.get('status');
   const args = ['list', '--json'];
   if (status) args.push('--status', status);

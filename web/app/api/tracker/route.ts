@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { runScript } from '@/lib/run';
 import { readJson, fromRun, bad } from '@/lib/http';
+import { gateMutation, isPublicMode } from '@/lib/gate';
 import type { TrackerRecord } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -26,6 +27,9 @@ function safeValue(v: unknown): string | null {
 
 // GET /api/tracker?status=applied — list records (the source of truth).
 export async function GET(request: Request) {
+  // Public demo: no tracker file on a serverless host — render an empty pipeline.
+  if (isPublicMode()) return NextResponse.json({ ok: true, records: [] });
+
   const status = new URL(request.url).searchParams.get('status');
   const args = ['list', '--json'];
   if (status && CANONICAL_STATUS.has(status)) args.push('--status', status);
@@ -36,6 +40,8 @@ export async function GET(request: Request) {
 
 // POST /api/tracker {id, status?, notes?, cv_pdf?, cl_pdf?, confirmApplied?} — update.
 export async function POST(request: Request) {
+  const gate = gateMutation();
+  if (gate) return gate;
   const body = await readJson(request);
   const id = Number(body.id);
   if (!Number.isInteger(id) || id < 1) return bad('a valid integer id is required');

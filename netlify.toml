@@ -1,0 +1,17 @@
+# Netlify deploy config for the CareerOS public demo.
+# The app is the Next.js control panel in web/; the repo root is the engine.
+# Builds in PUBLIC mode: the board is a read-only showcase (bundled demo data),
+# every mutating action is gated server-side, and visitors get the fork-gate.
+
+[build]
+  base = "web"
+  command = "npm run build"
+
+[build.environment]
+  NEXT_PUBLIC_CAREEROS_PUBLIC = "1"
+  CAREEROS_PUBLIC = "1"
+  NEXT_PUBLIC_CAREEROS_REPO = "https://github.com/Vaibhavkkm/CareerOS"
+  NODE_VERSION = "20"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

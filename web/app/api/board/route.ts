@@ -1,12 +1,18 @@
 import { NextResponse } from 'next/server';
 import { runScript } from '@/lib/run';
+import { isPublicMode } from '@/lib/gate';
 import type { BoardResponse } from '@/lib/types';
+import demoBoard from '@/lib/demo/board.json';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 // GET /api/board?min=Strong&recent=14&urls=u1,u2 — the ranked match board.
 export async function GET(request: Request) {
+  // Public demo: serve the bundled snapshot (the engine scripts + private data/
+  // aren't on a serverless host). Filters are inert here — it's a showcase.
+  if (isPublicMode()) return NextResponse.json(demoBoard);
+
   const sp = new URL(request.url).searchParams;
   const args = ['--json'];
   const BANDS = new Set(['STRONGEST', 'Very strong', 'Strong', 'Moderate', 'Weak']);

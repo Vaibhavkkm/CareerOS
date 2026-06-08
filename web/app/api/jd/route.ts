@@ -3,6 +3,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { safeDataPath } from '@/lib/paths';
 import { repoRoot } from '@/lib/repo';
+import { isPublicMode } from '@/lib/gate';
 import { bad } from '@/lib/http';
 
 export const runtime = 'nodejs';
@@ -56,6 +57,10 @@ function findByUrl(url: string): string | null {
 // GET /api/jd?path=data/jds/x.md — the saved posting (sandboxed read).
 // GET /api/jd?url=<posting url> — fallback lookup by URL when no jd_path exists.
 export async function GET(request: Request) {
+  // Public demo: no private data/jds on a serverless host. The drawer renders its
+  // "no description captured — open the original posting" fallback gracefully.
+  if (isPublicMode()) return NextResponse.json({ ok: false, error: 'not found' }, { status: 404 });
+
   const sp = new URL(request.url).searchParams;
   const rel = sp.get('path') || '';
   const url = sp.get('url') || '';
