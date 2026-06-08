@@ -1150,3 +1150,108 @@ select {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
+/* ============================================================================
+   responsive — tablet & mobile
+   The board is a dense desktop grid; on smaller screens we progressively drop
+   secondary columns (their data still lives in the detail drawer) and let the
+   filter controls flex + wrap instead of overflowing.
+   ========================================================================== */
+
+/* Tablet: drop the widest, least-critical column first. */
+@media (max-width: 920px) {
+  .board th.col-skills,
+  .cell-skills {
+    display: none;
+  }
+}
+
+/* Phone: focused board (Fit · Match · Role/Company); details in the drawer. */
+@media (max-width: 680px) {
+  /* use the dynamic viewport height so mobile browser chrome doesn't clip content */
+  .app {
+    height: 100dvh;
+  }
+
+  /* tighter shell padding */
+  .topbar {
+    gap: var(--s3);
+    padding: 0 var(--s3);
+  }
+  .statusline {
+    padding: 0 var(--s3);
+    gap: var(--s2);
+    font-size: var(--fs-micro);
+  }
+  .toolbar {
+    padding: var(--s2) var(--s3);
+    gap: var(--s2) var(--s3);
+  }
+
+  /* top bar: keep brand + nav, drop the desktop-only ⌘K hint */
+  .kbd {
+    display: none;
+  }
+  .brand {
+    letter-spacing: 0.12em;
+    font-size: var(--fs-label);
+  }
+  .nav {
+    margin-left: var(--s2);
+  }
+  .nav__item {
+    padding: 6px 8px;
+  }
+
+  /* filter bar: flex the country/type/city controls instead of fixed px widths.
+     They carry inline width styles, so override narrowly with !important here. */
+  .toolbar .input {
+    width: auto !important;
+    flex: 1 1 120px;
+    min-width: 0;
+  }
+  .toolbar form.field {
+    flex: 1 1 140px;
+  }
+
+  /* board: hide secondary columns; shrink fit/match so role/company gets room */
+  .board {
+    table-layout: auto;
+    width: 100%;
+  }
+  .board th.col-exp,
+  .cell-exp,
+  .board th.col-posted,
+  .cell-age,
+  .board th.col-lang,
+  .cell-lang,
+  .board th.col-skills,
+  .cell-skills {
+    display: none;
+  }
+  .board th.col-fit,
+  .cell-fit {
+    width: 58px;
+  }
+  .board th.col-match,
+  .cell-band {
+    width: 76px;
+  }
+  .cell-role {
+    white-space: normal;
+  }
+  .board__row td {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  /* detail drawer + fork-gate: full-screen / near-full-width sheets on a phone */
+  .drawer__panel {
+    width: 100vw !important;
+    max-width: 100vw !important;
+  }
+  .modal__card.forkgate {
+    width: 94vw;
+    padding: var(--s4);
+  }
+}
