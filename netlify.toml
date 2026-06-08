@@ -6,6 +6,10 @@
 [build]
   base = "web"
   command = "npm run build"
+  # Relative to `base`, so this resolves to web/.next. Must NOT equal `base`, and
+  # must be set here so it overrides any "publish = web" left in the Netlify UI
+  # (which makes @netlify/plugin-nextjs fail with "publish dir == base dir").
+  publish = ".next"
 
 [build.environment]
   NEXT_PUBLIC_CAREEROS_PUBLIC = "1"
