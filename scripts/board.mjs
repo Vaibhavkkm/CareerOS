@@ -228,7 +228,9 @@ export function matchesType(text, type) {
   const isPostdoc = /\b(post[-\s]?doc(?:s)?|post[-\s]?doctoral|postdoctoral|post[-\s]?doctorate)\b/.test(t);
   // PhD but NOT postdoc (a "postdoc" line also contains "doc"); exclude when postdoc matched.
   const isPhd = !isPostdoc && /\b(ph[\s.]?d|d\.?phil|doctoral|doctorate|doctoral researcher|doctoral candidate|doctorant|doktorand)\b/.test(t);
-  const isIntern = /\b(intern|interns|internship|trainee|working student|praktik\w*|stage|stagiaire|apprentic\w*|placement|graduate program(?:me)?)\b/.test(t) && !isPhd && !isPostdoc;
+  // Internship is INDEPENDENT of phd/postdoc — a "PhD Internship" is genuinely both,
+  // so it surfaces under the Internship filter AND the PhD filter (no precedence).
+  const isIntern = /\b(intern|interns|internship|trainee|working student|praktik\w*|stage|stagiaire|apprentic\w*|placement|graduate program(?:me)?)\b/.test(t);
   const isPart = /\b(part[-\s]?time|teilzeit)\b/.test(t);
   const isTemp = /\b(fixed[-\s]?term|temporary|\btemp\b|cdd|interim|seasonal)\b/.test(t);
   const isContract = /\b(contract|contractor|freelance|consultant|b2b)\b/.test(t);
@@ -478,7 +480,11 @@ export function selfTest() {
   ok(matchesType('PhD Position in Machine Learning', 'phd') && !matchesType('Data Engineer', 'phd'), 'matchesType: phd');
   ok(matchesType('Doctoral Researcher in Climate Science', 'phd'), 'matchesType: doctoral -> phd');
   ok(matchesType('Postdoctoral Researcher in Genomics', 'postdoc') && !matchesType('Postdoctoral Researcher', 'phd'), 'matchesType: postdoc not phd');
-  ok(!matchesType('PhD Candidate', 'internship') && !matchesType('Postdoc Fellow', 'fulltime'), 'matchesType: phd/postdoc excluded from intern & fulltime');
+  ok(!matchesType('PhD Candidate', 'internship') && !matchesType('Postdoc Fellow', 'fulltime'), 'matchesType: phd/postdoc without an intern keyword stay out of intern & fulltime');
+  // a "PhD Internship" is genuinely both → it lists under the Internship filter AND the PhD filter
+  ok(matchesType('PhD Internship - Summer 2026', 'internship') && matchesType('PhD Internship - Summer 2026', 'phd'),
+    'matchesType: PhD Internship lists under BOTH internship and phd');
+  ok(!matchesType('PhD Internship - Summer 2026', 'fulltime'), 'matchesType: PhD Internship is not fulltime');
   eq(extractExperience('We need 3-5 years of experience'), '3–5 yrs', 'experience: range');
   eq(extractExperience('Requires 5+ years in data'), '5+ yrs', 'experience: N+');
   eq(extractExperience('Join our great team'), '', 'experience: none');

@@ -226,7 +226,7 @@ CareerOS is in **active development**. Here's the honest picture:
 ### ✅ Working and tested
 - **The engine.** ~24 "mode" playbooks (onboard, board, hunt, ui, evaluate, build-cv,
   build-cl, scan, track, follow-up, interview-prep, compare, negotiate, and more), 21
-  helper scripts, and shared libraries. Automated self-tests pass (`npm test` → **443 checks green**).
+  helper scripts, and shared libraries. Automated self-tests pass (`npm test` → **478 checks green**).
 - **Share a URL → it scrapes the whole posting.** `fetch-jd` pulls the *complete*
   job from the ATS's own API (Greenhouse, Lever, Recruitee, SmartRecruiters) or the
   page HTML (Ashby, Workable, and any other site), saves it locally, and falls back
@@ -236,8 +236,13 @@ CareerOS is in **active development**. Here's the honest picture:
   draft already sounds like you.
 - **Job-match board.** `/cos board` ranks open roles by how well they fit *your*
   CV — STRONGEST / Very strong / Strong / Moderate / Weak — with how recently each
-  was posted, the skills you have vs. the gaps, and one-command tailoring for any
-  pick. Filter by match band (`--min`) and recency (`--recent`).
+  was posted, the skills you have vs. the gaps, any **language requirement** the
+  posting states (e.g. *English (req), French (plus)*), and one-command tailoring
+  for any pick. Filter by match band (`--min`), recency (`--recent`), country/city,
+  and **job type** — full-time, internship, **PhD**, **post-doc**, contract or temp.
+  Job type is read from the role title (not loose prose), so a "Senior Engineer"
+  whose blurb merely mentions interns won't show under *Internship*; a genuine
+  "PhD Internship" correctly shows under **both** the PhD and Internship filters.
 - **Self-correcting drafts.** Every CV/cover letter is graded against your voice,
   the job's must-have keywords, and the no-fabrication/no-filler rules, then revised
   before you see it.
