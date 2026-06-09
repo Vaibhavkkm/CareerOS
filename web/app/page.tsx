@@ -7,6 +7,7 @@ import { BoardTable } from '@/components/BoardTable';
 import { DetailDrawer } from '@/components/DetailDrawer';
 import { CommandPalette, type Command } from '@/components/CommandPalette';
 import { Toaster, useToasts } from '@/components/Toast';
+import { CvUpload } from '@/components/CvUpload';
 import { api } from '@/components/util';
 import { IS_PUBLIC, openForkGate } from '@/lib/public';
 
@@ -205,6 +206,7 @@ export default function BoardPage() {
 
   const commands: Command[] = useMemo(
     () => [
+      { id: 'upload-cv', label: 'Upload my CV — go to Setup', run: () => (window.location.href = '/setup') },
       { id: 'refresh', label: 'Refresh — fetch all CV-matched jobs + re-rank', hint: 'R', run: refresh },
       { id: 'rerank', label: 'Re-rank board only (no fetch)', run: () => load(filters) },
       { id: 'fetch-recent', label: 'Fetch recent jobs — Indeed / ZipRecruiter / Google', run: () => fetchRecent(place) },
@@ -261,9 +263,14 @@ export default function BoardPage() {
           <div className="placeholder">loading board…</div>
         ) : rows.length === 0 ? (
           <div className="placeholder">
-            <b>No openings on the board yet.</b>
-            <div className="hint">
-              Auto-fetch roles matched to your profile from the{' '}
+            <b>Start here — upload your CV.</b>
+            <div className="hint" style={{ marginBottom: 18 }}>
+              CareerOS ranks jobs against <b>your</b> CV, so the first step is teaching it your facts. Drop in your
+              CV(s) below (add several to build a richer master), then <b>Hunt</b> or paste a job URL to fill the board.
+            </div>
+            <CvUpload />
+            <div className="hint" style={{ marginTop: 24 }}>
+              Already set up? Auto-fetch roles from the{' '}
               <a href="/hunt" style={{ color: 'var(--signal)' }}>
                 Hunt
               </a>{' '}
