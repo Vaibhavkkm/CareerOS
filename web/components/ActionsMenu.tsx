@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useState } from 'react';
 import { api } from './util';
+import { useAgentStatus } from './useAgentStatus';
 import { IS_PUBLIC, openForkGate } from '@/lib/public';
 
 // A visible launcher for EVERYTHING CareerOS can do — and it actually TRIGGERS the
@@ -78,6 +79,8 @@ function toolSummary(tool: string, d: Record<string, unknown>): string {
 export function ActionsMenu({ onClose }: { onClose: () => void }) {
   const [status, setStatus] = useState<{ id: string; msg: string; kind: 'ok' | 'err' | 'muted' } | null>(null);
   const [targets, setTargets] = useState<Record<string, string>>({});
+  const { watching } = useAgentStatus(4000);
+  const queuedMsg = watching ? 'sent — running in your Claude Code now' : 'queued — run /cos ui (or /cos ui watch to auto-run)';
 
   const run = useCallback(async (it: Item) => {
     if (IS_PUBLIC && it.type !== 'link') { openForkGate(); return; }
@@ -96,14 +99,14 @@ export function ActionsMenu({ onClose }: { onClose: () => void }) {
     }
     if (it.type === 'queue') {
       const r = await api<{ ok: boolean; error?: string }>('/api/queue', { method: 'POST', body: JSON.stringify({ kind: it.kind, args: it.args || {} }) });
-      setStatus(r.ok ? { id: it.id, msg: 'queued — runs in your Claude Code (/cos ui)', kind: 'ok' } : { id: it.id, msg: r.error || 'could not queue', kind: 'err' });
+      setStatus(r.ok ? { id: it.id, msg: queuedMsg, kind: 'ok' } : { id: it.id, msg: r.error || 'could not queue', kind: 'err' });
       return;
     }
     // command
     const target = (targets[it.id] || '').trim();
     if (it.arg && !target) { setStatus({ id: it.id, msg: `enter a ${it.arg} first`, kind: 'err' }); return; }
     const r = await api<{ ok: boolean; error?: string }>('/api/queue', { method: 'POST', body: JSON.stringify({ kind: 'command', args: { cmd: it.cmd, ...(target ? { target } : {}) } }) });
-    setStatus(r.ok ? { id: it.id, msg: 'queued — runs in your Claude Code (/cos ui)', kind: 'ok' } : { id: it.id, msg: r.error || 'could not queue', kind: 'err' });
+    setStatus(r.ok ? { id: it.id, msg: queuedMsg, kind: 'ok' } : { id: it.id, msg: r.error || 'could not queue', kind: 'err' });
   }, [targets]);
 
   return (
@@ -112,6 +115,12 @@ export function ActionsMenu({ onClose }: { onClose: () => void }) {
         <div className="actions__head">
           <span>Actions · everything CareerOS can do</span>
           <button className="btn btn--ghost" onClick={onClose}>close</button>
+        </div>
+        <div className={`actions__agent ${watching ? 'is-live' : 'is-off'}`}>
+          <span className="agentdot__dot" />
+          {watching
+            ? 'Agent watching — what you trigger runs in your Claude Code automatically.'
+            : 'Agent not watching — run /cos ui watch in Claude Code so clicks run automatically (or /cos ui to drain once).'}
         </div>
         <div className="actions__body">
           {GROUPS.map((g) => (

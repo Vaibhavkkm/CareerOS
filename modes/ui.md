@@ -23,14 +23,21 @@ here. That queue is the handshake; this mode is the agent half of it.
 If the user runs **`/cos ui watch`** (or says "keep draining" / "watch the queue"),
 stay resident and drain continuously so anything they click in the website runs in
 THIS already-open session automatically:
-1. Drain the queue now (Step 2).
-2. Then loop: re-check `node scripts/ui-queue.mjs list --status queued` every ~15–30s;
-   when new requests appear, drain them (Step 2); otherwise wait and check again.
-3. Keep going until the user says stop (or closes the session). Tell them once at the
-   start: "Watching the queue — click actions in the website and I'll run them here;
-   say 'stop' to end." This is what makes the web **⚡ Actions** buttons trigger work
-   in your running terminal with no copy-paste. (No API key — it's just this agent
-   looping; you can use the `/loop` skill to pace the polling if you prefer.)
+1. **Write the heartbeat** so the website shows "agent live":
+   `node scripts/ui-queue.mjs heartbeat`. The dashboard's status dot turns green and
+   the Actions panel tells the user clicks now run automatically.
+2. Drain the queue now (Step 2).
+3. Then loop: each cycle, **refresh the heartbeat** (`node scripts/ui-queue.mjs
+   heartbeat`) and re-check `node scripts/ui-queue.mjs list --status queued` every
+   ~15–30s; when new requests appear, drain them (Step 2); otherwise wait and check
+   again. (The web treats a heartbeat older than 90s as "agent off", so refresh it
+   every loop.)
+4. Keep going until the user says stop (or closes the session). On stop, clear the
+   heartbeat: `node scripts/ui-queue.mjs heartbeat stop` (the dashboard dot goes grey).
+   Tell them once at the start: "Watching the queue — click actions in the website and
+   I'll run them here; say 'stop' to end." This is what makes the web **⚡ Actions**
+   buttons trigger work in your running terminal with no copy-paste. (No API key — it's
+   just this agent looping; you can use the `/loop` skill to pace the polling.)
 
 ## Step 2 — Drain the queue (the handshake)
 Run this whenever the user returns from the browser, or asks to "process the queue".

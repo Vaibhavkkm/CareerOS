@@ -37,6 +37,7 @@ import assert from 'node:assert/strict';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_QUEUE = join(ROOT, 'data', 'ui', 'requests.jsonl');
+const HEARTBEAT = join(ROOT, 'data', 'ui', 'agent.json');
 
 // The ONLY request kinds the queue accepts — agent-judgment / MCP / setup work.
 // `command` is the GENERIC bridge: the web enqueues a named /cos command (e.g.
@@ -156,6 +157,21 @@ export function fail(id, error = '', opts = {}) {
   }, opts);
 }
 
+// ─── agent heartbeat (web "is the agent watching?" signal) ────────────
+// The watch-mode agent (modes/ui.md) calls `heartbeat` each poll so the website can
+// show a live "agent connected — actions run automatically" status. `heartbeat stop`
+// clears it when the agent stops watching. This is how the web feels auto-connected
+// WITHOUT any API key — it just reflects whether the user's /cos ui watch is alive.
+export function writeHeartbeat({ mode = 'watch', now } = {}, path = HEARTBEAT) {
+  mkdirSync(dirname(path), { recursive: true });
+  const ts = now || new Date().toISOString();
+  writeFileSync(path, JSON.stringify({ ts, mode, pid: process.pid }) + '\n');
+  return { ts, mode };
+}
+export function stopHeartbeat(path = HEARTBEAT) {
+  try { rmSync(path, { force: true }); } catch { /* already gone */ }
+}
+
 // ─── CLI ──────────────────────────────────────────────────────────────
 
 function parseArgs(argv) {
@@ -197,6 +213,7 @@ Usage:
   ui-queue claim --id <id>
   ui-queue complete --id <id> --result '<json>'
   ui-queue fail --id <id> --error "<msg>"
+  ui-queue heartbeat [stop]      # watch-mode agent liveness for the web status
   ui-queue --self-test`;
 
 function out(json, obj, human) {
@@ -244,6 +261,11 @@ function main() {
         const r = fail(a.id, a.error || 'unspecified error');
         out(a.json, r, r.ok ? `failed ${a.id}` : `cannot fail ${a.id}: ${r.reason}`);
         return process.exit(r.ok ? 0 : 1);
+      }
+      case 'heartbeat': {
+        if (argv.includes('stop')) { stopHeartbeat(); out(a.json, { ok: true, watching: false }, 'agent heartbeat cleared'); }
+        else { const h = writeHeartbeat(); out(a.json, { ok: true, watching: true, ...h }, `agent heartbeat @ ${h.ts}`); }
+        return process.exit(0);
       }
       default:
         console.error(`unknown subcommand "${a.cmd}"\n`);
@@ -321,6 +343,16 @@ export function selfTest() {
     // corrupt-line tolerance
     appendFileSync(path, 'not json at all\n');
     eq(readQueue(path).length, 2, 'corrupt line skipped, others intact');
+
+    // heartbeat: write then stop
+    const hb = join(tmp, 'data', 'ui', 'agent.json');
+    const h = writeHeartbeat({ mode: 'watch', now: '2026-06-09T10:00:00Z' }, hb);
+    eq(h.mode, 'watch', 'heartbeat returns mode');
+    ok(existsSync(hb), 'heartbeat file written');
+    const parsed = JSON.parse(readFileSync(hb, 'utf8'));
+    eq(parsed.ts, '2026-06-09T10:00:00Z', 'heartbeat persists ts');
+    stopHeartbeat(hb);
+    ok(!existsSync(hb), 'heartbeat cleared on stop');
 
     console.log(`ui-queue self-test: ${n} checks passed`);
     return 0;

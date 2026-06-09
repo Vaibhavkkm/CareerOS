@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { QueueIndicator } from './QueueIndicator';
 import { ActionsMenu } from './ActionsMenu';
+import { useAgentStatus } from './useAgentStatus';
 import { IS_PUBLIC, openForkGate } from '@/lib/public';
 
 const TABS = [
@@ -16,6 +17,7 @@ const TABS = [
 export function TopBar() {
   const path = usePathname();
   const [actions, setActions] = useState(false);
+  const { watching } = useAgentStatus();
   return (
     <header className="topbar">
       <div className="brand">
@@ -39,6 +41,13 @@ export function TopBar() {
           DEMO · fork to run
         </button>
       )}
+      <span
+        className={`agentdot ${watching ? 'is-live' : 'is-off'}`}
+        title={watching ? 'Agent watching — actions you click run automatically in your Claude Code' : 'Agent not watching — run /cos ui watch so actions run automatically (or /cos ui to drain once)'}
+      >
+        <span className="agentdot__dot" />
+        {watching ? 'agent live' : 'agent off'}
+      </span>
       <button className="actions-btn" onClick={() => setActions(true)} title="All actions — everything CareerOS can do">
         ⚡ Actions
       </button>
