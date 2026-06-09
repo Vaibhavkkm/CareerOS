@@ -11,10 +11,12 @@
 // Zero tokens, deterministic, no deps. Same shape as every other tool: JSON to
 // stdout by default, --summary for humans, guarded by import.meta.url, --self-test.
 //
-// GUARDRAIL: the queue carries ONLY generation work. `kind` is whitelisted to
-// {evaluate, build-cv, build-cl, apply, hunt}. A tracker status flip to `applied`
-// is Class A (goes through scripts/tracker.mjs after the human confirms) and is
-// REJECTED here — it can never travel through the queue.
+// GUARDRAIL: the queue carries ONLY generation / setup work. `kind` is whitelisted
+// to {evaluate, build-cv, build-cl, apply, hunt, onboard}. A tracker status flip to
+// `applied` is Class A (goes through scripts/tracker.mjs after the human confirms)
+// and is REJECTED here — it can never travel through the queue. (`onboard` carries
+// only POINTERS to uploaded files under data/ui/uploads/ for the agent to parse +
+// merge into the master CV — it writes no user facts itself.)
 //
 // Usage:
 //   node scripts/ui-queue.mjs enqueue --kind build-cv --args '{"report":7}'
@@ -36,8 +38,8 @@ import assert from 'node:assert/strict';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_QUEUE = join(ROOT, 'data', 'ui', 'requests.jsonl');
 
-// The ONLY request kinds the queue accepts — all are agent-judgment / MCP work.
-export const KINDS = ['evaluate', 'build-cv', 'build-cl', 'apply', 'hunt'];
+// The ONLY request kinds the queue accepts — agent-judgment / MCP / setup work.
+export const KINDS = ['evaluate', 'build-cv', 'build-cl', 'apply', 'hunt', 'onboard'];
 export const STATUSES = ['queued', 'claimed', 'done', 'failed'];
 
 // ─── pure helpers ─────────────────────────────────────────────────────
@@ -266,6 +268,10 @@ export function selfTest() {
     assert.throws(() => makeRequest({ kind: 'nope' }), /invalid kind/); n++;
     assert.throws(() => makeRequest({ kind: 'applied' }), /invalid kind/); n++;
     assert.throws(() => makeRequest({ kind: 'tracker-applied' }), /invalid kind/); n++;
+
+    // the onboard kind (CV upload → merge) is accepted; pointers only, no facts
+    const onb = makeRequest({ kind: 'onboard', args: { dir: 'data/ui/uploads/abc', mode: 'merge' } });
+    eq(onb.kind, 'onboard', 'onboard kind accepted');
 
     // enqueue appends + returns a queued record
     const r1 = enqueue({ kind: 'build-cv', args: { report: 7 } }, { path });

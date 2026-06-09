@@ -6,9 +6,10 @@ import { gateMutation, isPublicMode } from '@/lib/gate';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// The only request kinds the UI may enqueue (all agent-judgment / MCP work).
+// The only request kinds the UI may enqueue (agent-judgment / MCP / setup work).
 // A tracker `applied` flip is NOT here — it is Class A and needs a human confirm.
-const KINDS = new Set(['evaluate', 'build-cv', 'build-cl', 'apply', 'hunt']);
+// `onboard` (CV upload → merge) is enqueued by the dedicated /api/upload-cv route.
+const KINDS = new Set(['evaluate', 'build-cv', 'build-cl', 'apply', 'hunt', 'onboard']);
 
 // GET /api/queue?status=queued — list requests (the UI polls this).
 export async function GET(request: Request) {

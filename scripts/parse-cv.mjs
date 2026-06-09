@@ -17,11 +17,17 @@
 //
 // Usage:
 //   node scripts/parse-cv.mjs --file path/to/cv.pdf            # JSON envelope
+//   node scripts/parse-cv.mjs --file a.pdf --file b.docx       # MULTIPLE CVs at once
+//   node scripts/parse-cv.mjs --dir data/ui/uploads/<id>       # every CV in a folder
 //   node scripts/parse-cv.mjs --file path/to/cv.docx --raw     # just the Markdown
 //   node scripts/parse-cv.mjs --file path/to/cv.pdf --summary  # human preview
 //   node scripts/parse-cv.mjs --self-test
+//
+// With ONE file the JSON envelope is { ok, file, ext, method, chars, text }.
+// With MULTIPLE files (or --dir) it is { ok, count, docs:[<envelope>...] } so the
+// onboard merge step can fold several CVs into one master without losing a source.
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { execFile, execFileSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join, extname, basename } from 'node:path';
@@ -34,6 +40,8 @@ const PY_SCRIPT = join(ROOT, 'scripts', 'parse_cv.py');
 
 // Extensions we can read as plain text with no external tool.
 const PLAINTEXT = new Set(['.txt', '.md', '.markdown', '.text']);
+// Document extensions worth parsing when sweeping a folder (--dir).
+const DOC_EXTS = new Set([...PLAINTEXT, '.pdf', '.docx', '.doc', '.rtf', '.html', '.htm', '.odt', '.pptx', '.epub']);
 
 // ─── pure helpers (exported for --self-test) ──────────────────────────
 
@@ -137,9 +145,28 @@ export async function parseCv(file, {
   return { ok: false, error: `could not extract text from ${basename(file)} — ${fatal?.fatal || 'no extractor available'}`, hint, ext };
 }
 
+// List the document files inside a folder (one level), sorted for stable order.
+export function listDocs(dir, { exists = existsSync, readdir = readdirSync, stat = statSync } = {}) {
+  if (!exists(dir)) return [];
+  return readdir(dir)
+    .filter((f) => DOC_EXTS.has(extname(f).toLowerCase()))
+    .map((f) => join(dir, f))
+    .filter((p) => { try { return stat(p).isFile(); } catch { return false; } })
+    .sort();
+}
+
+// Parse MANY files → { ok, count, docs:[envelope...] }. `ok` is true if at least
+// one parsed; per-file failures are kept in `docs` as their own ok:false envelope
+// so the caller sees exactly which source failed (never silently dropped).
+export async function parseMany(files, deps = {}) {
+  const docs = [];
+  for (const f of files) docs.push(await parseCv(f, deps));
+  return { ok: docs.some((d) => d.ok), count: docs.length, docs };
+}
+
 // ─── CLI ─────────────────────────────────────────────────────────────
 function parseArgs(argv) {
-  const out = { file: null, json: true, raw: false, selfTest: false };
+  const out = { files: [], dir: null, json: true, raw: false, selfTest: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const val = () => (argv[i + 1] != null && !argv[i + 1].startsWith('--')) ? argv[++i] : '';
@@ -147,39 +174,71 @@ function parseArgs(argv) {
     else if (a === '--summary') out.json = false;
     else if (a === '--json') out.json = true;
     else if (a === '--raw') { out.raw = true; out.json = false; }
-    else if (a === '--file') out.file = val();
-    else if (a.startsWith('--file=')) out.file = a.slice(7);
+    else if (a === '--file') out.files.push(val());
+    else if (a.startsWith('--file=')) out.files.push(a.slice(7));
+    else if (a === '--dir') out.dir = val();
+    else if (a.startsWith('--dir=')) out.dir = a.slice(6);
   }
   return out;
 }
 
-const USAGE = `parse-cv — turn an uploaded CV/cover letter (PDF/Word/…) into Markdown.
-Usage: node scripts/parse-cv.mjs --file <path> [--raw|--summary]
-  --file <path>  the document to parse (.pdf/.docx/.txt/.md/.rtf/.html/…)
-  --raw          print only the extracted Markdown (for piping)
+const USAGE = `parse-cv — turn uploaded CV(s)/cover letter(s) (PDF/Word/…) into Markdown.
+Usage: node scripts/parse-cv.mjs --file <path> [--file <path2> ...] [--raw|--summary]
+       node scripts/parse-cv.mjs --dir <folder> [--raw|--summary]
+  --file <path>  a document to parse (.pdf/.docx/.txt/.md/.rtf/.html/…); repeatable
+  --dir <folder> parse every document in the folder (e.g. an upload batch)
+  --raw          print only the extracted Markdown (concatenated for multiple)
   --summary      human-readable preview (default: JSON envelope)
   --self-test    run built-in tests`;
+
+// Join several parsed docs into one Markdown blob with a clear per-source header,
+// so a human or the agent can see which CV each section came from before merging.
+function concatDocs(docs) {
+  return docs.filter((d) => d.ok)
+    .map((d) => `\n\n<!-- ===== source: ${d.file} (${d.method}) ===== -->\n\n${d.text}`)
+    .join('\n').trim();
+}
 
 async function main() {
   const argv = process.argv.slice(2);
   if (argv.includes('--help') || argv.includes('-h')) { console.log(USAGE); process.exit(0); }
   const args = parseArgs(argv);
   if (args.selfTest) return selfTest();
-  if (!args.file) { console.error('error: --file <path> required'); process.exit(2); }
-  const res = await parseCv(args.file);
-  if (!res.ok) {
-    if (args.json) console.log(JSON.stringify(res, null, 2));
-    else console.error(`parse-cv: ${res.error}${res.hint ? `\n  → ${res.hint}` : ''}`);
-    process.exit(1);
+
+  const files = [...args.files, ...(args.dir ? listDocs(args.dir) : [])];
+  if (!files.length) {
+    console.error(args.dir ? `error: no documents found in ${args.dir}` : 'error: --file <path> (or --dir <folder>) required');
+    process.exit(2);
   }
-  if (args.raw) console.log(res.text);
-  else if (args.json) console.log(JSON.stringify(res, null, 2));
-  else {
-    console.log(`parsed ${res.file} via ${res.method} — ${res.chars} chars`);
-    console.log('─'.repeat(60));
-    console.log(res.text.slice(0, 1200) + (res.text.length > 1200 ? '\n… (truncated preview)' : ''));
+
+  // Single file → the original flat envelope (back-compat with callers/onboard).
+  if (files.length === 1) {
+    const res = await parseCv(files[0]);
+    if (!res.ok) {
+      if (args.json) console.log(JSON.stringify(res, null, 2));
+      else console.error(`parse-cv: ${res.error}${res.hint ? `\n  → ${res.hint}` : ''}`);
+      process.exit(1);
+    }
+    if (args.raw) console.log(res.text);
+    else if (args.json) console.log(JSON.stringify(res, null, 2));
+    else {
+      console.log(`parsed ${res.file} via ${res.method} — ${res.chars} chars`);
+      console.log('─'.repeat(60));
+      console.log(res.text.slice(0, 1200) + (res.text.length > 1200 ? '\n… (truncated preview)' : ''));
+    }
+    process.exit(0);
   }
-  process.exit(0);
+
+  // Multiple files → { ok, count, docs:[...] }.
+  const res = await parseMany(files);
+  if (args.raw) { console.log(concatDocs(res.docs)); process.exit(res.ok ? 0 : 1); }
+  if (args.json) { console.log(JSON.stringify(res, null, 2)); process.exit(res.ok ? 0 : 1); }
+  console.log(`parse-cv — ${res.docs.filter((d) => d.ok).length}/${res.count} document(s) parsed`);
+  for (const d of res.docs) {
+    if (d.ok) console.log(`  ✓ ${d.file.padEnd(40)} ${d.method}  ${d.chars} chars`);
+    else console.log(`  ✗ ${(d.file || '?')}  — ${d.error}`);
+  }
+  process.exit(res.ok ? 0 : 1);
 }
 
 // ─── self-test ───────────────────────────────────────────────────────
@@ -236,6 +295,26 @@ export async function selfTest() {
 
   // missing file
   ok(!(await parseCv('nope.pdf', { fileExists: () => false })).ok, 'missing file → ok:false');
+
+  // parseMany: folds several CVs, keeps a failed source as its own ok:false envelope
+  const many = await parseMany(['a.md', 'b.md', 'c.pdf'], {
+    fileExists: () => true,
+    readPlain: (p) => `# ${p}\ncontent`,
+    markitdown: async () => ({ err: { message: 'x' }, stdout: '', stderr: '{"fatal":"markitdown not installed","hint":"x"}' }),
+    hasPdftotext: () => false,
+  });
+  eq(many.count, 3, 'parseMany parses all three');
+  eq(many.docs.filter((d) => d.ok).length, 2, 'parseMany: the two plaintext CVs parse');
+  ok(many.ok, 'parseMany ok when at least one parsed');
+  ok(many.docs[2] && many.docs[2].ok === false, 'parseMany keeps the failed source visible (not dropped)');
+
+  // listDocs filters a folder to document types, sorted
+  const docs = listDocs('/x', {
+    exists: () => true,
+    readdir: () => ['b.pdf', 'a.docx', 'notes.png', 'c.txt', 'sub'],
+    stat: (p) => ({ isFile: () => !p.endsWith('sub') }),
+  });
+  ok(docs.length === 3 && docs[0].endsWith('a.docx') && !docs.some((d) => d.endsWith('.png')), 'listDocs filters + sorts doc files, skips non-docs/dirs');
 
   console.log(`parse-cv self-test: ${n} checks passed`);
   process.exit(0);

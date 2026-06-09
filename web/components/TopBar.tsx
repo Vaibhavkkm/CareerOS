@@ -8,6 +8,7 @@ const TABS = [
   { href: '/', label: 'Board' },
   { href: '/hunt', label: 'Hunt' },
   { href: '/pipeline', label: 'Pipeline' },
+  { href: '/setup', label: 'Setup' },
 ];
 
 export function TopBar() {

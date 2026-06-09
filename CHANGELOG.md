@@ -8,6 +8,17 @@ All notable changes to CareerOS are recorded here. The format is based on
 
 ### Added
 
+- **Multi-CV master (`parse-cv --file ... --file ...` / `--dir`).** Parse several CVs
+  at once (a technical one, an academic one, an old one) and merge them into one
+  richer `data/cv.master.md` — union of real roles/skills/bullets, deduplicated,
+  conflicts surfaced for the user, nothing invented. Raw parses kept in
+  `data/cv-sources/`. New `onboard` Step 2a playbook for the merge.
+- **Dashboard CV upload (`/setup` tab + `/api/upload-cv`).** Upload your CV(s) from
+  the web panel; the files are saved under `data/ui/uploads/` (the only web-writable
+  area) and an `onboard` request is queued. The in-session `/cos` agent drains it
+  (`modes/ui.md`), parses the batch, and merges into the master — the browser never
+  parses or writes facts itself. New queue kind `onboard`.
+
 - **Deterministic CV parsing (`parse-cv`).** Turns an uploaded PDF/Word/RTF/HTML CV
   into Markdown via Microsoft markitdown (python sidecar `scripts/parse_cv.py`),
   falling back to `pdftotext` for PDFs and a direct read for `.txt`/`.md`. Wired into

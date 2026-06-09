@@ -1328,3 +1328,26 @@ select {
   .qpop { left: var(--s2); right: var(--s2); width: auto; max-height: 70dvh; }
   .toaster { left: var(--s3); right: var(--s3); max-width: none; }
 }
+
+/* ── CV upload (Setup tab) ───────────────────────────────────────────── */
+.upload { max-width: 640px; }
+.upload__drop {
+  display: block;
+  border: 1px dashed var(--hairline-2);
+  border-radius: 8px;
+  padding: 30px 22px;
+  text-align: center;
+  cursor: pointer;
+  background: var(--bg-raised);
+  transition: border-color 0.12s linear, background 0.12s linear;
+}
+.upload__drop:hover { border-color: var(--signal-dim); background: var(--bg-row-hover); }
+.upload__dropinner { display: flex; flex-direction: column; gap: 6px; }
+.upload__dropinner b { color: var(--fg); }
+.upload__list { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.upload__list li { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; padding: 6px 10px; border: 1px solid var(--hairline-2); border-radius: 6px; }
+.upload__name { color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.upload__row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+.upload__status { margin-top: 12px; font-size: 13px; }
+.upload__status.ok { color: var(--signal); }
+.upload__status.err { color: #ff6b6b; }

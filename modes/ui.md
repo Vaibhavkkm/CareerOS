@@ -4,9 +4,9 @@ Trigger: `/cos ui` (alias `web`). Two jobs: (1) get the dashboard running, and
 (2) act on anything the user queued from the browser. The web app is a LOCAL
 control panel (runs on `127.0.0.1`) — a high-contrast dark board over your real
 engine. It runs the zero-token scripts itself, but it has **no LLM and no MCP
-access**, so judgment/MCP work (evaluate, build-cv, build-cl, apply, hunt) is
-**queued** to `data/ui/requests.jsonl` for you to run here. That queue is the
-handshake; this mode is the agent half of it.
+access**, so judgment/MCP/setup work (evaluate, build-cv, build-cl, apply, hunt,
+and CV-upload `onboard`) is **queued** to `data/ui/requests.jsonl` for you to run
+here. That queue is the handshake; this mode is the agent half of it.
 
 ## Step 1 — Launch (first run + every run)
 1. `node scripts/doctor.mjs --fix` — ensures `data/ui/` exists and the engine is healthy.
@@ -34,8 +34,15 @@ Run this whenever the user returns from the browser, or asks to "process the que
       - `build-cl` → `modes/build-cl.md`
       - `apply`    → `modes/apply.md` (draft answers / references — present, don't submit)
       - `hunt`     → `modes/hunt.md` (MCP discovery → ingest → board)
+      - `onboard`  → `modes/onboard.md` (the user uploaded CV(s) from the Setup tab).
+        `args` = `{dir:"data/ui/uploads/<id>", files:[...], mode:"merge"|"replace"}`.
+        Parse the whole folder: `node scripts/parse-cv.mjs --dir <dir> --json`, then
+        run the onboard flow — `mode:"merge"` folds the new CV(s) into the EXISTING
+        `data/cv.master.md` (Step 2a, dedup, conflicts surfaced); `mode:"replace"`
+        rebuilds the master from these files. Show the merge + conflicts and get the
+        user's approval before writing the master (it's their data). Never fabricate.
       Resolve the target from `args` (e.g. `{report:7}`, `{company:"Acme"}`, `{url:"…"}`,
-      `{id:3}`, or a hunt `{query, location}`).
+      `{id:3}`, a hunt `{query, location}`, or an onboard `{dir, files, mode}`).
    c. **Record the outcome:**
       - success → `node scripts/ui-queue.mjs complete --id <id> --result '{"pdf":"data/output/…","report":"data/reports/…","notes":"what you did"}'`
       - failure → `node scripts/ui-queue.mjs fail --id <id> --error "<one-line reason>"`

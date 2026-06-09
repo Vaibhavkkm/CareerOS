@@ -85,6 +85,13 @@ tailored application. (`/cos` is short for `/careeros`.) Your uploaded CV is par
 **deterministically** by `scripts/parse-cv.mjs` (Microsoft markitdown for PDF/Word/
 RTF/HTML, falling back to `pdftotext` for PDFs, and direct read for `.txt`/`.md`).
 
+**Have more than one CV?** Upload them all — `parse-cv` takes multiple files
+(`--file a.pdf --file b.docx`, or `--dir <folder>`) and onboarding merges them into a
+single, richer master CV (union of real roles/skills, deduplicated, conflicts surfaced
+for you, nothing invented). You can also **upload from the web panel's Setup tab**
+(`/cos ui` → Setup): the files are saved locally and queued, and the next `/cos ui`
+(or `/cos onboard`) merges them — the browser never parses or writes anything itself.
+
 ---
 
 ## How to use it (inside Claude Code)
