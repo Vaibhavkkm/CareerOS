@@ -81,7 +81,9 @@ Skip this and everything else still works; `node scripts/doctor.mjs` tells you i
 ```
 …and follow along. It'll ask for your CV (PDF, Word, or text) and a cover letter,
 pull your facts and your voice out of them, and get you ready to build your first
-tailored application. (`/cos` is short for `/careeros`.)
+tailored application. (`/cos` is short for `/careeros`.) Your uploaded CV is parsed
+**deterministically** by `scripts/parse-cv.mjs` (Microsoft markitdown for PDF/Word/
+RTF/HTML, falling back to `pdftotext` for PDFs, and direct read for `.txt`/`.md`).
 
 ---
 
@@ -98,8 +100,13 @@ Run the tool with `/careeros` (or the short alias `/cos`):
 | `/cos` *(paste a job post or URL)* | Auto-pilot: read the job → score it → build a tailored CV (if it's a good fit) → draft answers → track it |
 | `/cos evaluate <job/url/file>` | Score one job out of 5 across 6 things that matter, with a written report |
 | `/cos compare <2+ jobs>` | Rank several postings and recommend which to chase |
-| `/cos build-cv <job/company>` | Build a tailored, ATS-safe CV → PDF |
+| `/cos build-cv <job/company> [--theme <name>]` | Build a tailored, ATS-safe CV → PDF, in your chosen theme (classic / modern / academic / compact) |
 | `/cos build-cl <job/company>` | Build a tailored cover letter → PDF |
+| `/cos gaps` | **Skill-gap roadmap** — which one skill, learned next, unlocks the most roles on your board |
+| `/cos lint` | Flag weak CV bullets (un-quantified, weak-verb, passive, filler) before you tailor |
+| `/cos referral <company>` | Find a **warm path** into a company + draft the referral ask and a forwardable blurb |
+| `/cos mock <company> <role>` | **Live mock interview** — it asks, you answer, it scores and banks your weak spots |
+| `/cos interviews ...` | Schedule interview rounds, export an **`.ics` calendar**, and time follow-ups |
 | `/cos` *"learn from my edits"* | Look at how you edited a draft and remember your style |
 | `/cos apply <job/company>` | Draft answers for an application form (never auto-submits) |
 | `/cos scan` | Find new postings from the companies you're watching |
@@ -263,6 +270,25 @@ CareerOS is in **active development**. Here's the honest picture:
   auto-submit, no silent "applied", sandboxed file reads) verified.
 - **Public-ready.** Rebranded to CareerOS, and all personal data is git-ignored
   so the repo ships clean.
+- **Deterministic CV parsing.** `parse-cv` turns an uploaded PDF/Word/RTF/HTML CV
+  into Markdown via Microsoft **markitdown** (falls back to `pdftotext`, then a
+  plain read) — onboarding no longer depends on the agent eyeballing a binary.
+- **CV theme picker.** `build-cv --theme <classic|modern|academic|compact>` (or
+  `cv.template` in `profile.yml`) — all single-column and ATS-safe (a true
+  two-column layout is intentionally omitted; it reorders badly in ATS parsers).
+- **CV bullet linter + skill-gap roadmap.** `cv-lint` flags un-quantified / weak-verb
+  / passive / filler bullets deterministically; `gaps` aggregates the board's missing
+  skills and ranks which one unlocks the most roles.
+- **Salary intel.** The board now shows a posting's stated pay band when disclosed
+  (`salary` reads only what the JD states — it never estimates), and `negotiate`
+  anchors on it.
+- **Interview scheduler + mock interviews.** `interviews` tracks rounds, exports an
+  `.ics` calendar, and times follow-ups; `/cos mock` runs a live ask→answer→score
+  drill and banks your weak spots; `/cos referral` finds a warm path into a company.
+- **Region-aware hunt + send-to-board extension.** Multi-board fetch adds Glassdoor
+  by default and auto-includes Naukri (India) / Bayt (Gulf) by target country
+  (LinkedIn stays deferred — it rate-limits scrapers). A browser **extension +
+  bookmarklet** (`extension/`) sends any job page onto your board in one click.
 
 ### 🚧 In progress
 - **Onboarding for anyone.** The new `/cos onboard` flow (upload your CV + cover
@@ -276,9 +302,8 @@ CareerOS is in **active development**. Here's the honest picture:
   right now.
 
 ### ⏳ Planned / nice-to-have
-- A standalone parser for the user's uploaded CV/Word document.
 - Optional semantic (embedding) example search, for when an example bank grows large.
-- More hunt sources (beyond Indeed + Dice) and more document templates/themes.
+- More cover-letter themes (the CV theme picker now ships classic/modern/academic/compact).
 - A *hosted*, multi-user version of the web panel (auth + a database). v1 is
   deliberately local-only and file-backed — it runs on your machine over your own data.
 

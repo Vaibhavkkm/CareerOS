@@ -4,6 +4,38 @@ All notable changes to CareerOS are recorded here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and the project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Deterministic CV parsing (`parse-cv`).** Turns an uploaded PDF/Word/RTF/HTML CV
+  into Markdown via Microsoft markitdown (python sidecar `scripts/parse_cv.py`),
+  falling back to `pdftotext` for PDFs and a direct read for `.txt`/`.md`. Wired into
+  `onboard` so setup no longer relies on the agent eyeballing a binary file.
+- **CV theme picker (`templates` + `build-cv --theme`).** Selectable CV themes —
+  `classic` (default), `modern` (navy accent), `academic` (education-first +
+  Publications, two pages), `compact` (denser, one page) — all reusing the verified
+  ATS-safe preamble. A true two-column layout is intentionally NOT offered (it
+  reorders badly in ATS parsers). Theme via `cv.template` in `profile.yml` or `--theme`.
+- **CV bullet linter (`cv-lint`).** Deterministically flags un-quantified, weak-verb,
+  passive-voice, and filler bullets with a 0–100 score; surfaced in `onboard`.
+- **Skill-gap roadmap (`gaps`).** Aggregates the board's missing skills and ranks
+  which one, learned next, unlocks the most roles (band-weighted toward near-misses).
+- **Salary intel (`salary`).** Extracts a posting's stated pay band (ranges, k/m
+  suffixes, currencies, period) — never estimates. Shown on the board; anchors `negotiate`.
+- **Interview scheduler (`interviews`).** Tracks interview rounds in
+  `data/interviews.jsonl`, exports an `.ics` calendar, and flags follow-ups due.
+- **Mock interview mode (`/cos mock`).** A live ask→answer→score drill that banks
+  weak spots to `data/interview-prep/mock-log.md` and re-drills them next time.
+- **Referral mode (`/cos referral`).** Maps the warmest realistic path into a company
+  and drafts the referral ask plus a forwardable blurb for the referrer.
+- **Region-aware multi-board fetch.** Glassdoor in the default sweep; Naukri (India)
+  and Bayt (Gulf) auto-added by target country. LinkedIn stays deferred (verified
+  June 2026: rate-limits/blocks scrapers, needs residential proxies).
+- **"Send to CareerOS" browser extension + bookmarklet (`extension/`).** One click on
+  any job page POSTs it to the local panel's new `/api/inbox`, which routes the write
+  through `hunt-ingest` (deduped onto your board). Never applies; only queues.
+
 ## [0.1.0] — 2026-06-08
 
 First public release. CareerOS is a Claude Code-native, LaTeX-first CV +

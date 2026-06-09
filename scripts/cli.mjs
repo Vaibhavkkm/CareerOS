@@ -25,6 +25,12 @@ export const COMMANDS = {
   'fetch-jd': 'fetch-jd.mjs',
   board: 'board.mjs',
   'match-score': 'match-score.mjs',
+  'cv-lint': 'cv-lint.mjs',
+  gaps: 'gaps.mjs',
+  'parse-cv': 'parse-cv.mjs',
+  salary: 'salary.mjs',
+  interviews: 'interviews.mjs',
+  templates: 'templates.mjs',
   scan: 'scan.mjs',
   merge: 'merge-tracker.mjs',
   tracker: 'tracker.mjs',
@@ -99,7 +105,8 @@ async function selfTest() {
 
   // 1) The routing table covers exactly the documented commands.
   const expected = [
-    'doctor', 'compile', 'fetch-jd', 'board', 'match-score', 'scan', 'merge', 'tracker', 'render', 'verify',
+    'doctor', 'compile', 'fetch-jd', 'board', 'match-score', 'cv-lint', 'gaps', 'parse-cv', 'salary',
+    'interviews', 'templates', 'scan', 'merge', 'tracker', 'render', 'verify',
     'followup', 'analyze', 'batch', 'seed-examples', 'style:diff', 'style:profile', 'style:retrieve',
     'hunt-ingest', 'ui-queue',
   ];

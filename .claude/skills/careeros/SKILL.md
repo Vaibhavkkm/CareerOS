@@ -36,16 +36,21 @@ otherwise apply auto-pipeline detection.
 | `build-cv` / `cv` | `modes/build-cv.md` | Tailor a CV for a report/company |
 | `build-cl` / `cl` | `modes/build-cl.md` | Tailor a cover letter |
 | `apply` | `modes/apply.md` | Live application assistant (form answers) |
+| `gaps` / `roadmap` | run `scripts/gaps.mjs` | Skill-gap roadmap: which skill unlocks the most roles across your board |
+| `lint` / `cv-lint` | run `scripts/cv-lint.mjs` | Flag weak CV bullets (un-quantified, weak-verb, passive, filler) |
 | `negotiate` | `modes/negotiate.md` | Salary/offer negotiation strategy + scripts |
 | `scan` | `modes/scan.md` | Discover postings from tracked portals |
 | `pipeline` | `modes/pipeline.md` | Process the `data/inbox.md` queue |
 | `batch` | `modes/batch.md` | Mass-process many URLs (resumable) |
-| `outreach` | `modes/outreach.md` | LinkedIn/email outreach drafts |
+| `outreach` | `modes/outreach.md` | Cold LinkedIn/email outreach drafts (strangers) |
+| `referral` | `modes/referral.md` | Find a warm path into a company + draft the referral ask + forwardable blurb |
 | `research` | `modes/research.md` | Deep company/role research |
 | `tracker` | `modes/tracker.md` | View/update the application tracker |
+| `interviews` / `schedule` | run `scripts/interviews.mjs` | Schedule interview rounds, export a calendar (ICS), time follow-ups |
 | `followup` | `modes/followup.md` | Follow-up cadence + drafts |
 | `patterns` | `modes/patterns.md` | Outcome analytics; retune thresholds |
 | `interview-prep` / `prep` | `modes/interview-prep.md` | Interview intel + story mapping |
+| `mock` | `modes/mock.md` | Live mock interview: ask → answer → score → bank weak spots |
 | `recalibrate-voice` | `modes/recalibrate-voice.md` | Re-learn voice from your writing samples |
 | `style-learn` / `learn` | `modes/style-learn.md` | Distill your edits into the style profile |
 | `training` | `modes/training.md` | Evaluate a course/cert/upskilling choice |

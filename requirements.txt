@@ -1,6 +1,12 @@
-# CareerOS — Python sidecar dependency (the ONLY non-Node dependency).
-# Powers the zero-token multi-board fetch (Indeed / ZipRecruiter / Google Jobs)
-# in scripts/jobspy_fetch.py. Install into a local venv with:
+# CareerOS — Python sidecar dependencies (the ONLY non-Node dependencies).
+# Install into a local venv with:
 #     npm run jobspy:install
-# (creates ./.venv and installs this). Everything else in the project is Node.
+# (creates ./.venv and installs these). Everything else in the project is Node.
+#
+# Powers the zero-token multi-board fetch (Indeed / ZipRecruiter / Google Jobs)
+# in scripts/jobspy_fetch.py:
 python-jobspy>=1.1.79
+# Powers the deterministic CV/cover-letter → Markdown parser in scripts/parse_cv.py
+# (scripts/parse-cv.mjs). [pdf,docx] pulls the PDF + Word extractors. Without it,
+# parse-cv falls back to pdftotext for PDFs and direct read for .txt/.md.
+markitdown[pdf,docx]>=0.0.1a2

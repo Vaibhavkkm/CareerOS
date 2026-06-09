@@ -26,10 +26,16 @@ Ask the user for (accept whatever they have; CV is required, the rest optional):
 3. **Any other writing in their voice** — a blog post, a long email, a bio.
    Optional; improves voice learning.
 
-If they gave a file path, read it. For a PDF, extract text with
-`pdftotext "<file>" -` (from poppler; if absent, ask them to paste the text or
-run `node scripts/doctor.mjs` to see the install hint). Never guess at content you
-cannot read — ask.
+If they gave a file path, parse it **deterministically** with the CV parser —
+don't eyeball the binary:
+```
+node scripts/parse-cv.mjs --file "<their-cv.pdf|docx|rtf|html|txt>" --raw
+```
+It uses Microsoft **markitdown** (PDF, Word, RTF, HTML, PPTX, …) for the cleanest
+extraction, falls back to `pdftotext` for PDFs if markitdown isn't installed, and
+reads `.txt`/`.md` directly with no dependency at all. If it returns `ok:false`,
+follow its hint (usually `npm run jobspy:install`) or ask the user to paste the
+text. Never guess at content you cannot read — ask.
 
 ## Step 1 — Extract identity & contact (propose, don't assume)
 From the CV, pull ONLY what is actually present: full name, email, phone,
@@ -45,7 +51,14 @@ future tailored CV is grounded in. Preserve every real fact:
 - **Rewrite nothing into fiction.** Keep the user's real numbers. Where a bullet
   has no metric, KEEP it but flag it: list which bullets lack a quantified outcome
   so the user can add real numbers. Do not fabricate metrics to fill the gap.
-Show the user the structure and your "missing-metric" flags before writing.
+Show the user the structure and your "missing-metric" flags before writing. To get
+those flags **deterministically** (un-quantified, weak-verb, passive, filler), run
+the bullet linter once the draft `cv.master.md` exists:
+```
+node scripts/cv-lint.mjs --cv data/cv.master.md --summary
+```
+Surface its `weakest` bullets to the user as "here's what to strengthen with real
+numbers" — never invent the numbers yourself.
 
 ## Step 3 — Propose `data/profile.yml`
 Start from `templates/profile.example.yml`. Fill what you can ground in the CV and

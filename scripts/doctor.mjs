@@ -99,6 +99,12 @@ if (venvPy) { try { execFileSync(venvPy, ['-c', 'import jobspy'], { stdio: 'pipe
 add('job-board fetch (python-jobspy) ready', jobspyOk,
     'optional — run `npm run jobspy:install` to enable multi-board Fetch recent (Indeed/ZipRecruiter/Google)', 'warn');
 
+// --- markitdown CV parser (optional; deterministic uploaded-CV → Markdown) ---
+let markitdownOk = false;
+if (venvPy) { try { execFileSync(venvPy, ['-c', 'import markitdown'], { stdio: 'pipe' }); markitdownOk = true; } catch { /* not installed */ } }
+add('CV parser (markitdown) ready', markitdownOk,
+    'optional — run `npm run jobspy:install` for the best uploaded-CV → Markdown parse (PDFs fall back to pdftotext)', 'warn');
+
 const errors = checks.filter((c) => !c.ok && c.level === 'error');
 const warns = checks.filter((c) => !c.ok && c.level === 'warn');
 const ready = errors.length === 0;

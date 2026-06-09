@@ -41,11 +41,26 @@ const PY_SCRIPT = join(ROOT, 'scripts', 'jobspy_fetch.py');
 const PROFILE = join(ROOT, 'data', 'profile.yml');
 
 // Glassdoor added to the default sweep for breadth (it covers EU/UK/CA well where
-// ZipRecruiter is US/CA-only). LinkedIn stays deferred (rate-limits hardest) but is
-// available via --boards. Per-board failures degrade gracefully in the sidecar.
+// ZipRecruiter is US/CA-only). LinkedIn stays deferred (rate-limits/blocks hardest —
+// verified June 2026: 429s by ~page 10, needs residential proxies) but is available
+// via --boards. Per-board failures degrade gracefully in the sidecar.
 const DEFAULT_BOARDS = ['indeed', 'zip_recruiter', 'glassdoor', 'google'];
 const DEFAULT_COUNTRY = 'Luxembourg';
 const DEFAULT_RESULTS = 40; // per board per search term (was 20) — pull more per role
+
+// Region-specific boards JobSpy supports that only make sense in their geography —
+// auto-added (deduped) to the default sweep when the target country matches, so an
+// India search also hits Naukri and a Gulf search also hits Bayt without the user
+// having to know the board names. Only applied when the user hasn't named boards.
+const REGION_BOARDS = {
+  india: ['naukri'],
+  'united arab emirates': ['bayt'], uae: ['bayt'], 'saudi arabia': ['bayt'],
+  qatar: ['bayt'], kuwait: ['bayt'], bahrain: ['bayt'], oman: ['bayt'], egypt: ['bayt'],
+  bangladesh: ['bdjobs'],
+};
+export function regionBoardsFor(country) {
+  return REGION_BOARDS[String(country || '').trim().toLowerCase()] || [];
+}
 
 // ─── pure helpers (exported for --self-test) ──────────────────────────
 
@@ -102,10 +117,6 @@ export function deriveConfig(profile, args) {
   }
   const job_type = JOBSPY_TYPES.has(rawType) ? rawType : null;
 
-  const sites = args.boards?.length
-    ? args.boards
-    : (jp.sites && jp.sites.length ? jp.sites : DEFAULT_BOARDS);
-
   // Trim the caller's country first: a whitespace-only --country (' ') must count as
   // "not provided", not become a mis-scoped country string that still inherits the
   // profile city. When the caller names a country explicitly (e.g. the web filter
@@ -116,6 +127,15 @@ export function deriveConfig(profile, args) {
   const explicitCountry = argCountry.length > 0;
   const country = explicitCountry ? argCountry : (jp.country || loc.country || DEFAULT_COUNTRY);
   const city = args.city != null ? args.city : (explicitCountry ? '' : (jp.city || loc.city || ''));
+
+  // Boards: an explicit --boards or a profile jobspy.sites wins verbatim. Otherwise
+  // start from the default sweep and auto-add any region board for the target
+  // country (e.g. Naukri for India, Bayt for the Gulf) so coverage follows location.
+  const sites = args.boards?.length
+    ? args.boards
+    : (jp.sites && jp.sites.length
+      ? jp.sites
+      : [...new Set([...DEFAULT_BOARDS, ...regionBoardsFor(country)])]);
   const results_wanted = args.results || jp.results_wanted || DEFAULT_RESULTS;
   const hours_old = args.recent != null ? recentToHours(args.recent) : (jp.hours_old || null);
 
@@ -295,6 +315,20 @@ async function selfTest() {
   const def = deriveConfig(profile, parseArgs([]));
   assert.deepEqual(def.sites, ['indeed', 'zip_recruiter', 'glassdoor', 'google'], 'default board set (LinkedIn excluded)');
   assert.ok(!def.sites.includes('linkedin'));
+
+  // region boards: India auto-adds Naukri, the Gulf auto-adds Bayt — but only when
+  // the user hasn't named boards, and never including LinkedIn.
+  assert.deepEqual(regionBoardsFor('India'), ['naukri'], 'regionBoardsFor India → naukri');
+  assert.deepEqual(regionBoardsFor('United Arab Emirates'), ['bayt'], 'regionBoardsFor UAE → bayt');
+  assert.deepEqual(regionBoardsFor('Germany'), [], 'regionBoardsFor non-region country → []');
+  const india = deriveConfig(profile, parseArgs(['--country', 'India']));
+  assert.ok(india.sites.includes('naukri') && india.sites.includes('indeed'), 'India sweep includes Naukri + defaults');
+  assert.ok(!india.sites.includes('linkedin'), 'India sweep still excludes LinkedIn');
+  const gulf = deriveConfig(profile, parseArgs(['--country', 'Qatar']));
+  assert.ok(gulf.sites.includes('bayt'), 'Gulf sweep includes Bayt');
+  // an explicit --boards is honoured verbatim (no region augmentation)
+  const explicit = deriveConfig(profile, parseArgs(['--country', 'India', '--boards', 'indeed']));
+  assert.deepEqual(explicit.sites, ['indeed'], 'explicit --boards wins, no region add');
   assert.deepEqual(def.search_terms, ['Data Scientist', 'Data Engineer']);
   assert.equal(def.country, 'Luxembourg');
   assert.equal(def.location, 'Luxembourg');

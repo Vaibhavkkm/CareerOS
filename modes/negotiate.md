@@ -13,6 +13,10 @@ human-in-the-loop: you draft; the user decides and sends.
   `alternate_ranges`) and `data/_profile.md` comp policy notes.
 - Any **competing offers / market data** the user mentions (use as leverage only
   if real — never invent a competing offer).
+- The **posting's own stated band**, if any: `node scripts/salary.mjs --jd <saved
+  jd | report> --summary`. This reads ONLY what the JD discloses (it never
+  estimates), so a printed band is a real anchor; "not disclosed" means you must
+  rely on the user's target/market data, not a guess.
 
 ## Step 1 — Assess the offer
 Compare each component to the user's target/minimum. State plainly: is base at/above

@@ -57,7 +57,8 @@ location:
   onsite_availability: "Hybrid 2 days; relocation negotiable"
 
 cv:
-  cv_template: "templates/cv.tex.tmpl"
+  template: "classic"             # theme: classic | modern | academic | compact (node scripts/templates.mjs list)
+  cv_template: "templates/cv.tex.tmpl"   # explicit override; normally leave to `template` above
   cl_template: "templates/cl.tex.tmpl"
   font: "texgyretermes"           # texgyretermes | texgyreheros | texgyrepagella | texgyrebonum
 

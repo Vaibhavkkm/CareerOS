@@ -23,6 +23,7 @@ import { scoreMatch, bandRank, STARS, buildCorpusIdf, jdKeywords, fitScore } fro
 import { fetchPosting, saveJd } from './fetch-jd.mjs';
 import { runPool } from './scan.mjs';
 import { extractLanguages, formatLanguages } from '../lib/languages.mjs';
+import { extractSalary } from './salary.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CV_PATH = join(ROOT, 'data', 'cv.master.md');
@@ -124,8 +125,9 @@ export function renderBoard(rows, { today, total } = {}) {
     const stars = (STARS[r.band] || '·').padEnd(4);
     const exp = r.experience ? ` · needs ${r.experience}` : '';
     const lang = r.languages ? ` · lang: ${r.languages}` : '';
+    const pay = r.salary ? ` · ${r.salary}` : '';
     lines.push(`  ${String(i + 1).padStart(2)}. ${stars} ${r.band.padEnd(11)} ${r.company || '?'} — ${r.role || '?'}`);
-    lines.push(`        ${ageLabel(r.posted, today).padEnd(10)} fit ${r.fit ?? '?'}/10${exp}${lang}   has: ${(r.have || []).slice(0, 8).join(', ') || '—'}`);
+    lines.push(`        ${ageLabel(r.posted, today).padEnd(10)} fit ${r.fit ?? '?'}/10${pay}${exp}${lang}   has: ${(r.have || []).slice(0, 8).join(', ') || '—'}`);
     if ((r.gap || []).length) lines.push(`        gap: ${r.gap.slice(0, 6).join(', ')}`);
   });
   lines.push('', '  → tailor any one in one command:  /cos build-cv <number>');
@@ -369,6 +371,7 @@ async function main() {
       company: c.company, role: c.role, url: c.url, posted: c.posted || '',
       location: c.location || '', experience: extractExperience(c.content || ''),
       languages: formatLanguages(extractLanguages(c.content || ''), { max: 4 }),
+      salary: extractSalary(c.content || '').label,
       jd_path: c.jd_path || '', source: c.source,
       score: s.score, fit: fitScore(s.score), band: s.band, have: s.have, gap: s.gap,
     };
