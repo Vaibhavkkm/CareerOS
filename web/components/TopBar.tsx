@@ -1,7 +1,9 @@
 'use client';
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { QueueIndicator } from './QueueIndicator';
+import { ActionsMenu } from './ActionsMenu';
 import { IS_PUBLIC, openForkGate } from '@/lib/public';
 
 const TABS = [
@@ -13,6 +15,7 @@ const TABS = [
 
 export function TopBar() {
   const path = usePathname();
+  const [actions, setActions] = useState(false);
   return (
     <header className="topbar">
       <div className="brand">
@@ -36,8 +39,12 @@ export function TopBar() {
           DEMO · fork to run
         </button>
       )}
+      <button className="actions-btn" onClick={() => setActions(true)} title="All actions — everything CareerOS can do">
+        ⚡ Actions
+      </button>
       <QueueIndicator />
       <span className="kbd">⌘K</span>
+      {actions && <ActionsMenu onClose={() => setActions(false)} />}
     </header>
   );
 }
