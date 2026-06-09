@@ -14,6 +14,10 @@ const ALLOW = new Set([
   'doctor.mjs',
   'hunt-ingest.mjs',
   'jobspy.mjs',
+  // zero-token analysis tools the browser can run directly (no LLM needed)
+  'gaps.mjs',
+  'salary.mjs',
+  'cv-lint.mjs',
 ]);
 
 export interface RunResult<T = unknown> {

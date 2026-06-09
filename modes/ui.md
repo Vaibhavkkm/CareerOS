@@ -19,6 +19,19 @@ here. That queue is the handshake; this mode is the agent half of it.
    Apply / Hunt** buttons queue work for you (the `/cos` agent) to run — come back here
    and run `/cos ui` (or `/cos ui drain`) to process them.
 
+## Step 1.5 — Watch mode (so web clicks run WITHOUT re-typing `/cos ui`)
+If the user runs **`/cos ui watch`** (or says "keep draining" / "watch the queue"),
+stay resident and drain continuously so anything they click in the website runs in
+THIS already-open session automatically:
+1. Drain the queue now (Step 2).
+2. Then loop: re-check `node scripts/ui-queue.mjs list --status queued` every ~15–30s;
+   when new requests appear, drain them (Step 2); otherwise wait and check again.
+3. Keep going until the user says stop (or closes the session). Tell them once at the
+   start: "Watching the queue — click actions in the website and I'll run them here;
+   say 'stop' to end." This is what makes the web **⚡ Actions** buttons trigger work
+   in your running terminal with no copy-paste. (No API key — it's just this agent
+   looping; you can use the `/loop` skill to pace the polling if you prefer.)
+
 ## Step 2 — Drain the queue (the handshake)
 Run this whenever the user returns from the browser, or asks to "process the queue".
 
@@ -34,6 +47,15 @@ Run this whenever the user returns from the browser, or asks to "process the que
       - `build-cl` → `modes/build-cl.md`
       - `apply`    → `modes/apply.md` (draft answers / references — present, don't submit)
       - `hunt`     → `modes/hunt.md` (MCP discovery → ingest → board)
+      - `command`  → the GENERIC web-triggered command. `args = {cmd, target?, ...}`
+        where `cmd` is an allow-listed /cos command. Route it like the user typed
+        `/cos <cmd> <target>`: e.g. `{cmd:"mock",target:"Acme Data Engineer"}` →
+        `modes/mock.md`; `{cmd:"gaps"}` → run `node scripts/gaps.mjs --summary`;
+        `{cmd:"salary"}` → `scripts/salary.mjs`; `{cmd:"lint"}` → `scripts/cv-lint.mjs`;
+        `{cmd:"interview-prep"|"referral"|"negotiate"|"outreach"|"research"|"compare"|
+        "style-learn"|"evaluate"|"build-cv"|"build-cl"|"apply"}` → the matching mode.
+        Honour that mode's gates/guardrails exactly. The `target` is the company/role/
+        url/report the command needs.
       - `onboard`  → `modes/onboard.md` (the user uploaded CV(s) from the Setup tab).
         `args` = `{dir:"data/ui/uploads/<id>", files:[...], mode:"merge"|"replace"}`.
         Parse the whole folder: `node scripts/parse-cv.mjs --dir <dir> --json`, then

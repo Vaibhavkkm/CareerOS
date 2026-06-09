@@ -39,7 +39,11 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_QUEUE = join(ROOT, 'data', 'ui', 'requests.jsonl');
 
 // The ONLY request kinds the queue accepts — agent-judgment / MCP / setup work.
-export const KINDS = ['evaluate', 'build-cv', 'build-cl', 'apply', 'hunt', 'onboard'];
+// `command` is the GENERIC bridge: the web enqueues a named /cos command (e.g.
+// {cmd:'mock', target:'Acme Data Engineer'}) and the watch-mode agent runs it in the
+// already-open Claude Code session (see modes/ui.md). It still carries no facts and
+// can never flip a tracker status — the agent routes it to the matching playbook.
+export const KINDS = ['evaluate', 'build-cv', 'build-cl', 'apply', 'hunt', 'onboard', 'command'];
 export const STATUSES = ['queued', 'claimed', 'done', 'failed'];
 
 // ─── pure helpers ─────────────────────────────────────────────────────
@@ -272,6 +276,10 @@ export function selfTest() {
     // the onboard kind (CV upload → merge) is accepted; pointers only, no facts
     const onb = makeRequest({ kind: 'onboard', args: { dir: 'data/ui/uploads/abc', mode: 'merge' } });
     eq(onb.kind, 'onboard', 'onboard kind accepted');
+
+    // the generic command kind (web → watch-mode agent) is accepted
+    const cmd = makeRequest({ kind: 'command', args: { cmd: 'mock', target: 'Acme Data Engineer' } });
+    eq(cmd.kind, 'command', 'command kind accepted');
 
     // enqueue appends + returns a queued record
     const r1 = enqueue({ kind: 'build-cv', args: { report: 7 } }, { path });

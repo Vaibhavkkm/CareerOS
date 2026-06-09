@@ -1397,20 +1397,30 @@ select {
 .actions__gtitle { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg-faint); padding: 0 6px 4px; }
 .actions__gnote { font-size: 11px; color: var(--fg-dim); padding: 0 6px 8px; line-height: 1.4; }
 .actions__item {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  width: 100%; text-align: left;
-  background: transparent; border: 1px solid transparent; border-radius: 7px;
-  padding: 9px 8px; cursor: pointer; color: var(--fg);
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  border: 1px solid transparent; border-radius: 7px;
+  padding: 9px 8px; color: var(--fg);
   transition: background 0.1s linear, border-color 0.1s linear;
 }
 .actions__item:hover { background: var(--bg-row-hover); border-color: var(--hairline-2); }
-.actions__itemmain { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.actions__itemmain { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 .actions__label { font-size: 13px; color: var(--fg); }
 .actions__desc { font-size: 11.5px; color: var(--fg-dim); line-height: 1.35; }
-.actions__cmd { font-size: 11px; color: var(--signal); background: var(--bg); border: 1px solid var(--hairline-2); border-radius: 4px; padding: 2px 6px; margin-top: 3px; align-self: flex-start; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.actions__status { font-size: 11px; margin-top: 3px; }
+.actions__target {
+  margin-top: 5px; align-self: stretch; max-width: 260px;
+  background: var(--bg); border: 1px solid var(--hairline-2); border-radius: 5px;
+  color: var(--fg); font: inherit; font-size: 12px; padding: 4px 7px;
+}
+.actions__target:focus { outline: none; border-color: var(--signal-dim); }
+.actions__status { font-size: 11px; margin-top: 4px; }
 .actions__status.ok { color: var(--signal); }
 .actions__status.err { color: #ff6b6b; }
 .actions__status.muted { color: var(--fg-faint); }
-.actions__cta { flex: none; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--fg-faint); }
-.actions__item:hover .actions__cta { color: var(--signal); }
+.actions__cta {
+  flex: none; align-self: center;
+  font: inherit; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--fg-faint); background: transparent;
+  border: 1px solid var(--hairline-2); border-radius: 5px; padding: 5px 10px; cursor: pointer;
+  transition: color 0.1s linear, border-color 0.1s linear, background 0.1s linear;
+}
+.actions__cta:hover { color: var(--signal); border-color: var(--signal-dim); }

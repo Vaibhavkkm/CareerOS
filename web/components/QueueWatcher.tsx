@@ -24,8 +24,12 @@ const LABELS: Record<string, string> = {
   onboard: 'CV onboarding',
 };
 
-function label(kind: string): string {
-  return LABELS[kind] || kind;
+function label(req: QueueRequest): string {
+  if (req.kind === 'command') {
+    const cmd = (req.args as { cmd?: string })?.cmd;
+    return cmd ? cmd.replace(/-/g, ' ') : 'command';
+  }
+  return LABELS[req.kind] || req.kind;
 }
 
 export function QueueWatcher() {
@@ -46,7 +50,7 @@ export function QueueWatcher() {
   const notify = useCallback(
     (req: QueueRequest) => {
       const done = req.status === 'done';
-      const title = `${label(req.kind)} ${done ? 'complete' : 'failed'}`;
+      const title = `${label(req)} ${done ? 'complete' : 'failed'}`;
       const body = done
         ? resultHint(req)
         : (req.error || 'see Claude Code for details');
