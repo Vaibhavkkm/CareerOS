@@ -23,10 +23,18 @@ export async function GET(request: Request) {
 }
 
 // POST /api/queue {kind, args} — enqueue agent work; the /cos agent drains it.
+// POST /api/queue {action:"clear"} — archive finished (done/failed) requests out of
+// the active queue (history is preserved in data/ui/requests.archive.jsonl).
 export async function POST(request: Request) {
   const gate = gateMutation();
   if (gate) return gate;
   const body = await readJson(request);
+
+  if (body.action === 'clear') {
+    const r = await runScript('ui-queue.mjs', ['clear', '--json'], { timeoutMs: 10_000 });
+    return fromRun(r, 'could not clear completed requests');
+  }
+
   const kind = typeof body.kind === 'string' ? body.kind : '';
   if (!KINDS.has(kind)) return bad(`kind must be one of ${[...KINDS].join(', ')}`);
   const args = body.args && typeof body.args === 'object' ? body.args : {};

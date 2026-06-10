@@ -35,6 +35,9 @@ import assert from 'node:assert/strict';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_QUEUE = join(ROOT, 'data', 'ui', 'requests.jsonl');
+// Append-only history of cleared (done/failed) requests — preserves the audit
+// trail when the UI "clear completed" trims the active queue. Git-ignored (data/).
+const DEFAULT_ARCHIVE = join(ROOT, 'data', 'ui', 'requests.archive.jsonl');
 // Where the web UI stages uploaded CV/CL files. Staged uploads are PII and are
 // PURGED the moment a request reaches a terminal state (done/failed) — see
 // purgeStagedUploads. Deletion is hard-fenced to inside this directory.
@@ -118,6 +121,24 @@ export function list({ status = null } = {}, { path = DEFAULT_QUEUE } = {}) {
 
 export function get(id, { path = DEFAULT_QUEUE } = {}) {
   return readQueue(path).find((r) => r.id === id) || null;
+}
+
+// Clear finished work out of the ACTIVE queue without losing the record: terminal
+// (done/failed) requests are appended to data/ui/requests.archive.jsonl (audit
+// trail, git-ignored like the rest of data/), and the live queue is rewritten with
+// only the active (queued/claimed) ones. Keeps the UI popover from growing forever
+// while preserving "what ran, when, which PDF it produced".
+export function clearCompleted({ path = DEFAULT_QUEUE, archive = DEFAULT_ARCHIVE } = {}) {
+  const all = readQueue(path);
+  const isTerminal = (r) => r.status === 'done' || r.status === 'failed';
+  const terminal = all.filter(isTerminal);
+  const active = all.filter((r) => !isTerminal(r));
+  if (terminal.length) {
+    mkdirSync(dirname(archive), { recursive: true });
+    appendFileSync(archive, terminal.map((r) => JSON.stringify(r)).join('\n') + '\n');
+  }
+  writeQueue(active, path);
+  return { ok: true, archived: terminal.length, remaining: active.length };
 }
 
 // Is `abs` strictly inside `baseDir`? (containment guard for deletes). Equal path
@@ -238,6 +259,7 @@ Usage:
   ui-queue claim --id <id>
   ui-queue complete --id <id> --result '<json>'
   ui-queue fail --id <id> --error "<msg>"
+  ui-queue clear            # archive done/failed out of the active queue
   ui-queue --self-test`;
 
 function out(json, obj, human) {
@@ -270,6 +292,11 @@ function main() {
         const rec = get(a.id);
         out(a.json, rec ? { ok: true, request: rec } : { ok: false, error: 'not-found' });
         return process.exit(rec ? 0 : 1);
+      }
+      case 'clear': {
+        const r = clearCompleted();
+        out(a.json, r, `archived ${r.archived} completed request(s); ${r.remaining} active remain`);
+        return process.exit(0);
       }
       case 'claim': {
         const r = claim(a.id);
@@ -388,6 +415,24 @@ export function selfTest() {
     claim(ob2.id, { path });
     const failed = fail(ob2.id, 'pdftotext missing', { path, root: tmp, uploadsDir });
     ok(failed.ok && !existsSync(join(tmp, cv2)), 'staged upload purged on fail too');
+
+    // ── clear completed: archive done/failed, keep active, preserve history ──
+    const cpath = join(tmp, 'data', 'ui', 'clear-q.jsonl');
+    const carch = join(tmp, 'data', 'ui', 'clear-q.archive.jsonl');
+    const a1 = enqueue({ kind: 'evaluate', args: { id: 1 } }, { path: cpath }); // stays queued
+    const a2 = enqueue({ kind: 'evaluate', args: { id: 2 } }, { path: cpath });
+    const a3 = enqueue({ kind: 'evaluate', args: { id: 3 } }, { path: cpath });
+    claim(a2.id, { path: cpath }); complete(a2.id, { ok: 1 }, { path: cpath }); // done
+    claim(a3.id, { path: cpath }); fail(a3.id, 'boom', { path: cpath });        // failed
+    const cleared = clearCompleted({ path: cpath, archive: carch });
+    eq(cleared.archived, 2, 'clear archives the 2 terminal requests');
+    eq(cleared.remaining, 1, 'clear leaves the 1 active request');
+    eq(readQueue(cpath).length, 1, 'active queue trimmed to non-terminal');
+    eq(readQueue(cpath)[0].id, a1.id, 'the surviving request is the still-queued one');
+    eq(readQueue(carch).length, 2, 'archive holds the cleared history');
+    const cleared2 = clearCompleted({ path: cpath, archive: carch });
+    eq(cleared2.archived, 0, 'clear is a no-op when nothing is terminal');
+    eq(readQueue(carch).length, 2, 'archive unchanged on no-op clear');
 
     console.log(`ui-queue self-test: ${n} checks passed`);
     return 0;

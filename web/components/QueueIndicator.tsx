@@ -26,7 +26,16 @@ export function QueueIndicator() {
   }, [load]);
 
   const active = reqs.filter((r) => r.status === 'queued' || r.status === 'claimed').length;
+  const completed = reqs.filter((r) => r.status === 'done' || r.status === 'failed').length;
   const recent = [...reqs].reverse().slice(0, 12);
+
+  const clearCompleted = useCallback(async () => {
+    const r = await api<{ ok: boolean }>('/api/queue', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'clear' }),
+    });
+    if (r && r.ok) load();
+  }, [load]);
 
   return (
     <div className="queue">
@@ -41,9 +50,20 @@ export function QueueIndicator() {
         <div className="qpop">
           <div className="qpop__head">
             <span>Agent queue · {reqs.length}</span>
-            <button className="btn btn--ghost" onClick={() => setOpen(false)}>
-              close
-            </button>
+            <span style={{ display: 'inline-flex', gap: 8 }}>
+              {completed > 0 && (
+                <button
+                  className="btn btn--ghost"
+                  onClick={clearCompleted}
+                  title="Archive finished (done/failed) requests out of the queue — history is kept in data/ui/requests.archive.jsonl"
+                >
+                  clear completed ({completed})
+                </button>
+              )}
+              <button className="btn btn--ghost" onClick={() => setOpen(false)}>
+                close
+              </button>
+            </span>
           </div>
           {recent.length === 0 && (
             <div className="qpop__hint">
