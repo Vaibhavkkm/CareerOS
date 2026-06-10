@@ -86,6 +86,19 @@ export function ageLabel(posted, today) {
   return `${Math.floor(d / 30)}mo ago`;
 }
 
+// Score one candidate posting into a board row. Extracted so the pinned row (which
+// may come from the pre-filter set) is built exactly like every other row.
+function scoreRow(c, cv, scoreCtx) {
+  const s = scoreMatch(c.content || '', cv, scoreCtx);
+  return {
+    company: c.company, role: c.role, url: c.url, posted: c.posted || '',
+    location: c.location || '', experience: extractExperience(c.content || ''),
+    languages: formatLanguages(extractLanguages(c.content || ''), { max: 4 }),
+    jd_path: c.jd_path || '', source: c.source,
+    score: s.score, fit: fitScore(s.score), band: s.band, have: s.have, gap: s.gap,
+  };
+}
+
 // Filter + rank rows. minBand keeps that band or better; recentDays keeps only
 // postings with a known date within the window. Sort: best match first, then most
 // recently posted (unknown dates sink).
@@ -111,17 +124,16 @@ export function assembleBoard(rows, { minBand = null, recentDays = null, today }
 }
 
 // Force a just-fetched posting to the very top so the user can find it instead of
-// hunting for it among hundreds of score-ranked rows. The pinned row is located in
-// the FULL scored set (`allRows`) — so band/recency filters can't hide it — flagged
-// `pinned:true`, placed first, de-duped from the rest, then the whole thing is capped
-// to `limit`. Returns the shown slice. No-op (just caps `board`) when no match.
-export function pinToTop(board, allRows, pinUrl, limit) {
+// hunting for it among hundreds of score-ranked rows. `pinnedRow` is the already-
+// resolved (and scored) row to pin, or null/undefined for a no-op. The CALLER resolves
+// it from the FULL pre-filter set, so an explicit pin shows even when the active
+// location / country / type / band / recency filters would otherwise hide it. The row
+// is flagged `pinned:true`, placed first, de-duped from the rest, then capped to `limit`.
+export function pinToTop(board, pinnedRow, limit) {
   const capped = (n) => (limit > 0 ? n.slice(0, limit) : n);
-  if (!pinUrl) return capped(board);
-  const hit = (allRows || []).find((x) => x.url && x.url === pinUrl);
-  if (!hit) return capped(board);
-  hit.pinned = true;
-  return capped([hit, ...board.filter((x) => x.url !== pinUrl)]);
+  if (!pinnedRow) return capped(board);
+  pinnedRow.pinned = true;
+  return capped([pinnedRow, ...board.filter((x) => x.url !== pinnedRow.url)]);
 }
 
 export function renderBoard(rows, { today, total } = {}) {
@@ -380,22 +392,18 @@ async function main() {
   // relevance term — a real speedup when scoring hundreds of postings.
   const cvKw = jdKeywords(cv, 24);
   const corpusIdf = buildCorpusIdf([...filtered.map((c) => c.content || ''), cv]);
-  const rows = filtered.map((c) => {
-    const s = scoreMatch(c.content || '', cv, { idf: corpusIdf, cvKeywords: cvKw });
-    return {
-      company: c.company, role: c.role, url: c.url, posted: c.posted || '',
-      location: c.location || '', experience: extractExperience(c.content || ''),
-      languages: formatLanguages(extractLanguages(c.content || ''), { max: 4 }),
-      jd_path: c.jd_path || '', source: c.source,
-      score: s.score, fit: fitScore(s.score), band: s.band, have: s.have, gap: s.gap,
-    };
-  });
+  const scoreCtx = { idf: corpusIdf, cvKeywords: cvKw };
+  const rows = filtered.map((c) => scoreRow(c, cv, scoreCtx));
   const board = assembleBoard(rows, { minBand: args.min, recentDays: Number.isFinite(args.recent) ? args.recent : null, today });
   // Cap rendered rows for UI responsiveness; the full filtered count is still
   // reported as `count`, with `shown` = how many rows are returned. `--pin <url>`
-  // forces a just-fetched posting to the top (and into the slice) regardless of rank.
+  // forces a just-fetched posting to the top (and into the slice) regardless of rank
+  // OR of the active filters: resolve it from `unique` (pre-filter) so a posting the
+  // location/country/type filter would drop (e.g. one with no stated location) still pins.
   const limit = args.limit > 0 ? args.limit : 200;
-  const shown = pinToTop(board, rows, args.pin, limit);
+  const pinHit = args.pin ? unique.find((c) => c.url && c.url === args.pin) : null;
+  const pinnedRow = pinHit ? scoreRow(pinHit, cv, scoreCtx) : null;
+  const shown = pinToTop(board, pinnedRow, limit);
 
   if (args.json) {
     console.log(JSON.stringify({ ok: true, today, count: board.length, shown: shown.length, rows: shown }, null, 2));
@@ -464,28 +472,33 @@ export function selfTest() {
   ok(!recent.some((x) => x.company === 'D'), 'old posting excluded by --recent 7');
   ok(!recent.some((x) => x.company === 'E'), 'unknown-date posting excluded by --recent');
 
-  // pinToTop: a just-fetched URL is forced first, flagged, deduped, filter-proof
+  // pinToTop: the caller resolves the pinned row (filter-proof); it's forced first,
+  // flagged, deduped, and survives the cap.
   const pinRows = [
     { company: 'A', role: 'r', score: 0.9, band: 'STRONGEST', posted: '2026-06-09', url: 'https://x/a' },
     { company: 'B', role: 'r', score: 0.5, band: 'Strong', posted: '2026-06-08', url: 'https://x/b' },
     { company: 'C', role: 'r', score: 0.3, band: 'Weak', posted: '2026-06-09', url: 'https://x/c' },
   ];
+  const findRow = (url) => pinRows.find((r) => r.url === url); // mimic resolving from the pre-filter set
   const pinBoard = assembleBoard(pinRows, { today });
-  const pinned = pinToTop(pinBoard, pinRows, 'https://x/c', 0);
+  const pinned = pinToTop(pinBoard, findRow('https://x/c'), 0);
   eq(pinned[0].url, 'https://x/c', 'pinToTop: pinned url is first even with the lowest score');
   ok(pinned[0].pinned === true, 'pinToTop: pinned row flagged');
   eq(pinned.filter((x) => x.url === 'https://x/c').length, 1, 'pinToTop: pinned row not duplicated');
   eq(pinned.length, pinBoard.length, 'pinToTop: no rows lost');
-  // filter-proof: pin a row the band filter removed; it still surfaces on top
+  // filter-proof: pin a row the band filter removed from `board`; resolved from the
+  // full set, it still surfaces on top (this is the real bug fix — a location/band/
+  // type filter must not be able to hide the posting the user explicitly fetched).
   const filtered = assembleBoard(pinRows, { minBand: 'Strong', today }); // drops C
-  const pinnedC = pinToTop(filtered, pinRows, 'https://x/c', 0);
-  eq(pinnedC[0].url, 'https://x/c', 'pinToTop: surfaces a row hidden by the band filter');
+  ok(!filtered.some((x) => x.url === 'https://x/c'), 'precondition: band filter dropped C from the board');
+  const pinnedC = pinToTop(filtered, findRow('https://x/c'), 0);
+  eq(pinnedC[0].url, 'https://x/c', 'pinToTop: surfaces a row the filter removed from the board');
   // limit still applies, pinned survives the cap
-  const capped = pinToTop(pinBoard, pinRows, 'https://x/c', 1);
+  const capped = pinToTop(pinBoard, findRow('https://x/c'), 1);
   eq(capped.length, 1, 'pinToTop: respects limit');
   eq(capped[0].url, 'https://x/c', 'pinToTop: pinned row survives the cap');
-  eq(pinToTop(pinBoard, pinRows, '', 0).length, pinBoard.length, 'pinToTop: empty pin is a no-op');
-  eq(pinToTop(pinBoard, pinRows, 'https://x/none', 0)[0].url, pinBoard[0].url, 'pinToTop: unknown pin leaves order unchanged');
+  eq(pinToTop(pinBoard, null, 0).length, pinBoard.length, 'pinToTop: null pinned row is a no-op');
+  eq(pinToTop(pinBoard, undefined, 0)[0].url, pinBoard[0].url, 'pinToTop: undefined pinned row leaves order unchanged');
 
   // renderBoard produces a numbered board with the build-cv hint
   const out = renderBoard(strongPlus, { today });
