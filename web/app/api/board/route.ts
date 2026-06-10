@@ -36,6 +36,11 @@ export async function GET(request: Request) {
   if (type && !type.startsWith('-')) args.push('--type', type);
   const limit = sp.get('limit');
   if (limit && /^\d+$/.test(limit)) args.push('--limit', limit);
+  // Pin a just-fetched posting to the top so the user can find it. Only http(s)
+  // URLs (board.mjs matches on row.url); reject a leading dash so it can't be
+  // re-parsed as a flag by the engine's own arg parser.
+  const pin = sp.get('pin');
+  if (pin && /^https?:\/\//i.test(pin)) args.push('--pin', pin);
 
   const r = await runScript<BoardResponse>('board.mjs', args, { timeoutMs: 90_000 });
   if (!r.ok) {

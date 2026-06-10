@@ -27,7 +27,7 @@ export default function BoardPage() {
   const loadSeq = useRef(0);
 
   const load = useCallback(
-    async (f: Filters) => {
+    async (f: Filters, opts: { pin?: string } = {}) => {
       const seq = ++loadSeq.current;
       setBusy(true);
       // Close the drawer first: it's keyed by row INDEX, and a reload re-filters +
@@ -40,6 +40,8 @@ export default function BoardPage() {
       if (place.country && place.country !== ALL_COUNTRIES) qs.set('country', place.country);
       if (place.city.trim()) qs.set('city', place.city.trim());
       if (place.jobType) qs.set('type', place.jobType);
+      // Pin a just-fetched posting to the top so it's findable, not buried by rank.
+      if (opts.pin) qs.set('pin', opts.pin);
       const r = await api<BoardResponse>(`/api/board?${qs.toString()}`);
       if (seq !== loadSeq.current) return; // a newer load started — discard this stale result
       setBusy(false);
@@ -49,6 +51,12 @@ export default function BoardPage() {
         return;
       }
       setBoard(r);
+      // The pinned posting is forced to row 0 by the engine — surface it: jump the
+      // board to the top and open its detail drawer so the user sees what they fetched.
+      if (opts.pin && r.rows?.[0] && (r.rows[0].pinned || r.rows[0].url === opts.pin)) {
+        setDrawer(0);
+        if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     },
     [push, place],
   );
@@ -117,14 +125,17 @@ export default function BoardPage() {
       if (IS_PUBLIC) { openForkGate(); return; }
       setBusy(true);
       push('fetching posting…', 'info');
-      const r = await api<{ ok: boolean; error?: string }>('/api/fetch-jd', {
+      const r = await api<{ ok: boolean; error?: string; posting?: { url?: string; role?: string } }>('/api/fetch-jd', {
         method: 'POST',
         body: JSON.stringify({ url }),
       });
       setBusy(false);
       if (r.ok) {
-        push('posting saved to board', 'ok');
-        load(filters);
+        // Pin by the URL that actually lands on the board row (fetch-jd may canonicalize
+        // it), falling back to what the user pasted.
+        const savedUrl = r.posting?.url || url;
+        push('posting saved — pinned to the top of the board', 'ok');
+        load(filters, { pin: savedUrl });
       } else {
         push(r.error || 'fetch failed', 'err');
       }

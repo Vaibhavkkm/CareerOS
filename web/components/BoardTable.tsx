@@ -36,7 +36,7 @@ export function BoardTable({
           return (
             <tr
               key={(r.url || r.jd_path || 'row') + i}
-              className={`board__row ${selected === i ? 'is-sel' : ''}`}
+              className={`board__row ${selected === i ? 'is-sel' : ''} ${r.pinned ? 'is-pinned' : ''}`}
               onClick={() => onSelect(i)}
               tabIndex={0}
               role="button"
@@ -62,6 +62,7 @@ export function BoardTable({
               </td>
               <td className="cell-role">
                 <div>
+                  {r.pinned && <span className="pin-badge">JUST&nbsp;ADDED</span>}
                   <span className="role">{r.role || '—'}</span>
                 </div>
                 <div>

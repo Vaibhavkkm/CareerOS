@@ -15,6 +15,7 @@ export interface BoardRow {
   have: string[];
   gap: string[];
   languages?: string;
+  pinned?: boolean; // a just-fetched posting forced to the top of the board
 }
 
 export interface BoardResponse {

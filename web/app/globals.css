@@ -457,6 +457,31 @@ select {
   width: 2px;
   background: var(--signal);
 }
+/* A just-fetched posting, forced to the top of the board so it's findable. */
+.board__row.is-pinned {
+  background: color-mix(in srgb, var(--signal) 9%, transparent);
+}
+.board__row.is-pinned td:first-child::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--signal);
+}
+.pin-badge {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 1px 6px;
+  border: 1px solid var(--signal);
+  border-radius: 3px;
+  color: var(--signal);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
 .cell-idx {
   color: var(--fg-faint); /* readable (4.6:1), not the decorative ghost tone */
   text-align: right;
