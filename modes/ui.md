@@ -49,9 +49,33 @@ Run this whenever the user returns from the browser, or asks to "process the que
         without leaving the dashboard. (Legacy `pdf` is still accepted.)
       - failure → `node scripts/ui-queue.mjs fail --id <id> --error "<one-line reason>"`
    The browser polls and flips each request's status pill live as you advance it.
+   **Staged uploads are auto-purged:** `complete`/`fail` delete any `data/ui/uploads/`
+   files the request referenced (PII hygiene — see `ui-queue.mjs purgeStagedUploads`),
+   so you never manually `rm` an uploaded CV/CL.
 3. Summarize: which requests you completed, the artifacts produced, and anything that
    needs the user (e.g. "CV built — review `data/output/cv-…pdf`, then mark Applied in
    the UI once you've actually submitted").
+
+## Step 3 — Auto-drain (optional, lowest-friction)
+The browser has no LLM, so queued work only runs when an agent session drains it.
+To make a click in the UI execute on its own — no manual `/cos ui` each time — leave
+a drain loop running in an open Claude Code session:
+
+```
+/loop 30s /cos ui drain
+```
+
+This re-runs the Step-2 drain every 30s, so anything you queue in the browser starts
+within seconds and its status pill flips live. Stop it with `/loop stop` (or just end
+the session). Notes:
+- **Safe to fully auto-run:** `evaluate`, `build-cv`, `build-cl`, `hunt` — they produce
+  an artifact (report / draft PDF / board rows) that IS the review point; nothing is sent.
+- **Pauses for the human even under the loop:** `onboard` shows the extracted/diffed
+  facts before overwriting `profile.yml` (never blind-overwrites a set-up profile), and
+  `apply` drafts answers but **never submits**. The loop starts these and stops at the
+  checkpoint — it does not bypass any guardrail below.
+- The loop is opt-in and costs tokens each pass; recommend it when the user is actively
+  clicking, not as an always-on default.
 
 ## Guardrails (absolute — same as every mode)
 - **NEVER auto-submit** an application. You generate; the human applies in the browser.
@@ -69,4 +93,9 @@ Run this whenever the user returns from the browser, or asks to "process the que
   `data/reports/`, board output) live. Editing the truth (e.g. `tracker.mjs`) updates
   the board on the next refresh.
 - The queue is append-only truth at `data/ui/requests.jsonl`; `data/ui/results/` holds
-  optional per-request payloads. Both are git-ignored (your data, your machine).
+  optional per-request payloads. All of `data/` is git-ignored (your data, your machine).
+- The UI's "clear completed" button (or `node scripts/ui-queue.mjs clear`) moves
+  done/failed requests to `data/ui/requests.archive.jsonl` (history kept) and trims the
+  active queue — it never hard-deletes a record.
+- Uploaded CVs/cover letters stage under `data/ui/uploads/<ts>/` and are deleted the
+  moment their request completes/fails, so PII doesn't linger.
