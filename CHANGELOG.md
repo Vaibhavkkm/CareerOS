@@ -4,6 +4,47 @@ All notable changes to CareerOS are recorded here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and the project aims to follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Upload your CV + cover letter from the web panel.** A **⤴ my CV/CL** button stages
+  the files under `data/ui/uploads/` and enqueues an `onboard` request for the agent to
+  learn your facts + voice from; then the board fills with CV-matched jobs.
+- **Per-job output folders.** Each posting's CV and cover letter are written together in
+  `data/output/<company-slug>--<role-slug>/` with self-describing filenames, so a job's
+  documents are easy to find. The web **Pipeline** tab links each application's CV/CL, and
+  the queue popover links a finished build's PDFs.
+- **"Clear completed" queue control.** Archives done/failed requests to
+  `data/ui/requests.archive.jsonl` (history kept) and trims the active queue — never a hard delete.
+- **Optional auto-drain.** Documented `/loop 30s /cos ui drain` so work queued in the
+  browser executes within seconds without a manual `/cos ui` (with per-mode safety: onboard
+  shows a profile diff before overwriting, apply never submits).
+- **Explicit "fetch URL" control** next to the paste-a-job-URL box (it previously only
+  submitted on Enter, with no button, beside the unrelated "scan").
+
+### Changed
+
+- **Web panel upgraded to Next.js 15 + React 19** (resolves all open `npm audit` advisories;
+  async route params; `outputFileTracingRoot` set to silence the multi-lockfile warning).
+- **Generic-HTML job scraping** now splits a `Role - Company` / `Role | Company` page title,
+  so postings from unknown ATSes (e.g. skeeled) land on the board with a real employer.
+
+### Fixed
+
+- **Workable provider HTTP 400** (`{"limit":"Not allowed"}`) — the v3 jobs API stopped
+  accepting a `limit` field; `scan` now completes all companies again.
+- **Paste-a-URL flow** strips trailing junk (surrounding quotes, a dragged-in file path)
+  from pasted text before fetching, both client- and server-side.
+
+### Security
+
+- **Staged uploads are auto-purged.** A request reaching a terminal state (done/failed)
+  deletes any CV/CL it referenced under `data/ui/uploads/` — hard-fenced so only paths
+  strictly inside that staging dir can ever be removed.
+- **Hardened `.gitignore`** for `.env*.local`, `*.key`, and `*.pem` (the full `data/`
+  layer, including all uploaded PII, was already git-ignored).
+
 ## [0.1.0] — 2026-06-08
 
 First public release. CareerOS is a Claude Code-native, LaTeX-first CV +

@@ -49,6 +49,11 @@ documents, your application tracker — lives in a local `data/` folder that is
 **git-ignored**. It stays on your computer and is never part of this repo. Back it
 up with your *own* private git if you want a backup.
 
+There's **no API key and no server-side AI** to leak data to — the model is the Claude
+Code agent you already run. A CV/cover letter you upload through the web panel is staged
+under `data/ui/uploads/` and **deleted automatically** once the agent has onboarded from
+it, so raw documents don't linger.
+
 ---
 
 ## Getting started
@@ -91,15 +96,15 @@ Run the tool with `/careeros` (or the short alias `/cos`):
 
 | Command | What it does |
 |---|---|
-| `/cos onboard` | **Start here.** Turn your uploaded CV + cover letter into a profile, a master CV, and a learned writing voice |
+| `/cos onboard` | **Start here.** Turn your uploaded CV + cover letter into a profile, a master CV, and a learned writing voice (or upload them from the web panel's **⤴ my CV/CL** button) |
 | `/cos hunt [role] [location]` | **Auto-fetch jobs from multiple portals** matched to *your* profile — searches Indeed + Dice (and your tracked ATS companies), dedups, and drops the matches on your board |
 | `/cos board [--min strong] [--recent 14]` | Rank open roles by how well they match *your* CV (STRONGEST → Weak), with how recently each was posted and your has/gap skills — then tailor any one in a click |
 | `/cos ui` | Launch the **local web control panel** (a dark trading-desk dashboard) and process anything you queued from the browser |
 | `/cos` *(paste a job post or URL)* | Auto-pilot: read the job → score it → build a tailored CV (if it's a good fit) → draft answers → track it |
 | `/cos evaluate <job/url/file>` | Score one job out of 5 across 6 things that matter, with a written report |
 | `/cos compare <2+ jobs>` | Rank several postings and recommend which to chase |
-| `/cos build-cv <job/company>` | Build a tailored, ATS-safe CV → PDF |
-| `/cos build-cl <job/company>` | Build a tailored cover letter → PDF |
+| `/cos build-cv <job/company>` | Build a tailored, ATS-safe CV → PDF (saved to a per-job folder `data/output/<company>--<role>/`) |
+| `/cos build-cl <job/company>` | Build a tailored cover letter → PDF (alongside the CV in the same per-job folder) |
 | `/cos` *"learn from my edits"* | Look at how you edited a draft and remember your style |
 | `/cos apply <job/company>` | Draft answers for an application form (never auto-submits) |
 | `/cos scan` | Find new postings from the companies you're watching |
@@ -126,8 +131,9 @@ Nothing is ever applied for you; you review the matches and tailor with one comm
 **No-agent option — the "fetch recent" button (and `npm run fetch`).** Once the Python
 sidecar is installed (see Getting started), the board's **fetch recent** control pulls live
 openings from **Indeed + ZipRecruiter + Google Jobs** straight from the browser — no agent,
-no MCP — filtered by **country** (Luxembourg, Germany, Switzerland, Italy, India, France,
-Belgium) and **city**, deduped and ranked onto your board in one click. Same from the CLI:
+no MCP — filtered by **country** (Luxembourg, United States, Canada, United Kingdom, Germany,
+France, Belgium, Netherlands, Switzerland, Italy, India — or **all countries** in one sweep),
+**city**, and **job type**, deduped and ranked onto your board in one click. Same from the CLI:
 ```bash
 node scripts/jobspy.mjs --country Germany --city Berlin --recent 7 --summary
 ```
@@ -148,10 +154,21 @@ npm run dev                # → http://127.0.0.1:4317   (or: /cos ui)
 ```
 
 Because a browser has no LLM, the panel runs the zero-token scripts itself (scan, board,
-fetch, tracker, PDF preview) and **queues** the judgment work — Evaluate, Build CV/CL,
-Apply, Hunt — for the `/cos` agent to run. Click a button in the browser, then run
-`/cos ui` in Claude Code to process the queue; status updates live. It can never
-auto-submit an application or mark a role "applied" without your explicit confirmation.
+fetch, paste-a-URL, tracker, PDF preview) and **queues** the judgment work — Evaluate,
+Build CV/CL, Apply, Hunt, and **onboarding** — for the `/cos` agent to run. Click a button
+in the browser, then run `/cos ui` in Claude Code to process the queue; status updates live.
+It can never auto-submit an application or mark a role "applied" without your explicit confirmation.
+
+**From the browser you can also:**
+- **Upload your CV + cover letter** — the **⤴ my CV/CL** button saves them locally and queues
+  an onboarding job; the agent learns your facts + voice, then fills the board with CV-matched
+  jobs. Uploaded files are **deleted automatically** the moment onboarding finishes (PII hygiene).
+- **Drop a job URL** in the paste box → **fetch URL** scrapes the whole posting onto the board.
+- **Open each application's CV & cover letter** as one-click links on the **Pipeline** tab — each
+  job gets its **own output folder** (`data/output/<company>--<role>/`) holding both PDFs.
+- **Auto-drain (optional):** leave `/loop 30s /cos ui drain` running in Claude Code and clicks
+  execute within seconds — no manual `/cos ui` each time. A **clear completed** button tidies the
+  queue (finished requests are archived, never hard-deleted).
 
 ### Hosting a public demo (`NEXT_PUBLIC_CAREEROS_PUBLIC=1`)
 
@@ -226,7 +243,7 @@ CareerOS is in **active development**. Here's the honest picture:
 ### ✅ Working and tested
 - **The engine.** ~24 "mode" playbooks (onboard, board, hunt, ui, evaluate, build-cv,
   build-cl, scan, track, follow-up, interview-prep, compare, negotiate, and more), 21
-  helper scripts, and shared libraries. Automated self-tests pass (`npm test` → **478 checks green**).
+  helper scripts, and shared libraries. Automated self-tests pass (`npm test` → **500 checks green**).
 - **Share a URL → it scrapes the whole posting.** `fetch-jd` pulls the *complete*
   job from the ATS's own API (Greenhouse, Lever, Recruitee, SmartRecruiters) or the
   page HTML (Ashby, Workable, and any other site), saves it locally, and falls back
@@ -259,15 +276,19 @@ CareerOS is in **active development**. Here's the honest picture:
   ledger as the scanner (`hunt-ingest`), and ranks them on your board.
 - **Local web control panel.** A dark "trading-desk" dashboard (`web/`, `/cos ui`) over
   the engine: filterable match board, pipeline funnel, hunt form. Zero-token scripts run
-  in the browser; judgment work queues for the agent. Builds clean; guardrails (no
-  auto-submit, no silent "applied", sandboxed file reads) verified.
+  in the browser; judgment work queues for the agent. **Upload your CV/cover letter** from
+  the browser (queues onboarding; staged files auto-purged after), **fetch** any job URL onto
+  the board, **open each application's CV/CL** from the Pipeline tab (per-job folders), and
+  **clear completed** queue items (archived, not deleted). Optional `/loop`-based **auto-drain**
+  runs queued clicks without a manual `/cos ui`. Next.js 15 + React 19, builds clean, `npm audit`
+  clean; guardrails (no auto-submit, no silent "applied", sandboxed file reads) verified.
 - **Public-ready.** Rebranded to CareerOS, and all personal data is git-ignored
   so the repo ships clean.
 
 ### 🚧 In progress
-- **Onboarding for anyone.** The new `/cos onboard` flow (upload your CV + cover
-  letter → it sets you up) is freshly built and needs testing against many real CV
-  formats and layouts.
+- **Onboarding for anyone.** The `/cos onboard` flow (upload your CV + cover letter,
+  from the CLI **or the web panel's ⤴ my CV/CL button** → it sets you up) is built and
+  wired end-to-end; it still needs testing against many real CV formats and layouts.
 - **Reading your uploaded CV/cover letter.** Job *postings* from a URL are now
   scraped deterministically (`fetch-jd`). Turning *your* uploaded CV/Word doc into
   `cv.master.md` is still done by the agent reading the file (with `pdftotext` for
@@ -287,7 +308,7 @@ CareerOS is in **active development**. Here's the honest picture:
 ## For developers
 
 ```bash
-npm test                       # run all script + library self-tests (443 checks)
+npm test                       # run all script + library self-tests (500 checks)
 node scripts/doctor.mjs        # check your environment and setup
 node scripts/fetch-jd.mjs "https://boards.greenhouse.io/acme/jobs/123" --summary   # scrape a posting
 node scripts/compile-latex.mjs data/output/cv-*.tex --kind cv --keywords "Python,SQL" --json
