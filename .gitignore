@@ -22,6 +22,16 @@ __pycache__/
 # OS
 .DS_Store
 
+# Local env overrides & any secrets — never committed. The repo's checked-in
+# web/.env holds only PUBLIC, non-secret config; per-machine overrides (and any
+# future API keys) belong in *.local files, which stay out of this public repo.
+.env.local
+.env.*.local
+web/.env.local
+web/.env.*.local
+*.key
+*.pem
+
 # ─────────────────────────────────────────────────────────────────────────────
 # YOUR DATA & PII — never committed (this repo is PUBLIC)
 # ─────────────────────────────────────────────────────────────────────────────

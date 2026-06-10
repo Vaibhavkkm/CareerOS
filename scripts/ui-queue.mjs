@@ -26,15 +26,19 @@
 //   node scripts/ui-queue.mjs --self-test
 
 import {
-  existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync, renameSync, rmSync,
+  existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync, renameSync, rmSync, rmdirSync,
 } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import assert from 'node:assert/strict';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_QUEUE = join(ROOT, 'data', 'ui', 'requests.jsonl');
+// Where the web UI stages uploaded CV/CL files. Staged uploads are PII and are
+// PURGED the moment a request reaches a terminal state (done/failed) — see
+// purgeStagedUploads. Deletion is hard-fenced to inside this directory.
+const UPLOADS_DIR = join(ROOT, 'data', 'ui', 'uploads');
 
 // The ONLY request kinds the queue accepts — all are agent-judgment / MCP work.
 // `onboard` carries the repo-relative paths of a CV/CL the user uploaded from the
@@ -116,6 +120,42 @@ export function get(id, { path = DEFAULT_QUEUE } = {}) {
   return readQueue(path).find((r) => r.id === id) || null;
 }
 
+// Is `abs` strictly inside `baseDir`? (containment guard for deletes). Equal path
+// is NOT inside — we never delete the uploads root itself, only files/subdirs under it.
+export function isInside(baseDir, abs) {
+  const base = resolve(baseDir);
+  const p = resolve(abs);
+  return p !== base && p.startsWith(base + sep);
+}
+
+// Delete the staged upload files a request referenced, the moment it's done/failed.
+// PII hygiene: an uploaded CV/CL has served its purpose once the request is resolved.
+// HARD-FENCED: only paths that resolve to inside data/ui/uploads/ are ever removed —
+// any arg pointing elsewhere is ignored, so this can never delete the user's real
+// files. Returns the list of removed repo-relative paths (for logging/tests).
+export function purgeStagedUploads(record, { root = ROOT, uploadsDir = UPLOADS_DIR } = {}) {
+  const removed = [];
+  const args = record && record.args && typeof record.args === 'object' ? record.args : {};
+  const dirs = new Set();
+  for (const v of Object.values(args)) {
+    if (typeof v !== 'string' || !v) continue;
+    const abs = resolve(root, v);
+    if (!isInside(uploadsDir, abs)) continue; // outside the staging sandbox → never touch
+    try {
+      if (existsSync(abs)) { rmSync(abs, { force: true }); removed.push(v); }
+      dirs.add(dirname(abs));
+    } catch { /* best-effort: a failed unlink must not break the status transition */ }
+  }
+  // Tidy now-empty per-upload folders (but never the uploads root itself).
+  // rmdirSync removes ONLY an empty directory — it throws on a non-empty one, so a
+  // folder still holding other files is left untouched.
+  for (const d of dirs) {
+    if (!isInside(uploadsDir, d)) continue;
+    try { rmdirSync(d); } catch { /* non-empty or gone — leave it */ }
+  }
+  return removed;
+}
+
 // Internal: load, find, validate a transition, mutate, atomic-write. Returns
 // { ok, record?, reason? }. `expect` is the status the record must currently be in.
 function transition(id, expect, mutate, { path = DEFAULT_QUEUE, now } = {}) {
@@ -138,18 +178,23 @@ export function claim(id, opts = {}) {
   return transition(id, 'queued', (rec, ts) => { rec.status = 'claimed'; rec.claimed_at = ts; }, opts);
 }
 
-// claimed → done (+ result).
+// claimed → done (+ result). Purges any staged uploads the request referenced.
 export function complete(id, result = null, opts = {}) {
-  return transition(id, 'claimed', (rec, ts) => {
+  const r = transition(id, 'claimed', (rec, ts) => {
     rec.status = 'done'; rec.completed_at = ts; rec.result = result == null ? null : result;
   }, opts);
+  if (r.ok) r.purged = purgeStagedUploads(r.record, opts);
+  return r;
 }
 
-// claimed → failed (+ error).
+// claimed → failed (+ error). Also purges staged uploads — a failed request's
+// CV/CL is abandoned; the user re-uploads to retry, so we don't keep PII around.
 export function fail(id, error = '', opts = {}) {
-  return transition(id, 'claimed', (rec, ts) => {
+  const r = transition(id, 'claimed', (rec, ts) => {
     rec.status = 'failed'; rec.completed_at = ts; rec.error = String(error || 'unspecified error');
   }, opts);
+  if (r.ok) r.purged = purgeStagedUploads(r.record, opts);
+  return r;
 }
 
 // ─── CLI ──────────────────────────────────────────────────────────────
@@ -312,6 +357,37 @@ export function selfTest() {
     // corrupt-line tolerance
     appendFileSync(path, 'not json at all\n');
     eq(readQueue(path).length, 3, 'corrupt line skipped, others intact');
+
+    // ── PII hygiene: staged uploads purged on terminal state, hard-fenced ──
+    const uploadsDir = join(tmp, 'data', 'ui', 'uploads');
+    const stamp = join(uploadsDir, '2026-06-10-00-00-00');
+    mkdirSync(stamp, { recursive: true });
+    const cvPath = 'data/ui/uploads/2026-06-10-00-00-00/cv-x.pdf';
+    const absCv = join(tmp, cvPath);
+    writeFileSync(absCv, '%PDF');
+    // a file OUTSIDE the uploads sandbox that must NEVER be deleted
+    const outside = join(tmp, 'data', 'cv.master.md');
+    writeFileSync(outside, 'real user data');
+    const ob = enqueue({ kind: 'onboard', args: { cv: cvPath, keep: 'data/cv.master.md' } }, { path });
+    claim(ob.id, { path });
+    const done = complete(ob.id, { notes: 'onboarded' }, { path, root: tmp, uploadsDir });
+    ok(done.ok && done.record.status === 'done', 'onboard completes');
+    ok(!existsSync(absCv), 'staged upload PURGED on complete');
+    ok(done.purged.includes(cvPath), 'complete reports the purged path');
+    ok(existsSync(outside), 'arg path OUTSIDE uploads sandbox is NEVER deleted');
+    ok(!existsSync(stamp), 'now-empty upload folder tidied');
+    // containment guard
+    ok(isInside(uploadsDir, absCv), 'isInside: child path inside');
+    ok(!isInside(uploadsDir, uploadsDir), 'isInside: the root itself is NOT inside (never deletable)');
+    ok(!isInside(uploadsDir, join(uploadsDir, '..', 'evil')), 'isInside: traversal escape rejected');
+    // fail() also purges
+    const cv2 = 'data/ui/uploads/2026-06-10-00-00-00/cv-y.pdf';
+    mkdirSync(join(tmp, dirname(cv2)), { recursive: true });
+    writeFileSync(join(tmp, cv2), '%PDF');
+    const ob2 = enqueue({ kind: 'onboard', args: { cv: cv2 } }, { path });
+    claim(ob2.id, { path });
+    const failed = fail(ob2.id, 'pdftotext missing', { path, root: tmp, uploadsDir });
+    ok(failed.ok && !existsSync(join(tmp, cv2)), 'staged upload purged on fail too');
 
     console.log(`ui-queue self-test: ${n} checks passed`);
     return 0;
