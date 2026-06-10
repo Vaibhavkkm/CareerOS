@@ -58,6 +58,15 @@ export const COUNTRIES = [
 // shared dedup ledger, so the page runs them sequentially — see runFetch).
 export const ALL_COUNTRIES = 'All countries';
 
+// Pull the first http(s) URL out of pasted text. Pastes often arrive with extra
+// baggage (surrounding quotes, a dragged-in file path, trailing prose); feeding
+// that to the fetcher pollutes the stored posting URL. Trailing punctuation that
+// commonly clings to URLs in prose is stripped; '' if no URL is present at all.
+export function extractUrl(text: string): string {
+  const m = text.match(/https?:\/\/[^\s'"<>]+/i);
+  return m ? m[0].replace(/[)\],.;]+$/, '') : '';
+}
+
 export function FilterBar({
   filters,
   onChange,
@@ -193,7 +202,7 @@ export function FilterBar({
         className="field"
         onSubmit={(e) => {
           e.preventDefault();
-          const u = url.trim();
+          const u = extractUrl(url);
           if (u) {
             onFetchUrl(u);
             setUrl('');
@@ -208,6 +217,14 @@ export function FilterBar({
           onChange={(e) => setUrl(e.target.value)}
           style={{ width: 180 }}
         />
+        <button
+          type="submit"
+          className="btn"
+          disabled={busy || !extractUrl(url)}
+          title="Fetch this job posting onto the board (scan is for tracked company portals — it ignores this box)"
+        >
+          fetch URL
+        </button>
       </form>
       <button className="btn" onClick={onScan} disabled={busy}>
         <IconScan /> scan

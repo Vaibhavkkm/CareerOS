@@ -340,10 +340,23 @@ export function normalizeGenericHtml(html, url = '') {
     };
   }
   const titleMatch = String(html || '').match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  const rawTitle = titleMatch ? htmlToText(titleMatch[1]) : '';
+  // Page titles commonly end with the employer ("Role - Company" / "Role | Company").
+  // Split on the LAST plain separator so the board gets a company to group/dedup by
+  // (an en/em dash inside the role itself is left alone). Best effort: no separator
+  // → the whole title stays the role, company stays unknown.
+  let role = rawTitle;
+  let company = '';
+  const sep = Math.max(rawTitle.lastIndexOf(' - '), rawTitle.lastIndexOf(' | '));
+  if (sep > 0) {
+    const head = rawTitle.slice(0, sep).trim();
+    const tail = rawTitle.slice(sep + 3).trim();
+    if (head && tail) { role = head; company = tail; }
+  }
   return {
     source: 'generic-html',
-    role: titleMatch ? htmlToText(titleMatch[1]) : '',
-    company: '',
+    role,
+    company,
     location: '',
     url,
     departments: [],
@@ -581,7 +594,11 @@ export async function selfTest() {
   ok(srP.content.includes('ETL pipelines') && srP.content.includes('SQL'), 'sr content joins sections');
 
   const gen = normalizeGenericHtml('<html><head><title>Cool Role - Acme</title></head><body><p>Do work</p></body></html>', 'https://x.io/j/1');
-  ok(gen.role === 'Cool Role - Acme' && gen.content.includes('Do work') && gen.source === 'generic-html', 'generic html parse');
+  ok(gen.role === 'Cool Role' && gen.company === 'Acme' && gen.content.includes('Do work') && gen.source === 'generic-html', 'generic html title splits role - company');
+  const genNoSep = normalizeGenericHtml('<html><head><title>Cool Role</title></head><body></body></html>', 'https://x.io/j/2');
+  ok(genNoSep.role === 'Cool Role' && genNoSep.company === '', 'generic html title without separator stays whole');
+  const genDash = normalizeGenericHtml('<html><head><title>DC-1 – DATA SCIENTIST - Acme Institute</title></head><body></body></html>', 'https://x.io/j/3');
+  ok(genDash.role === 'DC-1 – DATA SCIENTIST' && genDash.company === 'Acme Institute', 'generic html keeps en dash inside role, splits on last " - "');
 
   // toMarkdown
   const md = toMarkdown(ghP, '2026-06-07');

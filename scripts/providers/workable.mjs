@@ -13,8 +13,7 @@
 // where Job = { title, url, company, location }.
 
 const API_HOST = 'apply.workable.com';
-const PAGE_LIMIT = 100;
-const MAX_PAGES = 50; // safety cap (5000 postings @ 100/page)
+const MAX_PAGES = 50; // safety cap (page size is server-controlled)
 
 function tokenFromCareersUrl(careersUrl) {
   if (typeof careersUrl !== 'string' || !careersUrl) return null;
@@ -87,7 +86,9 @@ export default {
     const all = [];
     let nextToken = null;
     for (let page = 0; page < MAX_PAGES; page++) {
-      const body = JSON.stringify(nextToken ? { limit: PAGE_LIMIT, token: nextToken } : { limit: PAGE_LIMIT });
+      // The v3 endpoint rejects a `limit` field outright (HTTP 400 {"limit":"Not
+      // allowed"}); page size is server-controlled. Send only the cursor token.
+      const body = JSON.stringify(nextToken ? { token: nextToken } : {});
       const json = await ctx.fetchJson(url, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
