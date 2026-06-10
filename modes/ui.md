@@ -29,15 +29,24 @@ Run this whenever the user returns from the browser, or asks to "process the que
       `already-done`, skip — don't double-run.
    b. **Route by `kind`** to the real mode and run it EXACTLY as if the user invoked
       it, honoring every gate and guardrail in that playbook:
+      - `onboard`  → `modes/onboard.md`. `args` carries the repo-relative paths of files
+        the user uploaded in the browser (e.g. `{cv:"data/ui/uploads/<ts>/cv-….pdf",
+        cl:"data/ui/uploads/<ts>/cl-….pdf"}`). Read those (PDF → `pdftotext`), run the
+        full onboarding (profile.yml + cv.master.md + learned voice). Then kick off an
+        initial CV-matched fetch (`npm run fetch` or `scripts/jobspy.mjs`) so the board
+        fills with jobs ranked against the new profile, and say so in the result notes.
       - `evaluate` → `modes/evaluate.md` (writes report NNN + Machine Summary + tracker row)
       - `build-cv` → `modes/build-cv.md` (style context → draft → snapshot → compile)
       - `build-cl` → `modes/build-cl.md`
       - `apply`    → `modes/apply.md` (draft answers / references — present, don't submit)
       - `hunt`     → `modes/hunt.md` (MCP discovery → ingest → board)
       Resolve the target from `args` (e.g. `{report:7}`, `{company:"Acme"}`, `{url:"…"}`,
-      `{id:3}`, or a hunt `{query, location}`).
+      `{id:3}`, a hunt `{query, location}`, or an onboard `{cv, cl}`).
    c. **Record the outcome:**
-      - success → `node scripts/ui-queue.mjs complete --id <id> --result '{"pdf":"data/output/…","report":"data/reports/…","notes":"what you did"}'`
+      - success → `node scripts/ui-queue.mjs complete --id <id> --result '{"cv_pdf":"data/output/<company>--<role>/cv-….pdf","cl_pdf":"data/output/<company>--<role>/cl-….pdf","report":"data/reports/…","notes":"what you did"}'`.
+        ALWAYS put the per-job folder PDF path(s) in the result — the browser's queue
+        popover turns `cv_pdf`/`cl_pdf` into clickable links so the user opens the doc
+        without leaving the dashboard. (Legacy `pdf` is still accepted.)
       - failure → `node scripts/ui-queue.mjs fail --id <id> --error "<one-line reason>"`
    The browser polls and flips each request's status pill live as you advance it.
 3. Summarize: which requests you completed, the artifacts produced, and anything that

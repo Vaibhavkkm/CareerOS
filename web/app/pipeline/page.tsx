@@ -31,6 +31,31 @@ function statusPill(s: string): string {
   return 'pill--queued';
 }
 
+// Link a tracked application's generated CV / cover letter (per-job folder under
+// data/output/). /api/pdf streams them (sandboxed read). Empty → a dim dash.
+function DocLinks({ cv, cl }: { cv?: string; cl?: string }) {
+  const items: [string, string][] = [];
+  if (cv && cv.toLowerCase().endsWith('.pdf')) items.push(['CV', cv]);
+  if (cl && cl.toLowerCase().endsWith('.pdf')) items.push(['CL', cl]);
+  if (items.length === 0) return <span className="dim">—</span>;
+  return (
+    <span style={{ display: 'inline-flex', gap: 10 }}>
+      {items.map(([label, path]) => (
+        <a
+          key={label}
+          href={`/api/pdf?path=${encodeURIComponent(path)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={path}
+          style={{ color: 'var(--signal)', textDecoration: 'underline' }}
+        >
+          {label} ↗
+        </a>
+      ))}
+    </span>
+  );
+}
+
 export default function PipelinePage() {
   const [records, setRecords] = useState<TrackerRecord[] | null>(null);
   const [confirm, setConfirm] = useState<number | null>(null);
@@ -101,6 +126,7 @@ export default function PipelinePage() {
                     <th>Role</th>
                     <th className="num">Score</th>
                     <th>Status</th>
+                    <th>Docs</th>
                     <th />
                   </tr>
                 </thead>
@@ -115,6 +141,9 @@ export default function PipelinePage() {
                       <td>
                         <span className={`pill ${statusPill(r.status)}`}>{STATUS_LABEL[r.status] || r.status}</span>
                       </td>
+                      <td>
+                        <DocLinks cv={r.cv_pdf} cl={r.cl_pdf} />
+                      </td>
                       <td className="num">
                         {NEXT_STATUS[r.status] && (
                           <button className="btn btn--ghost" onClick={() => update(r.id, NEXT_STATUS[r.status])}>
@@ -126,7 +155,7 @@ export default function PipelinePage() {
                   ))}
                   {records.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="dim" style={{ padding: '24px 10px' }}>
+                      <td colSpan={8} className="dim" style={{ padding: '24px 10px' }}>
                         No applications yet. Evaluate a role from the Board to start tracking.
                       </td>
                     </tr>

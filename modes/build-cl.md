@@ -71,17 +71,20 @@ Do at least one revision pass, then proceed.
 ## Step 3 — Snapshot (REQUIRED, before compiling)
 Create `data/style/edits/<ts>__<app-id>/` with `ai_draft.tex` (this letter) and
 `context.json` (`doc_kind:"cl"`, archetype, jd_path, target_role, etc.). Write the
-working copy to `data/output/cl-<candidate>-<company>-<YYYY-MM-DD>.tex`.
-*(If a CV was built in the same session, use a separate edit folder for the CL.)*
+working copy into the job's own output folder (see `_shared.md` "Output location &
+file naming") — the SAME folder the CV uses, so a posting's CV + letter sit together:
+`data/output/<company-slug>--<role-slug>/cl-<company-slug>-<role-slug>-<YYYY-MM-DD>.tex`.
+*(If a CV was built in the same session, use a separate `data/style/edits/` snapshot
+folder for the CL — but the `data/output/` job folder is shared.)*
 
 ## Step 4 — Compile
-`node scripts/compile-latex.mjs data/output/cl-<...>.tex --kind cl --json`.
+`node scripts/compile-latex.mjs data/output/<company-slug>--<role-slug>/cl-<...>.tex --kind cl --json`.
 Fix any `issues` and recompile; never hand off a failed build.
 
 ## Step 5 — Hand off + invite the loop
-Give the PDF path, note the hook you used, and remind the user they can edit the
-`.tex` and then say **"learn from my edits"**. Update the tracker `cl_pdf` if a
-record exists.
+Give the **per-job folder and exact PDF path**, note the hook you used, and remind the
+user they can edit the `.tex` in that folder and then say **"learn from my edits"**.
+Update the tracker `cl_pdf` if a record exists (this makes the Pipeline tab link it).
 
 ## Never
 Fabricate · put compensation or the user's phone-only context on the letter ·

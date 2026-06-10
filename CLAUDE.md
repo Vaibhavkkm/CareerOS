@@ -57,12 +57,16 @@ PDF by **tectonic**.
 ## Key paths
 - Profile/CV: `data/profile.yml`, `data/cv.master.md`, `data/_profile.md`
 - Reports: `data/reports/NNN-slug-DATE.md` (embed a fenced YAML Machine Summary)
-- Output: `data/output/cv-*.{tex,pdf}`, `cl-*.{tex,pdf}`
+- Output: per-job folder `data/output/<company-slug>--<role-slug>/` holding
+  `cv-*.{tex,pdf}` + `cl-*.{tex,pdf}` (convention in `modes/_shared.md`); paths are
+  stored on the tracker (`cv_pdf`/`cl_pdf`) and linked from the web Pipeline tab
 - Tracker: `data/tracker.jsonl` (truth)
 - Learning loop: `data/style/{profile.json,examples.jsonl,idf.json,edits/}`
 - Tooling: `scripts/`, shared libs `lib/`, templates `templates/`
 - Web UI: `web/` (local Next.js control panel, runs on `127.0.0.1`); request queue
-  `data/ui/requests.jsonl` (the UI↔agent handshake — see `modes/ui.md`)
+  `data/ui/requests.jsonl` (the UI↔agent handshake — see `modes/ui.md`). The "⤴ my
+  CV/CL" button uploads a CV + cover letter to `data/ui/uploads/` and enqueues an
+  `onboard` request the `/cos` agent drains.
 - Job hunting: `modes/hunt.md` (`/cos hunt`) → MCP Indeed/Dice + ATS scan →
   `scripts/hunt-ingest.mjs` → `data/jds/`+inbox → `scripts/board.mjs`
 - Multi-board fetch (zero-token, no MCP): `scripts/jobspy.mjs` → python sidecar

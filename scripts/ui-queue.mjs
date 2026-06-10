@@ -12,9 +12,9 @@
 // stdout by default, --summary for humans, guarded by import.meta.url, --self-test.
 //
 // GUARDRAIL: the queue carries ONLY generation work. `kind` is whitelisted to
-// {evaluate, build-cv, build-cl, apply, hunt}. A tracker status flip to `applied`
-// is Class A (goes through scripts/tracker.mjs after the human confirms) and is
-// REJECTED here — it can never travel through the queue.
+// {onboard, evaluate, build-cv, build-cl, apply, hunt}. A tracker status flip to
+// `applied` is Class A (goes through scripts/tracker.mjs after the human confirms)
+// and is REJECTED here — it can never travel through the queue.
 //
 // Usage:
 //   node scripts/ui-queue.mjs enqueue --kind build-cv --args '{"report":7}'
@@ -37,7 +37,9 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_QUEUE = join(ROOT, 'data', 'ui', 'requests.jsonl');
 
 // The ONLY request kinds the queue accepts — all are agent-judgment / MCP work.
-export const KINDS = ['evaluate', 'build-cv', 'build-cl', 'apply', 'hunt'];
+// `onboard` carries the repo-relative paths of a CV/CL the user uploaded from the
+// web UI (data/ui/uploads/…); the agent runs modes/onboard.md from them.
+export const KINDS = ['onboard', 'evaluate', 'build-cv', 'build-cl', 'apply', 'hunt'];
 export const STATUSES = ['queued', 'claimed', 'done', 'failed'];
 
 // ─── pure helpers ─────────────────────────────────────────────────────
@@ -274,10 +276,13 @@ export function selfTest() {
     eq(r1.args.report, 7, 'enqueue keeps args');
     const r2 = enqueue({ kind: 'hunt', args: { query: 'ml' } }, { path });
     eq(readQueue(path).length, 2, 'two records persisted');
+    const r3 = enqueue({ kind: 'onboard', args: { cv: 'data/ui/uploads/x/cv.pdf' } }, { path });
+    eq(r3.kind, 'onboard', 'onboard kind accepted (web CV/CL upload)');
+    eq(readQueue(path).length, 3, 'three records persisted');
 
     // list + filter
-    eq(list({}, { path }).length, 2, 'list all');
-    eq(list({ status: 'queued' }, { path }).length, 2, 'list queued');
+    eq(list({}, { path }).length, 3, 'list all');
+    eq(list({ status: 'queued' }, { path }).length, 3, 'list queued');
     eq(list({ status: 'done' }, { path }).length, 0, 'list done empty');
     ok(get(r1.id, { path }) && get(r1.id, { path }).id === r1.id, 'get by id');
     eq(get('missing', { path }), null, 'get missing -> null');
@@ -306,7 +311,7 @@ export function selfTest() {
 
     // corrupt-line tolerance
     appendFileSync(path, 'not json at all\n');
-    eq(readQueue(path).length, 2, 'corrupt line skipped, others intact');
+    eq(readQueue(path).length, 3, 'corrupt line skipped, others intact');
 
     console.log(`ui-queue self-test: ${n} checks passed`);
     return 0;

@@ -89,12 +89,14 @@ Do at least one revision pass. Briefly note to yourself what you changed (or "cl
    - `ai_draft.tex` — your exact draft.
    - `context.json` —
      `{app_id, created, doc_kind:"cv", archetype, jd_path, target_role, seniority, required_skills:[...], template_id:"templates/cv.tex.tmpl", model_id:"<your model>"}`.
-3. Also write the working copy to `data/output/cv-<candidate>-<company>-<YYYY-MM-DD>.tex`
-   (this is the file the user edits).
+3. Also write the working copy into the job's own output folder (see `_shared.md`
+   "Output location & file naming"):
+   `data/output/<company-slug>--<role-slug>/cv-<company-slug>-<role-slug>-<YYYY-MM-DD>.tex`
+   (this is the file the user edits). Create the folder if needed.
 
 ## Step 5 — Compile + ATS smoke test
 Run:
-`node scripts/compile-latex.mjs data/output/cv-<...>.tex --kind cv --keywords "<5 JD keywords>" --json`
+`node scripts/compile-latex.mjs data/output/<company-slug>--<role-slug>/cv-<...>.tex --kind cv --keywords "<5 JD keywords>" --json`
 - If `ok:true`: report the PDF path, page count, and the keywords confirmed
   extractable.
 - If `ok:false`: read `issues`, fix the `.tex` (common: an unescaped special, a
@@ -102,11 +104,13 @@ Run:
   smoke test failed.
 
 ## Step 6 — Hand off + invite the loop
-Tell the user: the PDF path, what you tailored (1–3 lines), and that they can edit
-`data/output/cv-<...>.tex` directly. When they're done editing, they say **"learn
-from my edits"** (or `/cos style-learn`) and the system will diff their changes and
-get better next time. If a tracker record exists, update its `cv_pdf` via
-`node scripts/tracker.mjs update --id <id> --cv_pdf "<path>"`.
+Tell the user: the **per-job folder and exact PDF path** (e.g. "CV ready →
+`data/output/<company>--<role>/cv-….pdf`"), what you tailored (1–3 lines), and that
+they can edit the `.tex` in that folder directly. When they're done editing, they say
+**"learn from my edits"** (or `/cos style-learn`) and the system will diff their
+changes and get better next time. If a tracker record exists, update its `cv_pdf` via
+`node scripts/tracker.mjs update --id <id> --cv_pdf "<path>"` (this is what makes the
+Pipeline tab show a CV link for the row).
 
 ## Never
 Fabricate experience/metrics/dates · break the template preamble · leave a

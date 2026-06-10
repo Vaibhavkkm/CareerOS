@@ -263,7 +263,8 @@ export default function BoardPage() {
           <div className="placeholder">
             <b>No openings on the board yet.</b>
             <div className="hint">
-              Auto-fetch roles matched to your profile from the{' '}
+              New here? Upload your CV &amp; cover letter with <b>⤴ my CV/CL</b> (top right) so the board ranks
+              jobs by your profile. Then auto-fetch roles from the{' '}
               <a href="/hunt" style={{ color: 'var(--signal)' }}>
                 Hunt
               </a>{' '}

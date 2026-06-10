@@ -89,6 +89,28 @@ snapshot the AI draft for the learning loop · state missing requirements honest
   `~ → \textasciitilde{}` · `^ → \textasciicircum{}` · `\ → \textbackslash{}` ·
   `± → $\pm$` · `→ → $\rightarrow$` · smart quotes → `` `` ''`` · en/em dash → `--`/`---`.
 
+## Output location & file naming (the #1 findability rule — apply in build-cv / build-cl / apply)
+Every candidate-facing artifact for a job goes in **its own per-job folder** so the
+user can find a posting's CV + cover letter together at a glance:
+
+> `data/output/<company-slug>--<role-slug>/`
+
+- `<company-slug>` and `<role-slug>` are `slugify`-style: lower-case, non-alphanumerics
+  → `-`, trimmed, each capped ~40 chars (same rule as `scripts/fetch-jd.mjs slugify`).
+  Unknown company → use `company`.
+- Inside that folder, name files by **kind + company + role + date** so a file is still
+  identifiable on its own once downloaded:
+  - CV  → `cv-<company-slug>-<role-slug>-<YYYY-MM-DD>.tex` (compiles to the matching `.pdf`)
+  - CL  → `cl-<company-slug>-<role-slug>-<YYYY-MM-DD>.tex`
+  - apply answers / references keep the same folder.
+- `compile-latex.mjs` writes the `.pdf` next to the `.tex`, so just point it at the path
+  above — it creates nothing outside the folder.
+- After compiling, **always tell the user the exact folder + PDF path** in the hand-off,
+  and store it on the tracker record (`cv_pdf` / `cl_pdf`) so the Pipeline tab links it.
+
+Example: Acme, "Senior Backend Engineer", 2026-06-10 →
+`data/output/acme--senior-backend-engineer/cv-acme-senior-backend-engineer-2026-06-10.tex`.
+
 ---
 
 ## Voice & quality
