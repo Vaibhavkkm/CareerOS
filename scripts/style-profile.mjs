@@ -548,6 +548,30 @@ export function cmdRebuild(styleDir, theToday) {
 }
 
 // ---------- main ----------
+// Manual status flip — the human overriding the learner (web Style tab / agent).
+// Only two targets make sense for a human: 'retired' (reject a learned rule) and
+// 'active' (endorse a provisional one — counts as confirmation, so confidence is
+// bumped to the promote threshold or cap-enforcement could re-retire it). Same
+// philosophy as everywhere else: status-flip, never delete, always log.
+export function cmdSetStatus(styleDir, ruleId, status, theToday) {
+  if (!['retired', 'active'].includes(status)) {
+    throw new Error(`set-status only supports retired|active (got "${status}")`);
+  }
+  const profile = readProfile(styleDir, theToday);
+  const rule = profile.rules.find((r) => r.id === ruleId);
+  if (!rule) throw new Error(`no rule "${ruleId}" in ${styleDir}/profile.json`);
+  const from = rule.status;
+  if (from === status) return { ok: true, rule, changed: false };
+  rule.status = status;
+  rule.updated = theToday;
+  if (status === 'active') rule.confidence = Math.max(rule.confidence || 0, profile.constants.PROMOTE);
+  writeProfile(styleDir, profile);
+  writeProfileMd(styleDir, profile);
+  appendChangelog(styleDir, `manual-${theToday}`, theToday,
+    [`manual: ${from} -> ${status} [${rule.id}] "${rule.value ?? rule.directive ?? ''}" (human override)`]);
+  return { ok: true, rule, changed: true, from };
+}
+
 export function main(argv = process.argv.slice(2)) {
   const { _, flags } = parseArgs(argv);
   if (flags['self-test']) return selfTest();
@@ -583,8 +607,17 @@ export function main(argv = process.argv.slice(2)) {
       else console.log(`bank: +${out.added} example(s), idf N=${out.idfN}`);
       process.exit(0);
     }
+    if (cmd === 'set-status') {
+      const ruleId = (flags.rule && flags.rule !== true) ? flags.rule : null;
+      const status = (flags.status && flags.status !== true) ? flags.status : null;
+      if (!ruleId || !status) throw new Error('set-status requires --rule <id> --status <retired|active>');
+      const out = cmdSetStatus(styleDir, ruleId, status, theToday);
+      if (wantJson) console.log(JSON.stringify(out, null, 2));
+      else console.log(`set-status: [${out.rule.id}] ${out.changed ? `${out.from} -> ${out.rule.status}` : `already ${out.rule.status}`}`);
+      process.exit(0);
+    }
 
-    console.error('usage: style-profile.mjs <apply|bank> --edit <dir> [--dir <style-dir>] | --rebuild | --self-test');
+    console.error('usage: style-profile.mjs <apply|bank> --edit <dir> | set-status --rule <id> --status <retired|active> [--dir <style-dir>] | --rebuild | --self-test');
     process.exit(1);
   } catch (e) {
     console.error(`error: ${e.message}`);
@@ -728,6 +761,36 @@ export function selfTest() {
       const md = renderProfileMd(profile);
       ok(md.includes('action_verbs'), 'profile.md groups by category');
       ok(/provisional/.test(md), 'profile.md marks provisional rules');
+    }
+
+    // 7) set-status: human override flips, bumps confidence on activate, logs, never deletes
+    {
+      const sd = mkdtempSync(join(tmpdir(), 'aw-style-setstatus-'));
+      try {
+        const profile = emptyProfile(T1);
+        applyDiff(profile, mkVerbDiff('worked', 'built', 'e1'), {}, 'e1', T1);
+        writeProfile(sd, profile);
+        const id = profile.rules[0].id;
+        const act = cmdSetStatus(sd, id, 'active', T2);
+        ok(act.changed && act.rule.status === 'active' && act.rule.confidence >= 2,
+          'manual activate flips provisional->active and bumps confidence to PROMOTE');
+        const again = cmdSetStatus(sd, id, 'active', T2);
+        ok(again.changed === false, 'idempotent: same status is a no-op');
+        const ret = cmdSetStatus(sd, id, 'retired', T3);
+        ok(ret.changed && ret.from === 'active', 'manual retire flips active->retired');
+        const onDisk = readProfile(sd, T3);
+        ok(onDisk.rules.length === profile.rules.length, 'nothing deleted — status-flip only');
+        ok(readFileSync(join(sd, 'CHANGELOG.style.md'), 'utf8').includes('human override'),
+          'manual flips are logged to CHANGELOG.style.md');
+        let threw = false;
+        try { cmdSetStatus(sd, id, 'superseded', T3); } catch { threw = true; }
+        ok(threw, 'only retired|active are allowed manually');
+        threw = false;
+        try { cmdSetStatus(sd, 'nope', 'retired', T3); } catch { threw = true; }
+        ok(threw, 'unknown rule id is a clean error');
+      } finally {
+        rmSync(sd, { recursive: true, force: true });
+      }
     }
 
     console.log(`style-profile self-test: ${checks} checks passed`);
