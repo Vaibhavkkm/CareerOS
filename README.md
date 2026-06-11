@@ -79,6 +79,10 @@ npm install                    # installs js-yaml
 node scripts/doctor.mjs --fix  # checks your tools and creates the data/ folders
 ```
 
+> **Zero-install option:** open the repo in a **devcontainer / GitHub Codespaces**
+> (`.devcontainer/`) — Node, tectonic, poppler, and the optional Python sidecar are
+> set up for you, and the web panel's port (4317) is forwarded automatically.
+
 **Optional — multi-board fetch (Indeed / ZipRecruiter / Google Jobs):** the one
 non-Node piece is a small Python sidecar ([python-jobspy](https://github.com/speedyapply/JobSpy)).
 Install it once to enable the **"fetch recent"** button and `npm run fetch`:

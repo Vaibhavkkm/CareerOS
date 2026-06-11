@@ -8,6 +8,12 @@ All notable changes to CareerOS are recorded here. The format is based on
 
 ### Added
 
+- **CI + devcontainer.** GitHub Actions now runs the full engine self-test suite and
+  the web-panel build on every push/PR (`.github/workflows/ci.yml`), and a
+  devcontainer (`.devcontainer/`) gives Codespaces users a zero-install setup —
+  Node 20, tectonic, poppler, and the optional jobspy sidecar preinstalled, web
+  port forwarded.
+
 - **Works with ANY AI coding agent — no longer Claude Code-only.** The canonical
   project brief now lives in the cross-tool [`AGENTS.md`](AGENTS.md) standard (read
   natively by Codex CLI, Cursor, Zed, Google Antigravity, and others), and the
