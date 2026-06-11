@@ -8,6 +8,15 @@ All notable changes to CareerOS are recorded here. The format is based on
 
 ### Added
 
+- **Web "Style" tab — see and steer what it learned.** The learned style rules
+  (`data/style/profile.json`) are now browsable in the control panel: grouped by
+  category with status pills, confidence and scope. **Accept** promotes a
+  provisional rule immediately, **retire** stops one (reversibly), and every click
+  is queued (new `style` request kind) for the agent to apply via the new
+  `style-profile.mjs set-status` command — manual flips are logged to
+  `CHANGELOG.style.md`, nothing is deleted, and the browser still never writes
+  user data directly.
+
 - **Mailbox drafts for follow-ups (optional).** Where the agent session has an
   email-draft connector (e.g. Gmail MCP), `followup` can place an approved message
   into the user's mailbox as a *draft* — never sent, never auto-counted as sent;

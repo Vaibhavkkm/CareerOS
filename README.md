@@ -242,6 +242,9 @@ you edit the draft  ──────────┘
   and revises until it passes.
 - **Nothing is lost.** Style preferences are versioned and logged, and the whole
   learned profile can be rebuilt from scratch from your saved drafts.
+- **You can steer it.** The web panel's **Style** tab shows every learned rule;
+  accept a provisional rule early, or retire one you disagree with — flips are
+  applied by the agent, logged, and reversible (rules are never deleted).
 
 ### How the learning works (it's not a black box)
 
