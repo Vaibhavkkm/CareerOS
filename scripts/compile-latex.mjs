@@ -22,9 +22,24 @@ const USAGE = `compile-latex — validate, compile with tectonic, and ATS smoke-
 Usage: node scripts/compile-latex.mjs <file.tex> [--kind cv|cl] [--keywords a,b,c] [--json]
   --self-test   run built-in validation tests`;
 
+// Strip LaTeX comments (% to end-of-line, keeping escaped \%): commented text
+// never reaches tectonic or the PDF, so placeholder/forbidden-macro mentions in
+// a template's own instruction header must not fail validation.
+export function stripComments(tex) {
+  return tex.split('\n').map((line) => {
+    let i = 0;
+    while ((i = line.indexOf('%', i)) !== -1) {
+      if (line[i - 1] === '\\') { i++; continue; }
+      return line.slice(0, i);
+    }
+    return line;
+  }).join('\n');
+}
+
 // Pure structural validation — everything checkable WITHOUT compiling. Returns
 // { leftover_placeholders, forbidden_macros, issues }. Exported for tests.
-export function validate(tex, kind) {
+export function validate(rawTex, kind) {
+  const tex = stripComments(rawTex);
   const out = { leftover_placeholders: [], forbidden_macros: [], issues: [] };
   out.leftover_placeholders = leftoverPlaceholders(tex);
   if (out.leftover_placeholders.length) out.issues.push(`unfilled placeholders: ${out.leftover_placeholders.join(', ')}`);
@@ -175,6 +190,14 @@ export function selfTest() {
 
   v = validate(goodCv + '\n\\input{glyphtounicode}', 'cv');
   ok(v.forbidden_macros.length > 0 && hardFailed(v), 'forbidden macro is a hard fail');
+
+  // Comments never reach tectonic — instruction headers must not false-positive.
+  v = validate(goodCv + '\n% Never add \\input{glyphtounicode} or DisableLigatures\n% Leave NO <<PLACEHOLDER>> behind', 'cv');
+  ok(v.forbidden_macros.length === 0 && v.leftover_placeholders.length === 0 && !hardFailed(v),
+    'forbidden macros + placeholders in COMMENTS are ignored');
+  ok(stripComments('a \\% literal % real comment') === 'a \\% literal ', 'escaped \\% is kept, comment stripped');
+  ok(validate(goodCv.replace('\\end{document}', '50\\% uplift <<X>>\n\\end{document}'), 'cv').leftover_placeholders.length === 1,
+    'code after an escaped \\% is still validated');
 
   ok(hardFailed(validate('\\setmainfont{x}\\defaultfontfeatures{Ligatures={NoCommon}}\\section{Summary}\\section{Experience}\\section{Skills}', 'cv')),
     'missing \\begin/\\end{document} is a hard fail');
