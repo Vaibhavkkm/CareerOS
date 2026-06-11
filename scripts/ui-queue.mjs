@@ -46,7 +46,10 @@ const UPLOADS_DIR = join(ROOT, 'data', 'ui', 'uploads');
 // The ONLY request kinds the queue accepts — all are agent-judgment / MCP work.
 // `onboard` carries the repo-relative paths of a CV/CL the user uploaded from the
 // web UI (data/ui/uploads/…); the agent runs modes/onboard.md from them.
-export const KINDS = ['onboard', 'evaluate', 'build-cv', 'build-cl', 'apply', 'hunt'];
+// `style` carries a human accept/retire of a learned style rule
+// ({rule, status: 'active'|'retired'}); the agent drains it into
+// `style-profile.mjs set-status`. Still never an `applied` flip.
+export const KINDS = ['onboard', 'evaluate', 'build-cv', 'build-cl', 'apply', 'hunt', 'style'];
 export const STATUSES = ['queued', 'claimed', 'done', 'failed'];
 
 // ─── pure helpers ─────────────────────────────────────────────────────

@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 // The only request kinds the UI may enqueue (all agent-judgment / MCP work).
 // A tracker `applied` flip is NOT here — it is Class A and needs a human confirm.
-const KINDS = new Set(['onboard', 'evaluate', 'build-cv', 'build-cl', 'apply', 'hunt']);
+const KINDS = new Set(['onboard', 'evaluate', 'build-cv', 'build-cl', 'apply', 'hunt', 'style']);
 
 // GET /api/queue?status=queued — list requests (the UI polls this).
 export async function GET(request: Request) {

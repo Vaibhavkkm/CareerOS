@@ -40,6 +40,11 @@ Run this whenever the user returns from the browser, or asks to "process the que
       - `build-cl` → `modes/build-cl.md`
       - `apply`    → `modes/apply.md` (draft answers / references — present, don't submit)
       - `hunt`     → `modes/hunt.md` (MCP discovery → ingest → board)
+      - `style`    → no playbook needed: `args` is `{rule:"s12", status:"active"|"retired"}`
+        (a human accept/retire clicked in the web Style tab). Run
+        `node scripts/style-profile.mjs set-status --rule <rule> --status <status>`
+        and put its one-line outcome in the result notes. This is the ONLY way the
+        UI changes a style rule — never edit `data/style/profile.json` by hand.
       Resolve the target from `args` (e.g. `{report:7}`, `{company:"Acme"}`, `{url:"…"}`,
       `{id:3}`, a hunt `{query, location}`, or an onboard `{cv, cl}`).
    c. **Record the outcome:**
