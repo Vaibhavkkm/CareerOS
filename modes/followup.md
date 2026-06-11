@@ -10,6 +10,16 @@ plan, and after the user confirms an outreach, log it with
 `node scripts/contacts.mjs touch --id <id> [--status replied] [--next <date>]`.
 (NEVER share the user's phone number in these messages — `_shared.md` rule.)
 
+**Optional — mailbox drafts (tool-specific, never required):** if the user's
+agent session has an email-draft connector (e.g. a Gmail `create_draft` MCP
+tool), offer to place each APPROVED follow-up into their mailbox as a **draft**
+— subject + body exactly as approved, recipient from the tracker/contact
+record. Creating a draft is NOT sending: the user still reviews and presses
+send themselves, and you never call any send/submit tool. No connector? The
+portable fallback IS the default flow — present the message as a copy-paste
+block. Only count the follow-up as sent (cadence bump, `contacts touch`) after
+the user says they actually sent it, draft or not.
+
 > Load order (router did this): `modes/_shared.md` → this file →
 > `data/profile.yml` + `data/cv.master.md` (+ `data/_profile.md` last). Tracker
 > truth is `data/tracker.jsonl`; never hand-edit the rendered `tracker.md`.

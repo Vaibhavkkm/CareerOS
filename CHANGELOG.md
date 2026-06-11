@@ -8,6 +8,11 @@ All notable changes to CareerOS are recorded here. The format is based on
 
 ### Added
 
+- **Mailbox drafts for follow-ups (optional).** Where the agent session has an
+  email-draft connector (e.g. Gmail MCP), `followup` can place an approved message
+  into the user's mailbox as a *draft* — never sent, never auto-counted as sent;
+  the copy-paste block remains the portable default.
+
 - **Document themes.** A second matched CV + cover-letter theme, **modern** (Latin
   Modern Sans, slate accent rules, left-aligned header), alongside the default
   **classic**. All themes share the same placeholder/REPEAT contract; select via
