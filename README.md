@@ -128,7 +128,10 @@ Claude Code, type the same command without the slash):
 | `/cos apply <job/company>` | Draft answers for an application form (never auto-submits) |
 | `/cos scan` | Find new postings from the companies you're watching |
 | `/cos tracker` | See and update where each application stands |
-| `/cos followup` | Who to follow up with, and a draft message |
+| `/cos followup` | Who to follow up with (applications *and* people), and a draft message |
+| `/cos digest` | What's new since you last looked — fresh matches + band upgrades only |
+| `/cos mock <company>` | Live mock interview: one question at a time, graded, with a debrief |
+| `/cos backup` | Snapshot your private `data/` into its own git (push only when you say) |
 | `/cos patterns` | What's working in your search, and retune the scoring |
 | `/cos interview-prep <co> <role>` | Interview prep tailored to the company and role |
 | `/cos research <company> <role>` | Deep-dive research on a company and role |
@@ -170,7 +173,8 @@ and expect partial results, or paste a LinkedIn job URL for a one-off.
 ## The web control panel (`/cos ui`)
 
 A local, **dark "trading-desk" dashboard** for everything above — a filterable match
-board, application pipeline funnel, and a one-page hunt form. It runs on `127.0.0.1`
+board, application pipeline funnel, a one-page hunt form, and a **Style** tab where you
+accept or retire the rules it learned from your edits. It runs on `127.0.0.1`
 (never exposed to the network), has **no database** (it reads your real files live), and
 lives in its own `web/` folder so the core engine stays zero-dependency.
 
@@ -272,9 +276,16 @@ some hidden "memory." Two simple, inspectable parts:
 CareerOS is in **active development**. Here's the honest picture:
 
 ### ✅ Working and tested
-- **The engine.** ~24 "mode" playbooks (onboard, board, hunt, ui, evaluate, build-cv,
-  build-cl, scan, track, follow-up, interview-prep, compare, negotiate, and more), 21
-  helper scripts, and shared libraries. Automated self-tests pass (`npm test` → **500 checks green**).
+- **The engine.** 24 "mode" playbooks (onboard, board, hunt, ui, evaluate, build-cv,
+  build-cl, scan, track, follow-up, interview-prep, mock-interview, compare, negotiate,
+  and more), 26 helper scripts, and shared libraries. Automated self-tests pass
+  (`npm test` → **600+ checks green**), and CI runs them on every push/PR.
+- **Reproducible CV reading.** A deterministic parser (`parse-cv`) turns your uploaded
+  CV (PDF/DOCX/text/LaTeX) — or an unzipped **LinkedIn data export** — into structured
+  data the agent reviews, so onboarding doesn't depend on which AI tool reads the file.
+- **Daily digest, contacts, backup.** `cos digest` reports only what's new since last
+  look (cron-pairable); a contacts ledger tracks recruiters/referrers with due
+  follow-ups; `cos backup` snapshots your private `data/` into its own git.
 - **Share a URL → it scrapes the whole posting.** `fetch-jd` pulls the *complete*
   job from the ATS's own API (Greenhouse, Lever, Recruitee, SmartRecruiters) or the
   page HTML (Ashby, Workable, and any other site), saves it locally, and falls back
@@ -310,7 +321,7 @@ CareerOS is in **active development**. Here's the honest picture:
   Dice (and your ATS companies) based on your profile, dedups them through the same
   ledger as the scanner (`hunt-ingest`), and ranks them on your board.
 - **Local web control panel.** A dark "trading-desk" dashboard (`web/`, `/cos ui`) over
-  the engine: filterable match board, pipeline funnel, hunt form. Zero-token scripts run
+  the engine: filterable match board, pipeline funnel, hunt form, Style tab. Zero-token scripts run
   in the browser; judgment work queues for the agent. **Upload your CV/cover letter** from
   the browser (queues onboarding; staged files auto-purged after), **fetch** any job URL onto
   the board, **open each application's CV/CL** from the Pipeline tab (per-job folders), and
@@ -324,17 +335,13 @@ CareerOS is in **active development**. Here's the honest picture:
 - **Onboarding for anyone.** The `/cos onboard` flow (upload your CV + cover letter,
   from the CLI **or the web panel's ⤴ my CV/CL button** → it sets you up) is built and
   wired end-to-end; it still needs testing against many real CV formats and layouts.
-- **Reading your uploaded CV/cover letter.** Job *postings* from a URL are now
-  scraped deterministically (`fetch-jd`). Turning *your* uploaded CV/Word doc into
-  `cv.master.md` is still done by the agent reading the file (with `pdftotext` for
-  PDFs) — reliable, but a dedicated parser script would make it reproducible.
 - **CV quality checks.** Flagging vague, un-quantified bullets is partly manual
   right now.
 
 ### ⏳ Planned / nice-to-have
-- A standalone parser for the user's uploaded CV/Word document.
 - Optional semantic (embedding) example search, for when an example bank grows large.
-- More hunt sources (beyond Indeed + Dice) and more document templates/themes.
+- More hunt sources (beyond Indeed + Dice) and more document themes (classic +
+  modern ship today).
 - A *hosted*, multi-user version of the web panel (auth + a database). v1 is
   deliberately local-only and file-backed — it runs on your machine over your own data.
 
@@ -343,7 +350,7 @@ CareerOS is in **active development**. Here's the honest picture:
 ## For developers
 
 ```bash
-npm test                       # run all script + library self-tests (500 checks)
+npm test                       # run all script + library self-tests (600+ checks)
 node scripts/doctor.mjs        # check your environment and setup
 node scripts/fetch-jd.mjs "https://boards.greenhouse.io/acme/jobs/123" --summary   # scrape a posting
 node scripts/compile-latex.mjs data/output/cv-*.tex --kind cv --keywords "Python,SQL" --json
