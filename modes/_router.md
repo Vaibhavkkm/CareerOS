@@ -44,6 +44,7 @@ otherwise apply auto-pipeline detection.
 | `style-learn` / `learn` | `modes/style-learn.md` | Distill your edits into the style profile |
 | `training` | `modes/training.md` | Evaluate a course/cert/upskilling choice |
 | `ui` / `web` | `modes/ui.md` | Launch the local web control panel + drain its request queue |
+| `backup` | run `scripts/backup.mjs --summary` | Snapshot `data/` into its own private git (push only with `--push`) |
 | `digest` | run `scripts/digest.mjs --summary` | What's new since last look: new matches + band upgrades (zero-token) |
 | `doctor` | run `scripts/doctor.mjs` | Health/setup check |
 | `help` | this file | List modes |

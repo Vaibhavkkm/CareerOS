@@ -8,6 +8,13 @@ All notable changes to CareerOS are recorded here. The format is based on
 
 ### Added
 
+- **One-command private backup (`scripts/backup.mjs`, `cos backup`).** Maintains a
+  nested git repo inside the git-ignored `data/` layer (init on first run, local
+  identity fallback), commits a snapshot, and pushes **only** on an explicit
+  `--push` to the user's own private remote. Losing the tracker + learned style
+  profile was the single worst failure a user could hit; now it's one command away
+  from impossible.
+
 - **Mock-interview mode (`cos mock`).** Live rehearsal against a real JD: the agent
   plays the interviewer for that company/round, one question per turn, grades each
   answer (STAR+R, specificity, length, JD-relevance), coaches from the user's real

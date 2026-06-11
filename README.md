@@ -52,7 +52,12 @@ This is a **public** repository, so it ships with **no personal data**. Everythi
 CareerOS learns about you — your profile, your master CV, your generated
 documents, your application tracker — lives in a local `data/` folder that is
 **git-ignored**. It stays on your computer and is never part of this repo. Back it
-up with your *own* private git if you want a backup.
+up with your *own* private git — one command keeps a nested snapshot repo inside
+`data/` (and only pushes when you say so):
+```bash
+node scripts/backup.mjs --summary                                  # local snapshot
+node scripts/backup.mjs --remote git@github.com:you/my-careeros-data.git --push
+```
 
 There's **no API key and no server-side AI** to leak data to — the model is whichever
 AI agent you already run. A CV/cover letter you upload through the web panel is staged

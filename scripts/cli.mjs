@@ -24,6 +24,7 @@ export const COMMANDS = {
   compile: 'compile-latex.mjs',
   'fetch-jd': 'fetch-jd.mjs',
   'parse-cv': 'parse-cv.mjs',
+  backup: 'backup.mjs',
   board: 'board.mjs',
   digest: 'digest.mjs',
   'match-score': 'match-score.mjs',
@@ -101,10 +102,11 @@ async function selfTest() {
 
   // 1) The routing table covers exactly the documented commands.
   const expected = [
-    'doctor', 'compile', 'fetch-jd', 'parse-cv', 'board', 'digest', 'match-score', 'scan', 'merge', 'tracker',
-    'render', 'verify', 'followup', 'analyze', 'batch', 'seed-examples', 'style:diff', 'style:profile',
+    'doctor', 'compile', 'fetch-jd', 'parse-cv', 'backup', 'board', 'digest', 'match-score', 'scan', 'merge',
+    'tracker', 'render', 'verify', 'followup', 'analyze', 'batch', 'seed-examples', 'style:diff', 'style:profile',
     'style:retrieve', 'hunt-ingest', 'ui-queue',
   ];
+  eq(COMMANDS.backup, 'backup.mjs', 'backup -> backup.mjs');
   eq(COMMANDS['parse-cv'], 'parse-cv.mjs', 'parse-cv -> parse-cv.mjs');
   eq(COMMANDS.digest, 'digest.mjs', 'digest -> digest.mjs');
   eq(Object.keys(COMMANDS).length, expected.length, 'command count matches');
