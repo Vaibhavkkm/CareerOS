@@ -125,7 +125,7 @@ export default function BoardPage() {
       if (IS_PUBLIC) { openForkGate(); return; }
       setBusy(true);
       push('fetching posting…', 'info');
-      const r = await api<{ ok: boolean; error?: string; posting?: { url?: string; role?: string } }>('/api/fetch-jd', {
+      const r = await api<{ ok: boolean; error?: string; needs_agent_fetch?: boolean; posting?: { url?: string; role?: string } }>('/api/fetch-jd', {
         method: 'POST',
         body: JSON.stringify({ url }),
       });
@@ -136,6 +136,15 @@ export default function BoardPage() {
         const savedUrl = r.posting?.url || url;
         push('posting saved — pinned to the top of the board', 'ok');
         load(filters, { pin: savedUrl });
+      } else if (r.needs_agent_fetch) {
+        // Bot-protected / JS-rendered page: plain HTTP can't get it, but the agent's
+        // own fetch tools can — queue it instead of dead-ending on an error.
+        const q = await api<{ ok: boolean; error?: string }>('/api/queue', {
+          method: 'POST',
+          body: JSON.stringify({ kind: 'fetch-jd', args: { url } }),
+        });
+        if (q.ok) push('site blocks robots — queued for your agent: run /cos ui to fetch it', 'info');
+        else push(r.error || 'fetch failed', 'err');
       } else {
         push(r.error || 'fetch failed', 'err');
       }

@@ -96,6 +96,22 @@ export function assertSafeUrl(url) {
   return parsed;
 }
 
+// Turn an error-response body into ONE short human-readable detail. Raw HTML
+// must never reach a user-facing toast: a Cloudflare 403 ships a whole
+// "Just a moment..." challenge page as its body. Pure — exported for tests.
+export function httpErrorDetail(status, bodyText) {
+  const t = String(bodyText || '').slice(0, 4000);
+  if (/just a moment|cf-browser-verification|challenge-platform|cf-chl|attention required|enable javascript and cookies/i.test(t)) {
+    return 'the site is behind bot protection (Cloudflare challenge) and blocks automated fetches';
+  }
+  if (/<\s*(!doctype|html)/i.test(t)) {
+    const m = t.match(/<title[^>]*>([^<]*)</i);
+    const title = m ? m[1].replace(/\s+/g, ' ').trim() : '';
+    return title ? `the site returned an error page: "${title.slice(0, 80)}"` : 'the site returned an HTML error page';
+  }
+  return t.replace(/\s+/g, ' ').trim().slice(0, 300);
+}
+
 // One request under a single timeout that ALSO covers reading the body — aborting
 // the controller cancels an in-flight body stream, so a server that returns 200
 // then slow-drips a huge body can't hang us. When maxRedirects > 0 we follow
@@ -132,8 +148,8 @@ async function fetchParsed(url, {
     }
     if (!res.ok) {
       const text = await res.text().catch(() => '');
-      const snippet = text.replace(/\s+/g, ' ').trim().slice(0, 300);
-      const err = new Error(snippet ? `HTTP ${res.status}: ${snippet}` : `HTTP ${res.status}`);
+      const detail = httpErrorDetail(res.status, text);
+      const err = new Error(detail ? `HTTP ${res.status} — ${detail}` : `HTTP ${res.status}`);
       err.status = res.status;
       throw err;
     }
@@ -186,7 +202,13 @@ export async function selfTest() {
   // protocol guard
   assert.throws(() => assertSafeUrl('file:///etc/passwd'), /unsupported protocol/);
   assert.throws(() => assertSafeUrl('ftp://example.com'), /unsupported protocol/);
-  console.log(`_http.mjs self-test: ${blocked.length + allowed.length + 2} checks passed`);
+  // httpErrorDetail: challenge pages and HTML bodies become readable one-liners
+  assert.match(httpErrorDetail(403, '<!DOCTYPE html><title>Just a moment...</title>'), /bot protection/i);
+  assert.match(httpErrorDetail(403, '<html><head><title>Access denied</title></head></html>'), /error page: "Access denied"/);
+  assert.equal(httpErrorDetail(500, '<html><body>x</body></html>'), 'the site returned an HTML error page');
+  assert.equal(httpErrorDetail(404, 'not found'), 'not found');
+  assert.equal(httpErrorDetail(404, ''), '');
+  console.log(`_http.mjs self-test: ${blocked.length + allowed.length + 7} checks passed`);
   return 0;
 }
 

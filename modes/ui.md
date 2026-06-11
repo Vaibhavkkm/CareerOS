@@ -17,7 +17,9 @@ handshake; this mode is the agent half of it.
 4. Explain the split in one line: the board, filters, scan, fetch, tracker updates,
    and PDF previews run instantly in the browser; **Evaluate / Build CV / Build CL /
    Apply / Hunt** buttons queue work for you (the `/cos` agent) to run — come back here
-   and run `/cos ui` (or `/cos ui drain`) to process them.
+   and run `/cos ui` (or `/cos ui drain`) to process them. (A pasted URL the engine
+   can't scrape — bot-protected or JS-rendered — is auto-queued as `fetch-jd` for
+   you too.)
 
 ## Step 2 — Drain the queue (the handshake)
 Run this whenever the user returns from the browser, or asks to "process the queue".
@@ -45,6 +47,15 @@ Run this whenever the user returns from the browser, or asks to "process the que
         `node scripts/style-profile.mjs set-status --rule <rule> --status <status>`
         and put its one-line outcome in the result notes. This is the ONLY way the
         UI changes a style rule — never edit `data/style/profile.json` by hand.
+      - `fetch-jd` → no playbook needed: `args` is `{url}` for a posting the engine
+        could NOT scrape itself (bot-protected — e.g. a Cloudflare challenge — or
+        JS-rendered; the web UI auto-queues these when a pasted URL fails). Fetch
+        the page with YOUR tools (WebFetch or a job-board connector), extract
+        `{title, company, location, posted, description, url}`, and ingest it:
+        `node scripts/hunt-ingest.mjs --source agent-fetch` with a one-element JSON
+        array on stdin. Put the saved `data/jds/` path in the result notes. If even
+        you cannot reach the page, `fail` the request with a one-line reason so the
+        user knows to paste the JD text instead.
       Resolve the target from `args` (e.g. `{report:7}`, `{company:"Acme"}`, `{url:"…"}`,
       `{id:3}`, a hunt `{query, location}`, or an onboard `{cv, cl}`).
    c. **Record the outcome:**

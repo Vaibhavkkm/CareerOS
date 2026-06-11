@@ -194,6 +194,9 @@ It can never auto-submit an application or mark a role "applied" without your ex
   an onboarding job; the agent learns your facts + voice, then fills the board with CV-matched
   jobs. Uploaded files are **deleted automatically** the moment onboarding finishes (PII hygiene).
 - **Drop a job URL** in the paste box → **fetch URL** scrapes the whole posting onto the board.
+  If the site blocks robots (Cloudflare challenge) or needs JavaScript, the URL is
+  **auto-queued for the agent** (`fetch-jd` request) — run `/cos ui` and the agent fetches it
+  with its own tools and ingests it for you.
 - **Open each application's CV & cover letter** as one-click links on the **Pipeline** tab — each
   job gets its **own output folder** (`data/output/<company>--<role>/`) holding both PDFs.
 - **Auto-drain (optional):** in Claude Code, leave `/loop 30s /cos ui drain` running and clicks

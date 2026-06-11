@@ -8,6 +8,13 @@ All notable changes to CareerOS are recorded here. The format is based on
 
 ### Added
 
+- **Bot-blocked job URLs hand off to the agent.** Pasting a URL the engine can't
+  scrape (Cloudflare challenge, JS-rendered page) no longer dead-ends on an error
+  toast: the web panel auto-queues a new `fetch-jd` request and the agent fetches
+  the posting with its own tools (`/cos ui` drains it through `hunt-ingest`).
+  HTTP errors are now human-readable one-liners ("the site is behind bot
+  protection…") instead of raw HTML dumps.
+
 - **Web "Style" tab — see and steer what it learned.** The learned style rules
   (`data/style/profile.json`) are now browsable in the control panel: grouped by
   category with status pills, confidence and scope. **Accept** promotes a
@@ -29,6 +36,25 @@ All notable changes to CareerOS are recorded here. The format is based on
   paths still win. Both new templates verified through the tectonic + ATS pipeline.
 
 ### Fixed
+
+- **Web board loads in ~0.3–3 s instead of ~20 s.** Three compounding causes:
+  the board render live-fetched every not-yet-saved inbox URL on every page load
+  (hundreds of dead, bot-blocked links retried forever — board renders are now
+  network-free via `--no-fetch`, which the web `/api/board` always passes);
+  the CV was re-tokenized once per posting and every posting was tokenized
+  twice (now tokenized once and shared — `prepCv`/`jdToks` fast paths, plus a
+  memoized stemmer); and the spoken-language extractor compiled ~70 regexes per
+  sentence (now one combined matcher, precompiled once, with a whole-text bail).
+
+- **TF-IDF scores could exceed 1.0 and fake a STRONGEST band.** A posting whose
+  text contains the literal word "constructor" hit `Object.prototype` through the
+  term-frequency map, NaN'd the vector norm, and silently skipped L2
+  normalization (`NaN || 1`), so its cosine blew past 1. Term maps are now
+  prototype-less and the idf lookups hasOwnProperty-guarded.
+
+- **Pinning a just-pasted posting survives dedup.** When a pasted URL is the same
+  job already saved from another board (cross-board syndication), the pin now
+  resolves to the surviving deduped row instead of silently missing.
 
 - **compile-latex false positive on template headers.** Validation now strips LaTeX
   comments first, so a filled document keeping its template's instruction header
