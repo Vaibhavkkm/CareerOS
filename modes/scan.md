@@ -3,7 +3,7 @@
 Trigger: `/cos scan [--company X]`. Runs the pure-script portal scanner: it reads
 `data/portals.yml`, fetches open roles via provider plugins, filters by title +
 location, dedups against everything already seen, and appends the survivors to
-`data/inbox.md` (the pipeline's URL queue). **No Claude tokens are spent** — this
+`data/inbox.md` (the pipeline's URL queue). **No AI tokens are spent** — this
 is plain HTTP + JSON. Your job is to run it and narrate the result.
 
 > Prereq: `data/portals.yml` must exist. If the script reports it's missing, copy

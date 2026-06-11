@@ -36,7 +36,7 @@ export function TopBar() {
       </nav>
       <div className="topbar__spacer" />
       {IS_PUBLIC && (
-        <button className="demo-badge" onClick={() => openForkGate()} title="Public demo — fork the repo to run CareerOS in your own Claude Code">
+        <button className="demo-badge" onClick={() => openForkGate()} title="Public demo — fork the repo to run CareerOS with your own AI agent">
           DEMO · fork to run
         </button>
       )}

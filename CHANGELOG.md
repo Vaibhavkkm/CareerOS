@@ -8,6 +8,18 @@ All notable changes to CareerOS are recorded here. The format is based on
 
 ### Added
 
+- **Works with ANY AI coding agent — no longer Claude Code-only.** The canonical
+  project brief now lives in the cross-tool [`AGENTS.md`](AGENTS.md) standard (read
+  natively by Codex CLI, Cursor, Zed, and others), and the `/cos` mode router moved
+  from the Claude skill into the agent-neutral `modes/_router.md`. `CLAUDE.md`,
+  `GEMINI.md`, and `.github/copilot-instructions.md` are thin per-tool shims that
+  defer to `AGENTS.md`; the `.claude/skills/` entries defer to the router.
+  Tool-specific features (Claude Code's Indeed/Dice MCP connectors, `/loop`
+  auto-drain, the `claude-api` reference skill) are documented as optional
+  enhancements with portable fallbacks (jobspy multi-board fetch, ATS scan, web
+  search), and all docs + web-panel copy now say "your AI agent" instead of
+  assuming Claude Code.
+
 - **Upload your CV + cover letter from the web panel.** A **⤴ my CV/CL** button stages
   the files under `data/ui/uploads/` and enqueues an `onboard` request for the agent to
   learn your facts + voice from; then the board fills with CV-matched jobs.

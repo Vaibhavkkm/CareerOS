@@ -81,7 +81,7 @@ export function QueueIndicator() {
           ))}
           {recent.length > 0 && (
             <div className="qpop__hint">
-              Run <b>/cos ui</b> in Claude Code to drain the queue — status updates here live.
+              Run <b>/cos ui</b> in your AI agent to drain the queue — status updates here live.
             </div>
           )}
         </div>

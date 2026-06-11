@@ -25,8 +25,9 @@ fix before any public disclosure.
 
 ## What's in scope
 
-CareerOS runs locally inside Claude Code with **no server and no API key**, so its
-attack surface is small. The areas most worth scrutiny:
+CareerOS runs locally inside the user's own AI coding agent (Claude Code, Cursor,
+Codex CLI, Gemini CLI, …) with **no server and no API key**, so its attack surface
+is small. The areas most worth scrutiny:
 
 - **Outbound fetching.** Job-posting scraping and portal scanning make HTTP requests.
   All requests go through `scripts/providers/_http.mjs`, which enforces an SSRF host

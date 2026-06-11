@@ -4,10 +4,15 @@
 write, then builds a new CV and cover letter tailored to that job — as clean,
 ATS-safe PDFs.**
 
-CareerOS runs *inside* [Claude Code](https://claude.com/claude-code). There's no
-website, no sign-up, and no API key — the "AI" is the Claude Code agent you're
-already running. The boring, mechanical work is done by small Node scripts (which
-cost nothing to run), and every document is a LaTeX file turned into a PDF by
+CareerOS runs *inside* the AI coding agent you already use —
+[Claude Code](https://claude.com/claude-code), [Cursor](https://cursor.com),
+[Codex CLI](https://github.com/openai/codex),
+[Gemini CLI](https://github.com/google-gemini/gemini-cli), or any other tool that
+can read files and run commands (it picks up its instructions from the standard
+[`AGENTS.md`](AGENTS.md)). There's no website, no sign-up, and no API key — the
+"AI" is the agent you're already running, whichever model powers it. The boring,
+mechanical work is done by small Node scripts (which cost nothing to run), and
+every document is a LaTeX file turned into a PDF by
 [`tectonic`](https://tectonic-typesetting.github.io/).
 
 > ⚠️ **This project is still being built.** The core engine works and is tested,
@@ -49,8 +54,8 @@ documents, your application tracker — lives in a local `data/` folder that is
 **git-ignored**. It stays on your computer and is never part of this repo. Back it
 up with your *own* private git if you want a backup.
 
-There's **no API key and no server-side AI** to leak data to — the model is the Claude
-Code agent you already run. A CV/cover letter you upload through the web panel is staged
+There's **no API key and no server-side AI** to leak data to — the model is whichever
+AI agent you already run. A CV/cover letter you upload through the web panel is staged
 under `data/ui/uploads/` and **deleted automatically** once the agent has onboarded from
 it, so raw documents don't linger.
 
@@ -59,7 +64,8 @@ it, so raw documents don't linger.
 ## Getting started
 
 **You need:**
-- **Claude Code** (this is a Claude Code skill).
+- **An agentic AI coding tool** — Claude Code, Cursor, Codex CLI, Gemini CLI,
+  Windsurf, … anything that reads the repo's `AGENTS.md` (or can be told to read it).
 - **Node.js 20 or newer.** The only dependency is `js-yaml`.
 - **tectonic** (the LaTeX engine): `brew install tectonic`. The first build
   downloads fonts/packages (~1–2 min, online once); after that it's offline and fast.
@@ -80,19 +86,22 @@ npm run jobspy:install         # creates ./.venv and installs python-jobspy (nee
 ```
 Skip this and everything else still works; `node scripts/doctor.mjs` tells you if it's missing.
 
-**Then, in Claude Code, just say:**
+**Then tell your agent:**
 ```
 /cos onboard
 ```
 …and follow along. It'll ask for your CV (PDF, Word, or text) and a cover letter,
 pull your facts and your voice out of them, and get you ready to build your first
-tailored application. (`/cos` is short for `/careeros`.)
+tailored application. (`/cos` is short for `/careeros`. In Claude Code it's a
+native slash command; in any other tool just type `cos onboard` — the agent picks
+up the routing from `AGENTS.md`.)
 
 ---
 
-## How to use it (inside Claude Code)
+## How to use it (from your AI agent)
 
-Run the tool with `/careeros` (or the short alias `/cos`):
+Run the tool with `/careeros` (or the short alias `/cos`; in tools other than
+Claude Code, type the same command without the slash):
 
 | Command | What it does |
 |---|---|
@@ -124,9 +133,10 @@ everything you've already seen, and drops the matches straight onto your board �
 by how well they fit your CV. You can also target a specific search: `/cos hunt "ML engineer" remote`.
 Nothing is ever applied for you; you review the matches and tailor with one command.
 
-> The job-board connectors run inside Claude Code (the agent half), so `/cos hunt` does
-> the search; a zero-token script (`scripts/hunt-ingest.mjs`) does the dedup + saving.
-> If a connector isn't connected, it degrades gracefully to the ATS scanner + pasted URLs.
+> The job-board connectors run inside the agent (Claude Code ships Indeed/Dice MCP
+> connectors), so `/cos hunt` does the search; a zero-token script
+> (`scripts/hunt-ingest.mjs`) does the dedup + saving. No connectors in your tool?
+> It degrades gracefully to the jobspy fetch below, the ATS scanner, and pasted URLs.
 
 **No-agent option — the "fetch recent" button (and `npm run fetch`).** Once the Python
 sidecar is installed (see Getting started), the board's **fetch recent** control pulls live
@@ -156,7 +166,7 @@ npm run dev                # → http://127.0.0.1:4317   (or: /cos ui)
 Because a browser has no LLM, the panel runs the zero-token scripts itself (scan, board,
 fetch, paste-a-URL, tracker, PDF preview) and **queues** the judgment work — Evaluate,
 Build CV/CL, Apply, Hunt, and **onboarding** — for the `/cos` agent to run. Click a button
-in the browser, then run `/cos ui` in Claude Code to process the queue; status updates live.
+in the browser, then run `/cos ui` in your agent to process the queue; status updates live.
 It can never auto-submit an application or mark a role "applied" without your explicit confirmation.
 
 **From the browser you can also:**
@@ -166,14 +176,15 @@ It can never auto-submit an application or mark a role "applied" without your ex
 - **Drop a job URL** in the paste box → **fetch URL** scrapes the whole posting onto the board.
 - **Open each application's CV & cover letter** as one-click links on the **Pipeline** tab — each
   job gets its **own output folder** (`data/output/<company>--<role>/`) holding both PDFs.
-- **Auto-drain (optional):** leave `/loop 30s /cos ui drain` running in Claude Code and clicks
-  execute within seconds — no manual `/cos ui` each time. A **clear completed** button tidies the
+- **Auto-drain (optional):** in Claude Code, leave `/loop 30s /cos ui drain` running and clicks
+  execute within seconds — no manual `/cos ui` each time (in other tools, use their recurring-task
+  feature or just re-run `cos ui drain`). A **clear completed** button tidies the
   queue (finished requests are archived, never hard-deleted).
 
 ### Hosting a public demo (`NEXT_PUBLIC_CAREEROS_PUBLIC=1`)
 
 You can host the board as a **read-only showcase** (e.g. `careeros.example.com`). Because
-CareerOS is Claude Code-native — the AI is the agent in _your_ editor, not a server — a
+CareerOS is agent-native — the AI is the agent in _your_ editor, not a server — a
 public instance can't run a visitor's generation. Set the flag at build/deploy time:
 
 ```bash
@@ -182,7 +193,7 @@ NEXT_PUBLIC_CAREEROS_PUBLIC=1 npm run build   # demo mode
 
 In demo mode the board stays browsable, but every **mutating** action (generate, fetch,
 scan, enqueue) is **gated server-side** (HTTP 403) and a **fork-gate** modal invites the
-visitor to fork the repo, ⭐ it, and run it in their own Claude Code. Enforcement lives in
+visitor to fork the repo, ⭐ it, and run it with their own AI agent. Enforcement lives in
 `web/lib/gate.ts` (not just hidden buttons). Locally, with the flag unset, you get the full
 tool. See `web/.env.example`.
 
@@ -221,8 +232,9 @@ you edit the draft  ──────────┘
 There's **no trained ML model and no neural network of its own**, and it is **not**
 some hidden "memory." Two simple, inspectable parts:
 
-1. **Claude (a frontier AI model) does the writing and the judgement** — reading
-   your edits and phrasing a rule like *"prefer 'built' over 'worked on'."*
+1. **A frontier AI model does the writing and the judgement** — whichever one
+   powers your agent (Claude, GPT, Gemini, …) — reading your edits and phrasing
+   a rule like *"prefer 'built' over 'worked on'."*
 2. **Plain local files remember it.** Your preferences live as readable JSON in
    `data/style/` (rules + your banked example bullets). Picking which of your past
    examples to reuse is done with **TF-IDF** — classic keyword-matching arithmetic,
@@ -323,8 +335,11 @@ in a sensible order.
 
 ### Layout
 ```
-.claude/skills/careeros/SKILL.md   the /cos command router
-CLAUDE.md   DATA_CONTRACT.md          project notes + the data rules
+AGENTS.md                             the agent brief — works with ANY AI coding tool
+CLAUDE.md  GEMINI.md  .github/copilot-instructions.md    per-tool shims pointing at AGENTS.md
+modes/_router.md                      the /cos command router (agent-neutral)
+.claude/skills/                       Claude Code's /careeros + /cos skills (defer to the router)
+DATA_CONTRACT.md                      the data rules
 modes/                                the playbooks the agent follows (incl. onboard.md, hunt.md, ui.md)
 templates/                            CV/cover-letter LaTeX templates, schemas, example configs
 lib/                                  shared helper code
@@ -335,7 +350,7 @@ data/                                 YOUR private layer — git-ignored, never 
 ```
 
 See [`DATA_CONTRACT.md`](DATA_CONTRACT.md) for exactly which files are yours vs. the
-system's, and [`CLAUDE.md`](CLAUDE.md) for how the agent is expected to behave.
+system's, and [`AGENTS.md`](AGENTS.md) for how the agent is expected to behave.
 
 ---
 

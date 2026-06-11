@@ -8,6 +8,11 @@ single listing. The MCP job boards are **agent-only** (a script can't call them)
 so YOU (the in-session agent) do the search, then a zero-token script does the
 dedup + persistence. Discovery is broad; the human still decides and applies.
 
+> The MCP connectors in Step 2 are **tool-specific** (they ship with Claude
+> Code). If your agent tool doesn't have them, that's fine — start directly at
+> the **fallback ladder** (the jobspy multi-board fetch is a first-class path,
+> not a degraded one) and skip Step 2.
+
 Load order: `modes/_shared.md` → this file → `data/profile.yml` (target roles,
 locations, seniority, remote/visa preferences). Honor explicit args over profile
 defaults.
@@ -22,8 +27,10 @@ Tell the user the queries you're about to run. Don't over-fan-out — 2–3 focu
 queries beat 10 noisy ones.
 
 ## Step 2 — Call the connectors (degrade gracefully; never invent results)
-Call whichever are available. **Wrap each call in your own error handling** — if a
-connector is not connected / errors, say so plainly and continue with the rest.
+Call whichever are available in YOUR tool (the names below are Claude Code's; no
+connectors at all → fallback ladder). **Wrap each call in your own error
+handling** — if a connector is not connected / errors, say so plainly and
+continue with the rest.
 
 - **Indeed** — `mcp__claude_ai_Indeed__search_jobs({ search, location, country_code [, job_type] })`.
   `job_type` ∈ fulltime|parttime|contract|internship|temporary. Returns **markdown**

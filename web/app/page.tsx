@@ -97,7 +97,7 @@ export default function BoardPage() {
         method: 'POST',
         body: JSON.stringify({ kind, args }),
       });
-      if (r.ok) push(`${kind} queued — run /cos ui in Claude Code to process`, 'ok');
+      if (r.ok) push(`${kind} queued — run /cos ui in your AI agent to process`, 'ok');
       else push(r.error || 'could not queue', 'err');
     },
     [push],

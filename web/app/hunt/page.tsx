@@ -48,7 +48,7 @@ export default function HuntPage() {
         method: 'POST',
         body: JSON.stringify({ kind: 'hunt', args }),
       });
-      if (r.ok) push('hunt queued — run /cos hunt (or /cos ui) in Claude Code to fetch live', 'ok');
+      if (r.ok) push('hunt queued — run /cos hunt (or /cos ui) in your AI agent to fetch live', 'ok');
       else push(r.error || 'could not queue hunt', 'err');
       loadHunts();
     },
@@ -75,7 +75,7 @@ export default function HuntPage() {
             companies — the matches land on your Board.
           </div>
           <div className="note">
-            Job-board search runs in Claude Code (the connectors are agent-only, by design). Queue a hunt here,
+            Job-board search runs in your AI agent (the connectors are agent-only, by design). Queue a hunt here,
             then run <b>/cos hunt</b> (or <b>/cos ui</b>) to execute it live. Nothing is applied — you review the
             matches on the Board. AI-assisted search: verify details with the employer before applying.
           </div>

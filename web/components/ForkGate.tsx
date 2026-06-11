@@ -29,7 +29,7 @@ export function ForkGateHost() {
 const STEPS: [string, string][] = [
   ['Fork the repo', 'Make your own copy on GitHub — CareerOS is open-source and works for anyone.'],
   ['Star it ⭐', 'A star helps the project (and keeps your fork easy to find).'],
-  ['Run it in your own Claude Code', 'Clone your fork, open it in Claude Code, then run /careeros onboard with your CV + cover letter. Everything runs locally on your machine — your data never leaves it.'],
+  ['Run it with your own AI agent', 'Clone your fork, open it in your AI coding agent (Claude Code, Cursor, Codex CLI, Gemini CLI, …), then run "cos onboard" with your CV + cover letter. Everything runs locally on your machine — your data never leaves it.'],
 ];
 
 function ForkGate({ onClose }: { onClose: () => void }) {
@@ -47,13 +47,14 @@ function ForkGate({ onClose }: { onClose: () => void }) {
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
       role="dialog"
       aria-modal="true"
-      aria-label="Run CareerOS in your own Claude Code"
+      aria-label="Run CareerOS with your own AI agent"
     >
       <div className="modal__card forkgate" ref={cardRef} tabIndex={-1}>
-        <div className="modal__h">Run CareerOS in your own Claude Code</div>
+        <div className="modal__h">Run CareerOS with your own AI agent</div>
         <div className="modal__p">
-          This is a public demo. CareerOS is <b>Claude Code-native</b> — the AI that reads your CV
-          and writes your documents is the agent running in <i>your</i> editor, not a server here.
+          This is a public demo. CareerOS is <b>agent-native</b> — the AI that reads your CV
+          and writes your documents is the coding agent running in <i>your</i> editor
+          (Claude Code, Cursor, Codex, Gemini CLI, …), not a server here.
           So generating, fetching and scanning happen on <b>your</b> machine. Browse the board freely;
           to actually use it, set it up in three steps:
         </div>

@@ -11,8 +11,9 @@ These are part of CareerOS itself. Edit them to customize behavior, but an
 
 | Path | What it is |
 |------|------------|
-| `.claude/skills/careeros/SKILL.md` | The router skill (dispatches `/cos <mode>`) |
-| `CLAUDE.md` | Project memory: data contract, routing, guardrails |
+| `AGENTS.md` | The canonical agent brief: data contract, routing, guardrails (works with any AI coding tool) |
+| `CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md` | Per-tool shims that point to `AGENTS.md` |
+| `modes/_router.md` | The router (dispatches `cos <mode>`); `.claude/skills/*/SKILL.md` defer to it |
 | `modes/*.md` | Prompt-as-program playbooks (the "intelligence") |
 | `modes/_shared.md` | Shared rubric, archetypes, guardrails, LaTeX rules |
 | `templates/*` | LaTeX templates, `states.yml`, example configs, JSON schemas |

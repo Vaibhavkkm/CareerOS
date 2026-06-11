@@ -5,7 +5,7 @@ import { ForkGateHost } from '@/components/ForkGate';
 
 const SITE_URL = 'https://careeros.vaibhavkkm.com';
 const DESCRIPTION =
-  'CareerOS learns how you write from your own CV and cover letter, then tailors new ATS-safe CV + cover-letter PDFs to any job — and ranks live openings by how well they fit you. Claude Code-native: runs locally, no server, no API key.';
+  'CareerOS learns how you write from your own CV and cover letter, then tailors new ATS-safe CV + cover-letter PDFs to any job — and ranks live openings by how well they fit you. Agent-native: runs locally inside your own AI coding agent (Claude Code, Cursor, Codex, Gemini CLI, …) — no server, no API key.';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   creator: 'VaibhavKKM',
   keywords: [
     'CareerOS', 'CV', 'resume', 'cover letter', 'ATS', 'applicant tracking system',
-    'job search', 'job board', 'LaTeX', 'Claude Code', 'AI resume', 'tailored resume',
+    'job search', 'job board', 'LaTeX', 'AI agent', 'Claude Code', 'Cursor', 'Codex', 'Gemini CLI', 'AI resume', 'tailored resume',
   ],
   alternates: { canonical: SITE_URL },
   openGraph: {

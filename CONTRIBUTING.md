@@ -8,8 +8,9 @@ By participating you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## What CareerOS is (and the rules that follow from it)
 
-CareerOS is a **Claude Code-native, LaTeX-first** CV + cover-letter builder fused
-with a job-application pipeline. The "AI" is the in-session Claude Code agent —
+CareerOS is an **agent-native, LaTeX-first** CV + cover-letter builder fused
+with a job-application pipeline. The "AI" is the in-session agent — whatever AI
+coding tool the user runs (Claude Code, Cursor, Codex CLI, Gemini CLI, …) —
 **there is no server and no API key.** Deterministic, mechanical work lives in
 `scripts/*.mjs` (zero tokens); judgment and writing live in `modes/*.md` playbooks;
 every document is a `.tex` compiled to PDF by `tectonic`.
@@ -30,7 +31,8 @@ Three non-negotiables for any contribution:
 
 | Path | What it is |
 |------|------------|
-| `.claude/skills/careeros/SKILL.md` | The `/cos` command router |
+| `AGENTS.md` | The canonical agent brief (any AI coding tool); `CLAUDE.md`/`GEMINI.md`/`.github/copilot-instructions.md` are shims to it |
+| `modes/_router.md` | The `cos` command router (agent-neutral; the `.claude/skills/` skills defer to it) |
 | `modes/*.md` | Prompt-as-program playbooks (the judgement layer) |
 | `modes/_shared.md` | Shared rubric, archetypes, guardrails, LaTeX/ATS rules |
 | `scripts/*.mjs` | Deterministic zero-token tools; each ships a `--self-test` |
@@ -73,7 +75,8 @@ PDF reading. Node 20+ is required.
 
 - **A new mode** — write `modes/<name>.md` as a playbook (state the trigger, load
   order, numbered steps, and a "Never" list), then add a row to the router table in
-  `.claude/skills/careeros/SKILL.md`.
+  `modes/_router.md`. If the mode uses a feature only one agent tool has (an MCP
+  connector, `/loop`, …), state a portable fallback in the playbook.
 - **A new script/tool** — follow the conventions above, register it in
   `scripts/cli.mjs` (`COMMANDS` + the self-test's `expected` list) and in
   `package.json` (`scripts` + `test`).

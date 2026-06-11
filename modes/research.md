@@ -25,8 +25,10 @@ axis below toward what *this candidate* should learn and say.
 Lay out these six axes as the plan. Under each, write 2–4 specific questions
 **named for this company/role** (never generic), then fill them in Step 3.
 1. **AI/tech strategy** — stack, build-vs-buy, where AI/ML sits in the product,
-   public eng decisions. (If LLM/agent/RAG work is in scope, ground model facts
-   in the `claude-api` skill — don't answer model/pricing/limits from memory.)
+   public eng decisions. (If LLM/agent/RAG work is in scope, don't answer
+   model/pricing/limits from memory — ground model facts in a current reference:
+   the `claude-api` skill if your tool ships it, otherwise the vendor's own
+   docs via web search.)
 2. **Recent moves / funding / news** — last ~12 months: funding round + stage,
    launches, pivots, leadership changes, layoffs/hiring freezes (feeds Risk).
 3. **Eng culture & team** — team size/structure, on-call, review/ship cadence,

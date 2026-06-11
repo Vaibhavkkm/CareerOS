@@ -2,9 +2,10 @@ cff-version: 1.2.0
 message: "If you use CareerOS in your work, please cite it as below."
 title: "CareerOS"
 abstract: >-
-  A Claude Code-native, LaTeX-first CV and cover-letter builder fused with a
+  An agent-native, LaTeX-first CV and cover-letter builder fused with a
   job-application pipeline that learns from a user's own CV and cover letter to
-  produce tailored, ATS-safe documents. Runs locally with no server and no API key.
+  produce tailored, ATS-safe documents. Runs locally inside any AI coding agent
+  (Claude Code, Cursor, Codex CLI, Gemini CLI, ...) with no server and no API key.
 type: software
 authors:
   - name: "VaibhavKKM"
@@ -20,4 +21,5 @@ keywords:
   - applicant-tracking-system
   - job-search
   - latex
+  - ai-agent
   - claude-code

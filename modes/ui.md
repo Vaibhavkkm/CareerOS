@@ -59,15 +59,18 @@ Run this whenever the user returns from the browser, or asks to "process the que
 ## Step 3 — Auto-drain (optional, lowest-friction)
 The browser has no LLM, so queued work only runs when an agent session drains it.
 To make a click in the UI execute on its own — no manual `/cos ui` each time — leave
-a drain loop running in an open Claude Code session:
+a drain loop running in an open agent session. In Claude Code:
 
 ```
 /loop 30s /cos ui drain
 ```
 
+(`/loop` is Claude Code-specific; stop it with `/loop stop` or by ending the
+session. In any other agent tool, use that tool's recurring-task feature if it
+has one, or simply re-issue `cos ui drain` whenever the user has queued clicks.)
+
 This re-runs the Step-2 drain every 30s, so anything you queue in the browser starts
-within seconds and its status pill flips live. Stop it with `/loop stop` (or just end
-the session). Notes:
+within seconds and its status pill flips live. Notes:
 - **Safe to fully auto-run:** `evaluate`, `build-cv`, `build-cl`, `hunt` — they produce
   an artifact (report / draft PDF / board rows) that IS the review point; nothing is sent.
 - **Pauses for the human even under the loop:** `onboard` shows the extracted/diffed

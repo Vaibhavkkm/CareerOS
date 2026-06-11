@@ -7,7 +7,7 @@
 // questions. For known ATS hosts it calls the ATS's own JSON API (the most
 // complete, reliable source); for anything else it fetches the page and strips
 // it to clean text. It ALWAYS saves the full capture to data/jds/ so nothing the
-// employer posted is lost. Pure HTTP + JSON — no Claude tokens.
+// employer posted is lost. Pure HTTP + JSON — no AI tokens.
 //
 // Layered robustness: ATS API → generic HTML scrape → (on total failure) emit
 // needs_agent_fetch:true so the in-session agent can WebFetch as a last resort.

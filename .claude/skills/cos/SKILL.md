@@ -12,7 +12,7 @@ description: >-
 You were invoked through the short alias **`/cos`**. This is identical to
 `/careeros`.
 
-**Do this:** read `.claude/skills/careeros/SKILL.md` and follow it exactly,
-treating the ARGUMENTS passed to `/cos` as the router input. Everything — the
-preflight `doctor` check, the mode-routing table, the context-load order, and the
+**Do this:** read **`modes/_router.md`** and follow it exactly, treating the
+ARGUMENTS passed to `/cos` as the router input. Everything — the preflight
+`doctor` check, the mode-routing table, the context-load order, and the
 guardrails — lives in that file. Do not duplicate logic here; defer to it.

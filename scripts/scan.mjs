@@ -5,7 +5,7 @@
 // provider plugin (scripts/providers/<id>.mjs), filters by title + location,
 // dedups against the existing queue/ledger/tracker, and appends survivors to
 // data/inbox.md (the pipeline's URL queue) + data/scan-history.tsv (append-only
-// dedup ledger). Pure HTTP + JSON — no Claude tokens.
+// dedup ledger). Pure HTTP + JSON — no AI tokens.
 //
 // Provider contract (default export of every scripts/providers/*.mjs, except
 // files starting with '_'):

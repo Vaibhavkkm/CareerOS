@@ -11,7 +11,7 @@ export function isPublicMode(): boolean {
 }
 
 const GATE_MESSAGE =
-  'This is a public CareerOS demo — generating, fetching and scanning run in YOUR own Claude Code, not here. ' +
+  'This is a public CareerOS demo — generating, fetching and scanning run in YOUR own AI agent, not here. ' +
   'Fork the repo and run it locally to use it for real.';
 
 // Call at the top of every MUTATING route. Returns a 403 response to short-circuit

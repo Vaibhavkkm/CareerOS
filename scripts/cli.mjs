@@ -51,7 +51,7 @@ export function helpText() {
   const names = Object.keys(COMMANDS);
   const width = Math.max(...names.map((n) => n.length));
   const lines = [
-    'careeros — Claude Code-native CV + cover-letter pipeline',
+    'careeros — agent-native CV + cover-letter pipeline (works with any AI coding agent)',
     '',
     'Usage: careeros <command> [...args]',
     '',

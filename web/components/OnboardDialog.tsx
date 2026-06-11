@@ -31,7 +31,7 @@ export function OnboardDialog({
       const res = await fetch('/api/upload', { method: 'POST', body: form });
       const j = await res.json();
       if (j && j.ok) {
-        onQueued('CV/CL uploaded & onboarding queued — run /cos ui in Claude Code to learn from them');
+        onQueued('CV/CL uploaded & onboarding queued — run /cos ui in your AI agent to learn from them');
         onClose();
       } else {
         setError((j && j.error) || 'upload failed');
@@ -74,7 +74,7 @@ export function OnboardDialog({
         <div className="modal__p">
           CareerOS learns your facts and writing voice from <b>your own documents</b> — they stay on this
           machine (saved to <code>data/ui/uploads/</code>, git-ignored). After uploading, run <b>/cos ui</b> in
-          Claude Code to onboard; then <b>fetch recent</b> pulls jobs matched to <i>your</i> CV.
+          your AI agent to onboard; then <b>fetch recent</b> pulls jobs matched to <i>your</i> CV.
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, margin: '14px 0' }}>
           {fileRow('your CV (required)', 'pdf · docx · txt · md · tex — max 15 MB', cv, setCv)}
