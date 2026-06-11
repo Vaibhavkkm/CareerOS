@@ -558,7 +558,8 @@ export function cmdSetStatus(styleDir, ruleId, status, theToday) {
     throw new Error(`set-status only supports retired|active (got "${status}")`);
   }
   const profile = readProfile(styleDir, theToday);
-  const rule = profile.rules.find((r) => r.id === ruleId);
+  // Ids are numeric in profile.json but arrive as strings from the CLI/queue.
+  const rule = profile.rules.find((r) => String(r.id) === String(ruleId));
   if (!rule) throw new Error(`no rule "${ruleId}" in ${styleDir}/profile.json`);
   const from = rule.status;
   if (from === status) return { ok: true, rule, changed: false };
@@ -770,7 +771,9 @@ export function selfTest() {
         const profile = emptyProfile(T1);
         applyDiff(profile, mkVerbDiff('worked', 'built', 'e1'), {}, 'e1', T1);
         writeProfile(sd, profile);
-        const id = profile.rules[0].id;
+        // Pass the id as a STRING: real profile.json ids are numbers, but the
+        // CLI/queue always deliver strings — set-status must bridge the types.
+        const id = String(profile.rules[0].id);
         const act = cmdSetStatus(sd, id, 'active', T2);
         ok(act.changed && act.rule.status === 'active' && act.rule.confidence >= 2,
           'manual activate flips provisional->active and bumps confidence to PROMOTE');
