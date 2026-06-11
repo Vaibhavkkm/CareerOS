@@ -8,6 +8,12 @@ All notable changes to CareerOS are recorded here. The format is based on
 
 ### Added
 
+- **Contacts ledger (`scripts/contacts.mjs`, `npm run contacts`).** The tracker knows
+  applications; this knows *people* — recruiters, referrers, hiring managers — in
+  `data/contacts.jsonl` (same one-JSON-per-line philosophy as the tracker), linkable
+  to tracker records, with statuses, dated notes, and `--due` follow-up surfacing.
+  The `followup` mode now covers "ping the recruiter" alongside "chase the application".
+
 - **One-command private backup (`scripts/backup.mjs`, `cos backup`).** Maintains a
   nested git repo inside the git-ignored `data/` layer (init on first run, local
   identity fallback), commits a snapshot, and pushes **only** on an explicit

@@ -36,7 +36,7 @@ otherwise apply auto-pipeline detection.
 | `outreach` | `modes/outreach.md` | LinkedIn/email outreach drafts |
 | `research` | `modes/research.md` | Deep company/role research |
 | `tracker` | `modes/tracker.md` | View/update the application tracker |
-| `followup` | `modes/followup.md` | Follow-up cadence + drafts |
+| `followup` | `modes/followup.md` | Follow-up cadence + drafts (applications AND people — see `scripts/contacts.mjs`) |
 | `patterns` | `modes/patterns.md` | Outcome analytics; retune thresholds |
 | `interview-prep` / `prep` | `modes/interview-prep.md` | Interview intel + story mapping |
 | `mock-interview` / `mock` | `modes/mock-interview.md` | Live rehearsal: one question at a time, STAR+R grading, debrief |

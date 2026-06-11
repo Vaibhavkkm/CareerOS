@@ -4,6 +4,12 @@ Trigger: `/cos followup [--overdue-only]`. Surfaces which live applications are 
 for a nudge, drafts the follow-up messages (never auto-sends), and — only after
 you confirm you sent one — bumps the tracker record so the cadence resets.
 
+Also check the PEOPLE ledger: `node scripts/contacts.mjs list --due` surfaces
+recruiters/referrers whose `next_followup` has arrived — include them in the
+plan, and after the user confirms an outreach, log it with
+`node scripts/contacts.mjs touch --id <id> [--status replied] [--next <date>]`.
+(NEVER share the user's phone number in these messages — `_shared.md` rule.)
+
 > Load order (router did this): `modes/_shared.md` → this file →
 > `data/profile.yml` + `data/cv.master.md` (+ `data/_profile.md` last). Tracker
 > truth is `data/tracker.jsonl`; never hand-edit the rendered `tracker.md`.
