@@ -1,0 +1,61 @@
+% =====================================================================
+%  CareerOS — cover letter template, theme "modern" (tectonic / XeTeX)
+%  Compile:  tectonic <file>.tex
+%
+%  Same contract as cl.tex.tmpl (the "classic" theme): identical
+%  <<UPPER_SNAKE>> placeholders, 3-paragraph body, same drop-unknown-lines
+%  rules (see modes/build-cl.md). Visual pair of cv.modern.tex.tmpl:
+%  Latin Modern SANS (hardcoded — a theme is a complete look, so this one
+%  ignores profile cv.font) and the same slate accent rule under the sender
+%  block. ATS-safe: same verified tectonic rules (no glyphtounicode/
+%  microtype; keep the ligature line; fonts by filename).
+% =====================================================================
+\documentclass[11pt,letterpaper]{article}
+\usepackage[margin=1in]{geometry}
+\pagestyle{empty}
+\usepackage{fontspec}
+\defaultfontfeatures{Ligatures={NoCommon}}
+\setmainfont{lmsans10-regular}[
+  Extension      = .otf,
+  BoldFont       = lmsans10-bold,
+  ItalicFont     = lmsans10-oblique,
+  BoldItalicFont = lmsans10-boldoblique ]
+\usepackage[usenames,dvipsnames]{xcolor}
+\usepackage[hidelinks]{hyperref}
+\usepackage{parskip}
+\setlength{\parindent}{0pt}
+\linespread{1.05}
+
+\definecolor{accent}{RGB}{28,66,98}
+
+\begin{document}
+% --- Sender block ---
+{\large\bfseries <<FULL_NAME>>}\\[1pt]
+{\color{accent}\rule{\textwidth}{1.2pt}}\\[2pt]
+<<CITY_STATE>> | <<EMAIL>> | <<PHONE>>
+
+\vspace{12pt}
+<<DATE_LONG>>
+
+\vspace{12pt}
+% --- Recipient block (drop unknown lines) ---
+<<RECIPIENT_NAME_OR_HIRING_MANAGER>>\\
+<<COMPANY>>\\
+<<COMPANY_LOCATION>>
+
+\vspace{12pt}
+Dear <<SALUTATION_NAME>>,
+
+\vspace{6pt}
+<<PARA_1: hook — why this company/role specifically; a concrete signal you researched, not flattery>>
+
+<<PARA_2: proof — 1-2 quantified achievements from the master CV mapped to the JD's top needs>>
+
+<<PARA_3: close — fit + forward-looking ask; confident, not pleading>>
+
+\vspace{12pt}
+Sincerely,
+
+\vspace{18pt}
+<<FULL_NAME>>
+\end{document}
