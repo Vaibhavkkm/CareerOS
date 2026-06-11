@@ -291,9 +291,13 @@ CareerOS is in **active development**. Here's the honest picture:
 - **Self-correcting drafts.** Every CV/cover letter is graded against your voice,
   the job's must-have keywords, and the no-fabrication/no-filler rules, then revised
   before you see it.
-- **Clean LaTeX → PDF output.** CVs and cover letters compile through `tectonic`
-  and pass an automated ATS check (real selectable text, keywords extractable,
-  no broken characters, sensible section order).
+- **Clean LaTeX → PDF output, in your choice of theme.** CVs and cover letters
+  compile through `tectonic` and pass an automated ATS check (real selectable
+  text, keywords extractable, no broken characters, sensible section order).
+  Two matched CV+CL themes ship today — **classic** (serif) and **modern**
+  (sans, slate accent) — selected via `profile.yml cv.theme` or by asking
+  ("build it with the modern theme"); every theme shares the same placeholder
+  contract, so tailoring works identically.
 - **The learning loop.** Edit a draft → it diffs your changes → distills your style
   → banks your wording → uses it in the next draft. Verified end-to-end.
 - **Job-pipeline tools.** Scoring, multi-job comparison, portal scanning (7

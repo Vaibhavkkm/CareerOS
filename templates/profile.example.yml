@@ -57,9 +57,10 @@ location:
   onsite_availability: "Hybrid 2 days; relocation negotiable"
 
 cv:
+  theme: "classic"                # classic | modern (maps to templates/cv.<theme>.tex.tmpl; explicit paths below win)
   cv_template: "templates/cv.tex.tmpl"
   cl_template: "templates/cl.tex.tmpl"
-  font: "texgyretermes"           # texgyretermes | texgyreheros | texgyrepagella | texgyrebonum
+  font: "texgyretermes"           # texgyretermes | texgyreheros | texgyrepagella | texgyrebonum (classic CL only; themes set their own)
 
 # --- Gates (the analytics loop can retune these from outcomes) ---
 compile_score_threshold: 3.0      # only compile a tailored CV if eval score >= this

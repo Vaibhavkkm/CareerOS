@@ -81,8 +81,14 @@ snapshot the AI draft for the learning loop · state missing requirements honest
 - Strong past-tense verb + quantified outcome per bullet. One page when possible.
 
 ## LaTeX rules (tectonic / XeTeX — verified on this machine)
-- Use `templates/cv.tex.tmpl` / `cl.tex.tmpl`. Fill `<<PLACEHOLDERS>>` only; never
-  alter the preamble macros. Leave NO `<<...>>` behind (compile-latex fails on them).
+- **Theme resolution** (same placeholders in every theme, so filling is identical):
+  explicit `profile.yml cv.cv_template`/`cl_template` paths win; else `cv.theme`
+  (or a theme the user names in the request) maps to
+  `templates/cv.<theme>.tex.tmpl` / `cl.<theme>.tex.tmpl`; `classic` (default) =
+  the bare `templates/cv.tex.tmpl` / `cl.tex.tmpl`. List themes with
+  `ls templates/cv*.tex.tmpl`. CV and CL of one application use the SAME theme.
+- Fill `<<PLACEHOLDERS>>` only; never alter a template's preamble macros.
+  Leave NO `<<...>>` behind (compile-latex fails on them).
 - Keep `\defaultfontfeatures{Ligatures={NoCommon}}` (ATS-critical). Font by filename.
 - **LaTeX escaping table** (apply to raw data via `lib/text.mjs latexEscape`):
   `& → \&` · `% → \%` · `$ → \$` · `# → \#` · `_ → \_` · `{ → \{` · `} → \}` ·

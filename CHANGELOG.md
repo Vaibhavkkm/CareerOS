@@ -8,6 +8,19 @@ All notable changes to CareerOS are recorded here. The format is based on
 
 ### Added
 
+- **Document themes.** A second matched CV + cover-letter theme, **modern** (Latin
+  Modern Sans, slate accent rules, left-aligned header), alongside the default
+  **classic**. All themes share the same placeholder/REPEAT contract; select via
+  `profile.yml cv.theme` (or by asking for one), explicit `cv_template`/`cl_template`
+  paths still win. Both new templates verified through the tectonic + ATS pipeline.
+
+### Fixed
+
+- **compile-latex false positive on template headers.** Validation now strips LaTeX
+  comments first, so a filled document keeping its template's instruction header
+  (which *mentions* `glyphtounicode`/`DisableLigatures`/`<<...>>` as warnings) no
+  longer hard-fails; real uncommented offenders still do.
+
 - **Contacts ledger (`scripts/contacts.mjs`, `npm run contacts`).** The tracker knows
   applications; this knows *people* — recruiters, referrers, hiring managers — in
   `data/contacts.jsonl` (same one-JSON-per-line philosophy as the tracker), linkable

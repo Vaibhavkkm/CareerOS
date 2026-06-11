@@ -47,7 +47,8 @@ Gather, in this exact order — you will inject them into your drafting below:
 > is then a clean template-only CV. The loop improves it over time.
 
 ## Step 3 — Draft the CV
-Working from `templates/cv.tex.tmpl`:
+Working from the resolved theme template (`_shared.md` → Theme resolution;
+default `templates/cv.tex.tmpl`):
 - **Summary**: 2–3 sentences, keyword-rich, third person, mirrors the role.
 - **Experience**: include/reorder roles by archetype relevance; most relevant
   first. Rewrite each bullet as **strong verb + quantified, REAL outcome**, woven
@@ -88,7 +89,7 @@ Do at least one revision pass. Briefly note to yourself what you changed (or "cl
 2. Create `data/style/edits/<ts>__<app-id>/` and write:
    - `ai_draft.tex` — your exact draft.
    - `context.json` —
-     `{app_id, created, doc_kind:"cv", archetype, jd_path, target_role, seniority, required_skills:[...], template_id:"templates/cv.tex.tmpl", model_id:"<your model>"}`.
+     `{app_id, created, doc_kind:"cv", archetype, jd_path, target_role, seniority, required_skills:[...], template_id:"<resolved template path>", model_id:"<your model>"}`.
 3. Also write the working copy into the job's own output folder (see `_shared.md`
    "Output location & file naming"):
    `data/output/<company-slug>--<role-slug>/cv-<company-slug>-<role-slug>-<YYYY-MM-DD>.tex`
