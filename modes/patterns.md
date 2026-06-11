@@ -45,6 +45,14 @@ From the output, surface for the user (don't just dump the block):
 5. **Top blockers** — the most frequent `hard_stops` (structural — usually not
    fixable by editing) and `soft_gaps` (often addressable in `cv.master.md` framing
    or by re-targeting). Recurring hard stops mean you're applying off-North-Star.
+6. **What's working (market learning)** — the style loop learns the user's
+   *voice*; this is where you learn the *market*. Group outcomes by archetype ×
+   document variant (the tracker's `cv_pdf` per-job folders tell you which CV
+   framing each application used). If one framing pulls a visibly better
+   response rate, name it as a HYPOTHESIS (small N — never certainty), propose
+   defaulting that archetype to it, and suggest the next A/B: vary ONE thing
+   (headline, lead bullets, summary) across the next few applications, then
+   re-run `patterns` once they resolve.
 If `sufficient: false`, lead with that caveat — call everything directional.
 
 ## Step 3 — The recommended threshold

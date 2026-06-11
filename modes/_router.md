@@ -39,6 +39,7 @@ otherwise apply auto-pipeline detection.
 | `followup` | `modes/followup.md` | Follow-up cadence + drafts |
 | `patterns` | `modes/patterns.md` | Outcome analytics; retune thresholds |
 | `interview-prep` / `prep` | `modes/interview-prep.md` | Interview intel + story mapping |
+| `mock-interview` / `mock` | `modes/mock-interview.md` | Live rehearsal: one question at a time, STAR+R grading, debrief |
 | `recalibrate-voice` | `modes/recalibrate-voice.md` | Re-learn voice from your writing samples |
 | `style-learn` / `learn` | `modes/style-learn.md` | Distill your edits into the style profile |
 | `training` | `modes/training.md` | Evaluate a course/cert/upskilling choice |

@@ -41,6 +41,20 @@ Same 7-tier gather as `build-cv` Step 2, with these differences:
 - Lean harder on `data/profile.yml narrative.voice` (tone, sentence length,
   signature phrases, the `avoid` list) and `data/writing-samples/` if present.
 
+## Step 1.5 — Language (match the posting, deliberately)
+Default is English; switch only with intent:
+- If the JD is written in another language, or states one as required (the
+  board's language column shows this), say so and ask which language the letter
+  should be in — applying to a French-language posting with an English letter
+  is sometimes fine, often not; the user's call.
+- When writing non-English: the JD's own vocabulary IS the keyword set (an ATS
+  scans in the posting's language), and that language's formal register applies
+  (French «Madame, Monsieur», German „Sehr geehrte Damen und Herren", …).
+- The `data/style/` voice examples are usually English — carry over their
+  *structure and energy*, not literal phrasing, and say so in the hand-off.
+- Facts still come ONLY from `cv.master.md` — translate them, never embellish.
+- Pass `--keywords` to the compile check in the letter's language.
+
 ## Step 2 — Draft the body
 Paragraph count follows the candidate's reference letter when they have one (often
 4–5 short paragraphs); otherwise default to 3 (hook / proof / close).

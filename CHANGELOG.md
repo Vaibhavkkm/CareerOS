@@ -8,6 +8,18 @@ All notable changes to CareerOS are recorded here. The format is based on
 
 ### Added
 
+- **Mock-interview mode (`cos mock`).** Live rehearsal against a real JD: the agent
+  plays the interviewer for that company/round, one question per turn, grades each
+  answer (STAR+R, specificity, length, JD-relevance), coaches from the user's real
+  facts, flags invented claims, and debriefs — optionally banking polished stories.
+- **Multilingual cover letters.** `build-cl` now has an explicit language step: detect
+  a non-English posting/requirement, ask the user, use the JD's own vocabulary as the
+  ATS keyword set, apply that language's formal register, and carry over the learned
+  voice's structure (not literal phrasing) — facts still translated, never embellished.
+- **Market learning in `patterns`.** Outcome analytics now also groups results by
+  archetype × CV variant (via the tracker's per-job `cv_pdf` folders) to surface
+  "which framing gets callbacks" hypotheses and propose the next single-variable A/B.
+
 - **Job digest (`scripts/digest.mjs`, `cos digest`).** Diffs the current match board
   against a seen-ledger (`data/digest-state.json`) and reports only the delta — new
   postings and band *upgrades* (downgrades stay quiet). `--write` renders a markdown
