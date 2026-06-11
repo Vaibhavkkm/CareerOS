@@ -12,7 +12,7 @@ These are part of CareerOS itself. Edit them to customize behavior, but an
 | Path | What it is |
 |------|------------|
 | `AGENTS.md` | The canonical agent brief: data contract, routing, guardrails (works with any AI coding tool) |
-| `CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md` | Per-tool shims that point to `AGENTS.md` |
+| `CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `.agents/workflows/cos.md` | Per-tool shims that point to `AGENTS.md` / the router (Claude Code, Gemini CLI + Antigravity, Copilot, Antigravity's `/cos` command) |
 | `modes/_router.md` | The router (dispatches `cos <mode>`); `.claude/skills/*/SKILL.md` defer to it |
 | `modes/*.md` | Prompt-as-program playbooks (the "intelligence") |
 | `modes/_shared.md` | Shared rubric, archetypes, guardrails, LaTeX rules |

@@ -1,8 +1,9 @@
 # CareerOS — agent brief
 
 This is the canonical project brief for **whatever AI agent is driving this
-repo** — Claude Code, Cursor, Codex CLI, Gemini CLI, Windsurf, Zed, aider, or
-any other tool that can read files and run shell commands. If you are an AI
+repo** — Claude Code, Cursor, Codex CLI, Gemini CLI, Google Antigravity,
+Windsurf, Zed, aider, or any other tool that can read files and run shell
+commands. If you are an AI
 agent working in this repository, read this file first and follow it exactly.
 (`CLAUDE.md`, `GEMINI.md`, and `.github/copilot-instructions.md` are thin shims
 that point here.)
@@ -26,7 +27,9 @@ playbooks; every candidate-facing artifact is a `.tex` compiled to PDF by
   `careeros`, or `/careeros` (or matching a mode's trigger in plain words) as
   router input, read that file, and dispatch to the matching mode playbook.
   In Claude Code, `/careeros` and `/cos` are native skills that defer to the
-  same router; in every other tool, this paragraph IS the integration.
+  same router; in Google Antigravity, `.agents/workflows/cos.md` provides a
+  native `/cos` command the same way; in every other tool, this paragraph IS
+  the integration.
 - On session start, silently run `node scripts/doctor.mjs`. If setup is
   incomplete, run the `modes/onboard.md` flow (`cos onboard`) before anything
   else — it turns the user's uploaded CV + cover letter into `data/profile.yml`,

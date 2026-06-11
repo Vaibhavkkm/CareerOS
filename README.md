@@ -65,7 +65,8 @@ it, so raw documents don't linger.
 
 **You need:**
 - **An agentic AI coding tool** — Claude Code, Cursor, Codex CLI, Gemini CLI,
-  Windsurf, … anything that reads the repo's `AGENTS.md` (or can be told to read it).
+  Google Antigravity, Windsurf, … anything that reads the repo's `AGENTS.md`
+  (or can be told to read it).
 - **Node.js 20 or newer.** The only dependency is `js-yaml`.
 - **tectonic** (the LaTeX engine): `brew install tectonic`. The first build
   downloads fonts/packages (~1–2 min, online once); after that it's offline and fast.

@@ -10,10 +10,12 @@ All notable changes to CareerOS are recorded here. The format is based on
 
 - **Works with ANY AI coding agent — no longer Claude Code-only.** The canonical
   project brief now lives in the cross-tool [`AGENTS.md`](AGENTS.md) standard (read
-  natively by Codex CLI, Cursor, Zed, and others), and the `/cos` mode router moved
-  from the Claude skill into the agent-neutral `modes/_router.md`. `CLAUDE.md`,
-  `GEMINI.md`, and `.github/copilot-instructions.md` are thin per-tool shims that
-  defer to `AGENTS.md`; the `.claude/skills/` entries defer to the router.
+  natively by Codex CLI, Cursor, Zed, Google Antigravity, and others), and the
+  `/cos` mode router moved from the Claude skill into the agent-neutral
+  `modes/_router.md`. `CLAUDE.md`, `GEMINI.md` (also read by Antigravity), and
+  `.github/copilot-instructions.md` are thin per-tool shims that defer to
+  `AGENTS.md`; the `.claude/skills/` entries defer to the router, and
+  `.agents/workflows/cos.md` gives Antigravity a native `/cos` command.
   Tool-specific features (Claude Code's Indeed/Dice MCP connectors, `/loop`
   auto-drain, the `claude-api` reference skill) are documented as optional
   enhancements with portable fallbacks (jobspy multi-board fetch, ATS scan, web
