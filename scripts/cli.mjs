@@ -25,6 +25,7 @@ export const COMMANDS = {
   'fetch-jd': 'fetch-jd.mjs',
   'parse-cv': 'parse-cv.mjs',
   board: 'board.mjs',
+  digest: 'digest.mjs',
   'match-score': 'match-score.mjs',
   scan: 'scan.mjs',
   merge: 'merge-tracker.mjs',
@@ -100,11 +101,12 @@ async function selfTest() {
 
   // 1) The routing table covers exactly the documented commands.
   const expected = [
-    'doctor', 'compile', 'fetch-jd', 'parse-cv', 'board', 'match-score', 'scan', 'merge', 'tracker', 'render',
-    'verify', 'followup', 'analyze', 'batch', 'seed-examples', 'style:diff', 'style:profile', 'style:retrieve',
-    'hunt-ingest', 'ui-queue',
+    'doctor', 'compile', 'fetch-jd', 'parse-cv', 'board', 'digest', 'match-score', 'scan', 'merge', 'tracker',
+    'render', 'verify', 'followup', 'analyze', 'batch', 'seed-examples', 'style:diff', 'style:profile',
+    'style:retrieve', 'hunt-ingest', 'ui-queue',
   ];
   eq(COMMANDS['parse-cv'], 'parse-cv.mjs', 'parse-cv -> parse-cv.mjs');
+  eq(COMMANDS.digest, 'digest.mjs', 'digest -> digest.mjs');
   eq(Object.keys(COMMANDS).length, expected.length, 'command count matches');
   for (const c of expected) ok(COMMANDS[c], `command "${c}" is mapped`);
 

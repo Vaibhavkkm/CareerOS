@@ -152,7 +152,13 @@ France, Belgium, Netherlands, Switzerland, Italy, India — or **all countries**
 ```bash
 node scripts/jobspy.mjs --country Germany --city Berlin --recent 7 --summary
 ```
-Because it's a plain script, it can also run from a **cron**. **LinkedIn is deferred**
+Because it's a plain script, it can also run from a **cron** — pair it with the
+**digest** for a daily "what's new" report (new matches + band upgrades only):
+```bash
+node scripts/jobspy.mjs --country Luxembourg --recent 3 && node scripts/digest.mjs --write --summary
+```
+(`cos digest` from your agent does the same check on demand; the markdown lands in
+`data/digest-latest.md`.) **LinkedIn is deferred**
 (it rate-limits scrapers); enable it explicitly with `--boards indeed,zip_recruiter,google,linkedin`
 and expect partial results, or paste a LinkedIn job URL for a one-off.
 

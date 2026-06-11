@@ -8,6 +8,12 @@ All notable changes to CareerOS are recorded here. The format is based on
 
 ### Added
 
+- **Job digest (`scripts/digest.mjs`, `cos digest`).** Diffs the current match board
+  against a seen-ledger (`data/digest-state.json`) and reports only the delta — new
+  postings and band *upgrades* (downgrades stay quiet). `--write` renders a markdown
+  digest to `data/digest-latest.md`; pair with the jobspy fetch in a cron for a daily
+  "N new strong matches" tap on the shoulder.
+
 - **Deterministic CV parser (`scripts/parse-cv.mjs`).** Onboarding no longer depends
   on how well a given agent/model free-reads a PDF: the parser extracts contact,
   experience (title/company/dates/bullets, wrapped lines re-joined), education,
