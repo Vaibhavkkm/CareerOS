@@ -1,0 +1,156 @@
+% =====================================================================
+%  CareerOS — CV template, theme "modern" (tectonic / XeTeX)
+%  Compile:  tectonic <file>.tex
+%
+%  Same contract as cv.tex.tmpl (the "classic" theme): identical
+%  <<UPPER_SNAKE>> placeholders and %% REPEAT blocks, so build-cv.md fills
+%  every theme the same way. Differences are purely visual: Latin Modern
+%  SANS, left-aligned header under a heavy rule, slate-accent section
+%  headings. Single column — ATS-safe by construction.
+%
+%  VERIFIED ATS RULES (do not "fix"):
+%   - fontspec + font by FILENAME + Ligatures={NoCommon} keeps keywords
+%     extractable as plain ASCII (no fi/fl ligature glyphs).
+%   - Never add \input{glyphtounicode}/\pdfgentounicode/microtype
+%     DisableLigatures (they ERROR under tectonic).
+% =====================================================================
+\documentclass[a4paper,10pt]{article}
+
+\usepackage{fontspec}
+\defaultfontfeatures{Ligatures={NoCommon}}
+\setmainfont{lmsans10-regular}[
+  Extension      = .otf,
+  BoldFont       = lmsans10-bold,
+  ItalicFont     = lmsans10-oblique,
+  BoldItalicFont = lmsans10-boldoblique ]
+
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage[usenames,dvipsnames]{xcolor}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+
+\definecolor{accent}{RGB}{28,66,98}   % deep slate — prints fine in grayscale
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% --- Margins ---
+\addtolength{\oddsidemargin}{-0.7in}
+\addtolength{\evensidemargin}{-0.7in}
+\addtolength{\textwidth}{1.4in}
+\addtolength{\topmargin}{-.70in}
+\addtolength{\textheight}{1.45in}
+
+\urlstyle{same}
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+\linespread{1.0}
+
+% --- Section formatting: bold caps, accent color, thin rule ---
+\titleformat{\section}{
+  \vspace{-8pt}\bfseries\raggedright\large\color{accent}
+}{}{0em}{\MakeUppercase}[\color{accent}\titlerule \vspace{-6pt}]
+
+% --- Custom commands (same names/arity as the classic theme) ---
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-1pt}\item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & {\small #2} \\
+      {\small\color{accent}#3} & {\small\itshape #4} \\
+    \end{tabular*}\vspace{-5pt}
+}
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=*]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+
+%-------------------------------------------------------------------------------
+\begin{document}
+
+%----------HEADING (left-aligned under a heavy accent rule)----------
+{\Huge\bfseries <<FULL_NAME>>}\\[2pt]
+{\color{accent}\rule{\textwidth}{1.6pt}}\\[4pt]
+\small
+\href{mailto:<<EMAIL>>}{<<EMAIL>>} \textbar{} <<PHONE>> \textbar{} \href{https://<<LINKEDIN>>}{<<LINKEDIN>>} \textbar{} \href{https://<<GITHUB>>}{<<GITHUB>>} \textbar{} \href{https://<<PORTFOLIO>>}{<<PORTFOLIO>>}\\[1pt]
+<<LOCATION_LINE: e.g. City | Work authorization | Nationality | Languages>>
+
+%----------SUMMARY----------
+% TIP: lead the first sentence with the single role you are applying for.
+\section{Summary}
+<<SUMMARY: 2-4 sentences, keyword-rich, third person, tailored to the role>>
+
+%----------SKILLS----------
+\section{Skills}
+\begin{itemize}[leftmargin=*, nosep]
+    \setlength\itemsep{0.08em}
+    %% REPEAT SKILLGROUP
+    \item \textbf{<<SKILL_GROUP>>}: <<COMMA-SEPARATED SKILLS, aligned to the JD>>
+    %% END REPEAT SKILLGROUP
+\end{itemize}
+
+%----------EDUCATION----------
+\section{Education}
+  \resumeSubHeadingListStart
+    %% REPEAT EDUCATION
+    \resumeSubheading
+      {<<SCHOOL>>}{<<CITY_COUNTRY>>}
+      {<<DEGREE_AND_HONORS>>}{<<DATES>>}
+    %% END REPEAT EDUCATION
+  \resumeSubHeadingListEnd
+
+%----------EXPERIENCE----------
+\section{Work Experience}
+  \resumeSubHeadingListStart
+  %% REPEAT EXPERIENCE  (most JD-relevant first)
+  \resumeSubheading
+    {<<ORG>>}{<<CITY_COUNTRY>>}
+    {<<TITLE>>}{<<DATES>>}
+  \begin{itemize}[leftmargin=*, topsep=1pt, itemsep=1pt, parsep=0pt]
+      \item[$\bullet$] <<ACHIEVEMENT BULLET — strong verb + quantified, REAL, JD-keyword aligned>>
+      \item[$\bullet$] <<ACHIEVEMENT BULLET>>
+  \end{itemize}
+  \vspace{2pt}
+  %% END REPEAT EXPERIENCE
+  \resumeSubHeadingListEnd
+
+%----------PROJECTS----------
+% Optional — keep the most JD-relevant; delete the whole section if none fit.
+\section{Projects}
+\begin{itemize}[leftmargin=*, nosep]
+    \setlength\itemsep{0.1em}
+    %% REPEAT PROJECT
+    \item \href{https://<<PROJECT_URL>>}{\textbf{<<PROJECT_NAME>>}}
+    \begin{itemize}[nosep, leftmargin=1.5em]
+        \item[$\circ$] <<WHAT YOU BUILT + METHODS + IMPACT/METRIC>>
+    \end{itemize}
+    %% END REPEAT PROJECT
+\end{itemize}
+
+%----------CERTIFICATIONS---------- (optional)
+\section{Certifications}
+\begin{itemize}[leftmargin=*, nosep]
+    \setlength\itemsep{0.08em}
+    %% REPEAT CERTGROUP
+    \item \textbf{<<CERT_GROUP>>}: <<CERTS, comma-separated>>
+    %% END REPEAT CERTGROUP
+\end{itemize}
+
+%----------ADDITIONAL---------- (optional — delete if not relevant to the JD)
+\section{Additional}
+\begin{itemize}[leftmargin=*, nosep]
+    \item <<ANYTHING DISTINCTIVE — content, open-source, talks, etc.>>
+\end{itemize}
+
+%----------REFERENCES---------- (include when the master CV lists references; delete otherwise)
+\section{References}
+\begin{itemize}[leftmargin=*, nosep]
+    %% REPEAT REFERENCE
+    \item \textbf{<<REFEREE_NAME>>} -- <<TITLE, ORG>> \textbar{} \href{mailto:<<EMAIL>>}{<<EMAIL>>} \textbar{} \href{https://<<LINKEDIN>>}{<<LINKEDIN>>}
+    %% END REPEAT REFERENCE
+\end{itemize}
+
+\end{document}
