@@ -38,6 +38,9 @@ Everything under `data/`. This is yours. Back it up with your own git.
 | `data/tracker.md`, `data/progress.md` | **Generated views** (disposable; rebuilt from JSONL) |
 | `data/inbox.md` | URL queue for the pipeline |
 | `data/scan-history.tsv` | Append-only dedup ledger for the scanner |
+| `data/contacts.jsonl` | People ledger (recruiters/referrers) — managed via `contacts.mjs` |
+| `data/digest-state.json`, `data/digest-latest.md` | Digest seen-ledger + last rendered digest (`digest.mjs`) |
+| `data/.git/` | Optional nested backup repo created by `backup.mjs` (`cos backup`) |
 | `data/reports/NNN-*.md` | Evaluation reports (with embedded YAML Machine Summary) |
 | `data/output/*.{tex,pdf}` | Generated CVs and cover letters |
 | `data/writing-samples/*` | Your prose corpus (voice cold-start) |
