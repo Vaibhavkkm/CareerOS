@@ -15,6 +15,7 @@
     "doctor": "node scripts/doctor.mjs",
     "compile": "node scripts/compile-latex.mjs",
     "fetch-jd": "node scripts/fetch-jd.mjs",
+    "parse-cv": "node scripts/parse-cv.mjs",
     "board": "node scripts/board.mjs",
     "match-score": "node scripts/match-score.mjs",
     "scan": "node scripts/scan.mjs",
@@ -35,7 +36,7 @@
     "style:diff": "node scripts/style-diff.mjs",
     "style:profile": "node scripts/style-profile.mjs",
     "style:retrieve": "node scripts/style-retrieve.mjs",
-    "test": "node scripts/fetch-jd.mjs --self-test && node scripts/match-score.mjs --self-test && node scripts/board.mjs --self-test && node scripts/seed-examples.mjs --self-test && node scripts/cli.mjs --self-test && node scripts/scan.mjs --self-test && node scripts/compile-latex.mjs --self-test && node scripts/style-diff.mjs --self-test && node scripts/style-profile.mjs --self-test && node scripts/style-retrieve.mjs --self-test && node scripts/style-loop.integration-test.mjs && node scripts/analyze.mjs --self-test && node scripts/followup.mjs --self-test && node scripts/hunt-ingest.mjs --self-test && node scripts/jobspy.mjs --self-test && node scripts/ui-queue.mjs --self-test && node lib/_selftest.mjs"
+    "test": "node scripts/parse-cv.mjs --self-test && node scripts/fetch-jd.mjs --self-test && node scripts/match-score.mjs --self-test && node scripts/board.mjs --self-test && node scripts/seed-examples.mjs --self-test && node scripts/cli.mjs --self-test && node scripts/scan.mjs --self-test && node scripts/compile-latex.mjs --self-test && node scripts/style-diff.mjs --self-test && node scripts/style-profile.mjs --self-test && node scripts/style-retrieve.mjs --self-test && node scripts/style-loop.integration-test.mjs && node scripts/analyze.mjs --self-test && node scripts/followup.mjs --self-test && node scripts/hunt-ingest.mjs --self-test && node scripts/jobspy.mjs --self-test && node scripts/ui-queue.mjs --self-test && node lib/_selftest.mjs"
   },
   "dependencies": {
     "js-yaml": "^4.2.0"

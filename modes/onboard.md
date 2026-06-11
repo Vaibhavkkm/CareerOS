@@ -26,10 +26,19 @@ Ask the user for (accept whatever they have; CV is required, the rest optional):
 3. **Any other writing in their voice** — a blog post, a long email, a bio.
    Optional; improves voice learning.
 
-If they gave a file path, read it. For a PDF, extract text with
-`pdftotext "<file>" -` (from poppler; if absent, ask them to paste the text or
-run `node scripts/doctor.mjs` to see the install hint). Never guess at content you
-cannot read — ask.
+If they gave a file path, parse it deterministically FIRST:
+
+```
+node scripts/parse-cv.mjs "<file>"            # → structured JSON (contact, roles, skills, …)
+node scripts/parse-cv.mjs --linkedin "<dir>"  # alternative: an unzipped LinkedIn data export
+```
+
+The parser handles PDF (pdftotext), DOCX, txt/md/tex, and LinkedIn-export CSVs,
+and keeps anything it couldn't split cleanly raw under `header` — your job in the
+next steps is to REVIEW its output against the original document, fix mis-parses,
+and fill gaps, not to re-extract from scratch. If the parser errors (missing
+poppler, unsupported format), fall back to reading the file directly or ask the
+user to paste the text. Never guess at content you cannot read — ask.
 
 ## Step 1 — Extract identity & contact (propose, don't assume)
 From the CV, pull ONLY what is actually present: full name, email, phone,

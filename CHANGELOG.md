@@ -8,6 +8,14 @@ All notable changes to CareerOS are recorded here. The format is based on
 
 ### Added
 
+- **Deterministic CV parser (`scripts/parse-cv.mjs`).** Onboarding no longer depends
+  on how well a given agent/model free-reads a PDF: the parser extracts contact,
+  experience (title/company/dates/bullets, wrapped lines re-joined), education,
+  skills, languages and certifications from PDF/DOCX/txt/md/tex — or from an
+  **unzipped LinkedIn data export** (`--linkedin <dir>`) — into structured JSON, and
+  can render a draft master CV (`--emit-master`). The agent reviews/corrects instead
+  of re-extracting; unsplittable headers are kept raw, nothing is invented.
+
 - **CI + devcontainer.** GitHub Actions now runs the full engine self-test suite and
   the web-panel build on every push/PR (`.github/workflows/ci.yml`), and a
   devcontainer (`.devcontainer/`) gives Codespaces users a zero-install setup —
