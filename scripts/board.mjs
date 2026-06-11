@@ -19,7 +19,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join, basename } from 'node:path';
 import assert from 'node:assert/strict';
 
-import { scoreMatch, bandRank, STARS, buildCorpusIdf, jdKeywords, fitScore } from './match-score.mjs';
+import { scoreMatch, bandRank, STARS, buildCorpusIdf, prepCv, normTokens, fitScore } from './match-score.mjs';
 import { fetchPosting, saveJd } from './fetch-jd.mjs';
 import { runPool } from './scan.mjs';
 import { extractLanguages, formatLanguages } from '../lib/languages.mjs';
@@ -88,8 +88,10 @@ export function ageLabel(posted, today) {
 
 // Score one candidate posting into a board row. Extracted so the pinned row (which
 // may come from the pre-filter set) is built exactly like every other row.
-function scoreRow(c, cv, scoreCtx) {
-  const s = scoreMatch(c.content || '', cv, scoreCtx);
+// `jdToks` (optional) = the posting's pre-tokenized content, when the caller
+// already tokenized it for the corpus idf.
+function scoreRow(c, cv, scoreCtx, jdToks = null) {
+  const s = scoreMatch(c.content || '', cv, jdToks ? { ...scoreCtx, jdToks } : scoreCtx);
   return {
     company: c.company, role: c.role, url: c.url, posted: c.posted || '',
     location: c.location || '', experience: extractExperience(c.content || ''),
@@ -134,6 +136,21 @@ export function pinToTop(board, pinnedRow, limit) {
   if (!pinnedRow) return capped(board);
   pinnedRow.pinned = true;
   return capped([pinnedRow, ...board.filter((x) => x.url !== pinnedRow.url)]);
+}
+
+// Resolve a --pin URL to its candidate. Dedup-aware: the same job is often
+// syndicated on several boards, so the URL the user just pasted may have been
+// COLLAPSED into a richer duplicate saved under a different URL — in that case
+// pin the surviving representative (matched by the same company+role signature
+// dedupeCandidates uses), so "pinned to the top" never silently misses.
+export function resolvePin(unique, candidates, pinUrl) {
+  if (!pinUrl) return null;
+  const direct = unique.find((c) => c.url && c.url === pinUrl);
+  if (direct) return direct;
+  const lost = candidates.find((c) => c.url === pinUrl);
+  if (!lost) return null;
+  const sig = dupSignature(lost.company, lost.role);
+  return (sig && unique.find((c) => dupSignature(c.company, c.role) === sig)) || null;
 }
 
 export function renderBoard(rows, { today, total } = {}) {
@@ -304,7 +321,7 @@ export function extractExperience(text) {
 function parseArgs(argv) {
   // JSON by default (consistent with the other scripts + how the board mode calls
   // it); --summary/--pretty renders the human board instead.
-  const out = { urls: [], min: null, recent: null, country: '', city: '', type: '', limit: 0, pin: '', json: true, selfTest: false, save: true };
+  const out = { urls: [], min: null, recent: null, country: '', city: '', type: '', limit: 0, pin: '', json: true, selfTest: false, save: true, fetch: true };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const val = () => (argv[i + 1] != null && !argv[i + 1].startsWith('--')) ? argv[++i] : '';
@@ -312,6 +329,7 @@ function parseArgs(argv) {
     else if (a === '--json') out.json = true;
     else if (a === '--summary' || a === '--pretty') out.json = false;
     else if (a === '--no-save') out.save = false;
+    else if (a === '--no-fetch') out.fetch = false;
     else if (a === '--urls') out.urls = String(val()).split(',').map((s) => s.trim()).filter(Boolean);
     else if (a.startsWith('--urls=')) out.urls = a.slice(7).split(',').map((s) => s.trim()).filter(Boolean);
     else if (a === '--min') out.min = val();
@@ -343,6 +361,7 @@ Usage: node scripts/board.mjs [--urls "u1,u2"] [--min <band>] [--recent <days>] 
   --pin <url>      force this posting to the top of the board (e.g. a just-fetched URL)
   --summary        render the human board (default: JSON)
   --no-save        don't save fetched postings to data/jds/
+  --no-fetch       render from saved postings only — never hit the network (web UI path)
   --self-test      run built-in tests`;
 
 async function main() {
@@ -363,9 +382,14 @@ async function main() {
   const candidates = readSavedJds();
   const haveUrl = new Set(candidates.map((c) => c.url).filter(Boolean));
 
-  // 2) URLs to fetch: explicit --urls + inbox entries we haven't saved yet
-  const toFetch = [...args.urls, ...readInboxUrls().map((e) => e.url)]
-    .filter((u, i, arr) => u && !haveUrl.has(u) && arr.indexOf(u) === i);
+  // 2) URLs to fetch: explicit --urls + inbox entries we haven't saved yet.
+  // --no-fetch (how the web /api/board calls this) skips the network stage
+  // entirely: a board RENDER must never block on live fetches — unsaved inbox
+  // URLs that 403 forever would otherwise be retried on every single page load.
+  const toFetch = args.fetch
+    ? [...args.urls, ...readInboxUrls().map((e) => e.url)]
+        .filter((u, i, arr) => u && !haveUrl.has(u) && arr.indexOf(u) === i)
+    : [];
 
   const fetched = await runPool(toFetch.map((u) => async () => {
     try {
@@ -388,12 +412,14 @@ async function main() {
     matchesType(employmentTypeText(c.role, c.content), args.type));
 
   // 3) score + assemble. ONE TF-IDF index across the shown postings + the CV makes the
-  // cosine discriminative; precompute the CV's keywords ONCE (not per JD) for the
-  // relevance term — a real speedup when scoring hundreds of postings.
-  const cvKw = jdKeywords(cv, 24);
-  const corpusIdf = buildCorpusIdf([...filtered.map((c) => c.content || ''), cv]);
-  const scoreCtx = { idf: corpusIdf, cvKeywords: cvKw };
-  const rows = filtered.map((c) => scoreRow(c, cv, scoreCtx));
+  // cosine discriminative. Tokenize each JD ONCE (shared by the idf and the score)
+  // and precompute every CV-side artifact ONCE (tokens/tf/keywords/vector) — on a
+  // thousands-of-postings board this is most of the scoring CPU.
+  const jdToksList = filtered.map((c) => normTokens(c.content || ''));
+  const corpusIdf = buildCorpusIdf([...jdToksList, cv]);
+  const cvPrep = prepCv(cv, { idf: corpusIdf });
+  const scoreCtx = { idf: corpusIdf, cvKeywords: cvPrep.keywords, cv: cvPrep };
+  const rows = filtered.map((c, i) => scoreRow(c, cv, scoreCtx, jdToksList[i]));
   const board = assembleBoard(rows, { minBand: args.min, recentDays: Number.isFinite(args.recent) ? args.recent : null, today });
   // Cap rendered rows for UI responsiveness; the full filtered count is still
   // reported as `count`, with `shown` = how many rows are returned. `--pin <url>`
@@ -401,7 +427,7 @@ async function main() {
   // OR of the active filters: resolve it from `unique` (pre-filter) so a posting the
   // location/country/type filter would drop (e.g. one with no stated location) still pins.
   const limit = args.limit > 0 ? args.limit : 200;
-  const pinHit = args.pin ? unique.find((c) => c.url && c.url === args.pin) : null;
+  const pinHit = resolvePin(unique, candidates, args.pin);
   const pinnedRow = pinHit ? scoreRow(pinHit, cv, scoreCtx) : null;
   const shown = pinToTop(board, pinnedRow, limit);
 
@@ -517,6 +543,18 @@ export function selfTest() {
   eq(deduped.length, 2, 'dedupeCandidates: collapses the two LIST saves into one');
   ok(deduped.some((d) => d.company === 'LIST' && d.posted === '2026-06-01'), 'dedupeCandidates: keeps the richer (dated) representative');
   ok(deduped.some((d) => d.company === 'Acme'), 'dedupeCandidates: keeps the distinct job');
+
+  // resolvePin: a pinned URL that dedup collapsed into a richer duplicate (same job,
+  // different board) still resolves — to the surviving representative.
+  const pinCands = [
+    { company: 'LIST', role: 'DataOps Engineer', url: 'https://a/1', posted: '2026-06-01', content: 'x'.repeat(300) },
+    { company: '', role: 'DataOps Engineer — LIST', url: 'https://b/2', posted: '', content: 'x' },
+  ];
+  const pinUniq = dedupeCandidates(pinCands);
+  eq(resolvePin(pinUniq, pinCands, 'https://a/1').url, 'https://a/1', 'resolvePin: direct url hit');
+  eq(resolvePin(pinUniq, pinCands, 'https://b/2').url, 'https://a/1', 'resolvePin: deduped url pins the surviving representative');
+  eq(resolvePin(pinUniq, pinCands, 'https://nope/9'), null, 'resolvePin: unknown url → null');
+  eq(resolvePin(pinUniq, pinCands, ''), null, 'resolvePin: empty pin → null');
 
   // display filters: country/city/type actually filter the board
   ok(matchesLocation('Luxembourg, L0L, LU', { country: 'Luxembourg' }), 'matchesLocation: LU by code');

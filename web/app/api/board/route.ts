@@ -17,7 +17,11 @@ export async function GET(request: Request) {
   }
 
   const sp = new URL(request.url).searchParams;
-  const args = ['--json'];
+  // --no-fetch: a board RENDER must be instant and offline — without it, every
+  // page load re-fetched (and re-failed) any inbox URLs not saved locally, which
+  // is what made the initial load take ~20s. Fetching is an explicit user action
+  // (paste a URL, fetch recent, scan), never a side effect of rendering.
+  const args = ['--json', '--no-fetch'];
   const BANDS = new Set(['STRONGEST', 'Very strong', 'Strong', 'Moderate', 'Weak']);
   const min = sp.get('min');
   if (min && BANDS.has(min)) args.push('--min', min);

@@ -75,7 +75,9 @@ export function fitScore(raw) {
 // punctuation so the JD and CV token spaces line up. Keeps tech punctuation that
 // is INTERNAL (c++, c#, node.js) — only leading/trailing junk is removed.
 const stripEdge = (s) => String(s).replace(/^[("'\[]+/, '').replace(/[.,;:!?'")\]]+$/, '');
-function normTokens(text) {
+// Exported so board.mjs can tokenize each JD ONCE and share the tokens between
+// buildCorpusIdf and scoreMatch (tokenizing/stemming is the scoring hot path).
+export function normTokens(text) {
   return stemTokens(text || '').map(stripEdge).filter((t) => t.length >= 2);
 }
 
@@ -107,9 +109,14 @@ function surfaceMap(text) {
 // The most salient JD keywords: distinct content stems (minus boilerplate),
 // ranked by frequency then length (longer terms tend to be specific skills).
 export function jdKeywords(jdText, topK = 18) {
+  return keywordsFromToks(normTokens(jdText), topK);
+}
+// Same ranking from ALREADY-tokenized text, so a caller holding the tokens
+// doesn't pay for a second tokenize+stem pass.
+export function keywordsFromToks(toks, topK = 18) {
   const k = Math.max(0, Math.floor(Number(topK) || 0)); // a negative --top must mean "none", not slice(0,-1) dropping the last
   const freq = new Map();
-  for (const t of normTokens(jdText)) {
+  for (const t of toks) {
     if (JD_BOILERPLATE.has(t)) continue;
     freq.set(t, (freq.get(t) || 0) + 1);
   }
@@ -127,20 +134,40 @@ export function jdKeywords(jdText, topK = 18) {
 // imposes (where a shared term gets df==N and the minimum idf weight).
 export function buildCorpusIdf(texts) {
   const idf = emptyIdf();
-  for (const t of texts) indexAdd(idf, buildTf(normTokens(t || '')));
+  // Each entry is raw text OR an already-tokenized array (so the board can
+  // tokenize each JD once and reuse the tokens for scoring).
+  for (const t of texts) indexAdd(idf, buildTf(Array.isArray(t) ? t : normTokens(t || '')));
   return idf;
 }
 
+// Precompute everything about the CV that scoreMatch would otherwise redo PER JD
+// (tokenize+stem, term frequencies, keywords, and — when a corpus idf is given —
+// the tf-idf vector). On a 2,700-posting board this is the difference between
+// stemming the CV once and stemming it 2,700 times.
+export function prepCv(cvText, { idf = null, topK = 24 } = {}) {
+  const toks = normTokens(cvText);
+  const tf = buildTf(toks);
+  return {
+    toks,
+    set: new Set(toks),
+    tf,
+    keywords: keywordsFromToks(toks, topK),
+    vec: idf ? tfidfVec(tf, idf) : null, // only valid against that same idf
+  };
+}
+
 // The core: returns { score, band, coverage, cosine, have:[surface], gap:[surface] }.
-export function scoreMatch(jdText, cvText, { topK = 18, idf = null, cvKeywords = null } = {}) {
-  const jdToks = normTokens(jdText);
-  const cvToks = normTokens(cvText);
-  if (!jdToks.length || !cvToks.length) {
+// Perf knobs (all optional, results identical): `jdToks` = pre-tokenized JD text;
+// `cv` = a prepCv() object so the CV isn't re-tokenized/re-vectorized per JD.
+export function scoreMatch(jdText, cvText, { topK = 18, idf = null, cvKeywords = null, jdToks = null, cv = null } = {}) {
+  const jdT = jdToks || normTokens(jdText);
+  const cvP = cv || prepCv(cvText, { idf, topK: Math.max(topK, 24) });
+  if (!jdT.length || !cvP.toks.length) {
     return { score: 0, band: 'Weak', coverage: 0, cosine: 0, have: [], gap: [], keywords: [] };
   }
-  const cvSet = new Set(cvToks);
-  const jdSet = new Set(jdToks);
-  const keywords = jdKeywords(jdText, topK);
+  const cvSet = cvP.set;
+  const jdSet = new Set(jdT);
+  const keywords = keywordsFromToks(jdT, topK);
   const matched = keywords.filter((k) => cvSet.has(k));
   // coverage (JD→CV): of the JD's salient asks, how many does the candidate have.
   const coverage = keywords.length ? matched.length / keywords.length : 0;
@@ -150,21 +177,23 @@ export function scoreMatch(jdText, cvText, { topK = 18, idf = null, cvKeywords =
   // perfect-domain match and a vaguely-overlapping one scored nearly the same.
   // cvKeywords is the same for every JD scored against one CV — the caller (board)
   // precomputes it ONCE and passes it in, instead of re-tokenizing the CV per JD.
-  const cvKw = cvKeywords || jdKeywords(cvText, Math.max(topK, 24));
+  const cvKw = cvKeywords || cvP.keywords;
   const relevance = cvKw.length ? cvKw.filter((k) => jdSet.has(k)).length / cvKw.length : 0;
 
   // TF-IDF cosine as a lexical-similarity proxy. A caller (board.mjs) can pass a
   // CORPUS idf built over every posting + the CV so shared rare skills carry real
   // weight; without one we fall back to a 2-doc (JD, CV) corpus for standalone use.
-  const jdTf = buildTf(jdToks);
-  const cvTf = buildTf(cvToks);
+  const jdTf = buildTf(jdT);
   let useIdf = idf;
   if (!useIdf) {
     useIdf = emptyIdf();
     indexAdd(useIdf, jdTf);
-    indexAdd(useIdf, cvTf);
+    indexAdd(useIdf, cvP.tf);
   }
-  const cos = cosine(tfidfVec(jdTf, useIdf), tfidfVec(cvTf, useIdf));
+  // cvP.vec was built against the corpus idf — only reuse it when scoring with
+  // that same idf (the fallback 2-doc idf above is a different space).
+  const cvVec = (idf && cvP.vec) ? cvP.vec : tfidfVec(cvP.tf, useIdf);
+  const cos = cosine(tfidfVec(jdTf, useIdf), cvVec);
 
   // Bidirectional blend: qualification (coverage) + field-relevance (relevance) +
   // overall lexical similarity (cosine).
