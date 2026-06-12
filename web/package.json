@@ -1,6 +1,6 @@
 {
   "name": "careeros-web",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "CareerOS — local web control panel (terminal/trading-desk dark UI) over the zero-token engine.",
   "scripts": {

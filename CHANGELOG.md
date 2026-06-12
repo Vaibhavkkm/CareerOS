@@ -6,6 +6,8 @@ All notable changes to CareerOS are recorded here. The format is based on
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-12
+
 ### Added
 
 - **Bot-blocked job URLs hand off to the agent.** Pasting a URL the engine can't
