@@ -781,7 +781,7 @@ select {
 }
 .jdbody {
   font-size: var(--fs-data);
-  color: var(--fg-dim);
+  color: var(--fg); /* white — readable on the black theme */
   white-space: pre-wrap;
   line-height: 1.55;
   max-height: 360px;
@@ -829,7 +829,7 @@ select {
   font-size: var(--fs-label);
   letter-spacing: 0.05em;
 }
-.expect--muted li { color: var(--fg-dim); }
+.expect--muted li { color: var(--fg); } /* responsibilities also white, per request */
 .jd-more {
   margin-top: 12px;
 }
