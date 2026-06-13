@@ -781,12 +781,70 @@ select {
 }
 .jdbody {
   font-size: var(--fs-data);
-  color: var(--fg-dim);
+  color: var(--fg); /* white — readable on the black theme */
   white-space: pre-wrap;
   line-height: 1.55;
   max-height: 360px;
   overflow: auto;
 }
+
+/* "What they're looking for" — readable white, point form (replaces the dim raw dump) */
+.expect {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.expect li {
+  position: relative;
+  padding-left: 16px;
+  color: var(--fg); /* #fafafa — high contrast on black */
+  font-size: var(--fs-data);
+  line-height: 1.5;
+}
+.expect li::before {
+  content: '›';
+  position: absolute;
+  left: 2px;
+  color: var(--signal);
+  font-weight: 700;
+}
+.expect--meta {
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.expect--meta li {
+  padding-left: 0;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.expect--meta li::before { content: none; }
+.expect__k {
+  flex: 0 0 84px;
+  color: var(--fg-faint);
+  text-transform: uppercase;
+  font-size: var(--fs-label);
+  letter-spacing: 0.05em;
+}
+.expect--muted li { color: var(--fg); } /* responsibilities also white, per request */
+.jd-more {
+  margin-top: 12px;
+}
+.jd-more > summary {
+  cursor: pointer;
+  color: var(--fg-faint);
+  font-size: var(--fs-label);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  list-style: none;
+}
+.jd-more > summary::-webkit-details-marker { display: none; }
+.jd-more > summary::before { content: '+ '; color: var(--signal); }
+.jd-more[open] > summary::before { content: '− '; }
+.jd-more .expect { margin-top: 8px; }
 
 /* ============================================================================
    queue indicator
