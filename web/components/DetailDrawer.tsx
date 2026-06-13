@@ -89,6 +89,12 @@ export function DetailDrawer({
                 <span className="faint">no keyword data</span>
               )}
             </div>
+            {(row.stack_mismatch || (row.exp_note && row.exp_note !== 'unverified')) && (
+              <div className="faint" style={{ marginTop: 6, fontSize: '0.85em' }}>
+                {row.stack_mismatch ? `⚠ stack mismatch: this role centres on ${row.stack_mismatch}, not your primary stack. ` : ''}
+                {row.exp_note && row.exp_note !== 'unverified' ? `experience: ${row.exp_note}.` : ''}
+              </div>
+            )}
           </div>
 
           <div className="section">

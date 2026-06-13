@@ -16,6 +16,8 @@ export interface BoardRow {
   gap: string[];
   languages?: string;
   pinned?: boolean; // a just-fetched posting forced to the top of the board
+  stack_mismatch?: string; // ecosystem family the role needs but the CV lacks (e.g. "java-jvm")
+  exp_note?: string; // experience-fit note (e.g. "~2y vs 8+y wanted", "meets 3+y")
 }
 
 export interface BoardResponse {
