@@ -9,10 +9,18 @@ you HAVE vs the GAPs — then lets the user tailor a CV+CL for any pick in one s
 > Needs a real `data/cv.master.md` (run `onboard` first if missing).
 
 ## What the board is (and isn't)
-The board uses a **fast, deterministic match score** (`scripts/match-score.mjs`:
-keyword coverage + TF-IDF similarity of the posting against the master CV) so it
-can rank MANY postings cheaply. It's a *pre-rank to triage* — the deep, judged
-score is still `evaluate`, which you run on the ones worth a closer look.
+The board uses a **fast, deterministic, skill-aware match score**
+(`scripts/match-score.mjs` + the `lib/skills.mjs` taxonomy) so it can rank MANY
+postings cheaply. Rather than raw keyword overlap, it scores whether the candidate
+has the role's **primary build stack** — its *stack-defining* skills (React, Spring
+Boot, Django, …) as opposed to cross-cutting tools every stack shares (Docker, AWS,
+SQL) — at real proficiency, plus the **years of experience** the role wants. So a
+Node/React CV is no longer rated a strong fit for a Spring/Java job just because
+both mention "REST APIs, microservices, Docker, Agile"; an off-stack posting is
+driven down and the row explains why (`stack_mismatch`, missing core skills). A
+TF-IDF lexical blend is kept as a low-weight backstop (and carries prose-heavy,
+non-engineering roles). It's still a *pre-rank to triage* — the deep, judged score
+is `evaluate`, which you run on the ones worth a closer look.
 
 ## Step 1 — Gather openings
 Run `node scripts/board.mjs --json` (pass through any filters the user gave):

@@ -91,13 +91,18 @@ export function ageLabel(posted, today) {
 // `jdToks` (optional) = the posting's pre-tokenized content, when the caller
 // already tokenized it for the corpus idf.
 function scoreRow(c, cv, scoreCtx, jdToks = null) {
-  const s = scoreMatch(c.content || '', cv, jdToks ? { ...scoreCtx, jdToks } : scoreCtx);
+  // The role title feeds seniority/experience parsing; jdToks (when supplied)
+  // reuses the corpus tokenization. scoreCtx already carries the CV prep + idf + today.
+  const s = scoreMatch(c.content || '', cv, { ...scoreCtx, title: c.role || '', ...(jdToks ? { jdToks } : {}) });
+  const m = s.reasons?.stackMismatch;
   return {
     company: c.company, role: c.role, url: c.url, posted: c.posted || '',
     location: c.location || '', experience: extractExperience(c.content || ''),
     languages: formatLanguages(extractLanguages(c.content || ''), { max: 4 }),
     jd_path: c.jd_path || '', source: c.source,
     score: s.score, fit: fitScore(s.score), band: s.band, have: s.have, gap: s.gap,
+    // why this band: surfaced so the board/UI can explain a low rank honestly.
+    stack_mismatch: m ? m.family : '', exp_note: s.reasons?.experience?.note || '',
   };
 }
 
@@ -417,8 +422,10 @@ async function main() {
   // thousands-of-postings board this is most of the scoring CPU.
   const jdToksList = filtered.map((c) => normTokens(c.content || ''));
   const corpusIdf = buildCorpusIdf([...jdToksList, cv]);
-  const cvPrep = prepCv(cv, { idf: corpusIdf });
-  const scoreCtx = { idf: corpusIdf, cvKeywords: cvPrep.keywords, cv: cvPrep };
+  // Recognize the CV's skills + estimate professional years ONCE (resolved against
+  // `today` so "Present" date ranges are computed consistently for the whole board).
+  const cvPrep = prepCv(cv, { idf: corpusIdf, today });
+  const scoreCtx = { idf: corpusIdf, cvKeywords: cvPrep.keywords, cv: cvPrep, today };
   const rows = filtered.map((c, i) => scoreRow(c, cv, scoreCtx, jdToksList[i]));
   const board = assembleBoard(rows, { minBand: args.min, recentDays: Number.isFinite(args.recent) ? args.recent : null, today });
   // Cap rendered rows for UI responsiveness; the full filtered count is still

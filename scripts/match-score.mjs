@@ -6,10 +6,22 @@
 // (The agent's `evaluate` mode is the deep, judged score for the postings the
 // user actually cares about — this is the cheap pre-rank.)
 //
-// Score = 0.45*coverage(JD→CV) + 0.35*relevance(CV→JD) + 0.2*TF-IDF cosine, in
-// [0,1], mapped to a band:
-//   STRONGEST >=0.48 · Very strong >=0.42 · Strong >=0.36 · Moderate >=0.28 · Weak
-// Also returns `have` (JD keywords found in the CV) and `gap` (JD keywords missing).
+// SKILL- & EXPERIENCE-AWARE score (not bag-of-words). The old pure lexical blend
+// rated a Node/React CV a "Very strong" fit for a Spring/Java job because both
+// share generic full-stack vocabulary. This scorer instead asks: does the
+// candidate have the role's PRIMARY build stack (its stack-defining skills), at
+// real proficiency, with the years of experience the role wants?
+//
+//   base = 0.50*coreCoverage + 0.30*skillCoverage + 0.20*lexScore   (recognized)
+//   score = base · combinedPenalty                                  (clamped [0,1])
+// where coreCoverage is over the JD's REQUIRED stack-defining skills (proficiency-
+// weighted, with same-family sibling credit), skillCoverage is over all JD skills
+// (nice-to-haves at half weight), lexScore is the legacy TF-IDF blend (a backstop,
+// blended in fully when the JD names no recognized skills so prose-heavy roles stay
+// on the same scale), and combinedPenalty = max(0.40, min(stackConflict, expFit)) —
+// a Node dev × Spring job is crushed; a 4-yr candidate × "8+ yrs senior" is damped;
+// the two never compound. See lib/skills.mjs for recognition + experience parsing.
+// Returns `have`/`gap` (matched / missing JD skills) and `reasons` (why).
 //
 // Usage:
 //   node scripts/match-score.mjs --jd <file|text> --cv <file|text> [--top 18] [--summary]
@@ -22,24 +34,26 @@ import assert from 'node:assert/strict';
 
 import { stem, stemTokens } from '../lib/text.mjs';
 import { buildTf, emptyIdf, tfidfVec, cosine, indexAdd } from '../lib/tfidf.mjs';
+import { cvSkills, jdSkills, familyMass, jdRequiredYears, candidateYears } from '../lib/skills.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_CV = join(ROOT, 'data', 'cv.master.md');
 
 // Bands, best → worst. A score maps to the first band whose floor it clears.
-// CALIBRATED to the score's REAL range: score = 0.6*coverage + 0.4*cosine only
-// approaches 1.0 for near-identical text. For real CV↔JD pairs, coverage tops out
-// ~0.5 (a JD always has many terms a CV won't) and cosine ~0.35, so even an
-// excellent on-paper match lands ~0.45–0.55, a solid match ~0.38–0.45. The old
-// floors (0.85/0.70/0.55) were unreachable in practice, so every real posting read
-// as "Weak". These floors map the achievable range to bands that actually
-// discriminate your best fits. (Absolute fit still depends on how relevant the
-// fetched jobs are — target the search to raise real matches, not just the label.)
+// RE-CALIBRATED for the skill-aware score, whose realistic range is far wider than
+// the old lexical blend's (~0.2–0.55): an in-field match where the candidate has
+// the role's core stack now reaches ~0.85–0.95, a solid-but-partial fit ~0.55–0.70,
+// and an off-stack job is driven down by the conflict penalty to ~0.05–0.25. These
+// floors were derived from a histogram of the real board (data/jds/*) plus
+// controlled fixtures so the bands actually discriminate. The five LABELS are kept
+// (the web UI's CSS depends on them); only the floors moved. (Absolute fit still
+// depends on how relevant the fetched jobs are — target the search to raise real
+// matches, not just the label.)
 export const BANDS = [
-  ['STRONGEST', 0.48],
-  ['Very strong', 0.42],
-  ['Strong', 0.36],
-  ['Moderate', 0.28],
+  ['STRONGEST', 0.78],
+  ['Very strong', 0.62],
+  ['Strong', 0.46],
+  ['Moderate', 0.30],
   ['Weak', 0],
 ];
 export function bandFor(score) {
@@ -53,13 +67,10 @@ export function bandRank(label) {
 }
 export const STARS = { STRONGEST: '★★★★', 'Very strong': '★★★', Strong: '★★', Moderate: '★', Weak: '·' };
 
-// Calibrated 0–10 "fit" for DISPLAY. The raw score is a lexical-overlap proxy whose
-// realistic ceiling is ~0.5 (a CV and a JD are different document types — a JD is
-// half boilerplate no CV contains), so a raw 0.50 is an EXCELLENT match, not "5/10".
-// This maps the raw score's real range onto 0–10 anchored to the band floors, so a
-// STRONGEST match reads ~8.5–10 and the number is interpretable. Monotonic, so it
-// never changes the ranking. It is NOT a probability of getting hired.
-const FIT_ANCHORS = [[0, 0], [0.20, 3], [0.28, 4], [0.36, 5.5], [0.42, 7], [0.48, 8.5], [0.55, 9.5], [0.70, 10]];
+// Calibrated 0–10 "fit" for DISPLAY, anchored to the NEW band floors so a STRONGEST
+// match reads ~8.5–10 and the number is interpretable. Monotonic in the raw score,
+// so it never changes the ranking. It is NOT a probability of getting hired.
+const FIT_ANCHORS = [[0, 0], [0.15, 2], [0.30, 4], [0.46, 5.5], [0.62, 7], [0.78, 8.5], [0.90, 9.5], [1.0, 10]];
 export function fitScore(raw) {
   const x = Math.max(0, Math.min(1, Number(raw) || 0));
   for (let i = 1; i < FIT_ANCHORS.length; i++) {
@@ -144,71 +155,166 @@ export function buildCorpusIdf(texts) {
 // (tokenize+stem, term frequencies, keywords, and — when a corpus idf is given —
 // the tf-idf vector). On a 2,700-posting board this is the difference between
 // stemming the CV once and stemming it 2,700 times.
-export function prepCv(cvText, { idf = null, topK = 24 } = {}) {
+export function prepCv(cvText, { idf = null, topK = 24, profileYears = null, today = null } = {}) {
   const toks = normTokens(cvText);
   const tf = buildTf(toks);
+  const skills = cvSkills(cvText);                 // proficiency-weighted recognized skills
   return {
     toks,
     set: new Set(toks),
     tf,
     keywords: keywordsFromToks(toks, topK),
     vec: idf ? tfidfVec(tf, idf) : null, // only valid against that same idf
+    skills,
+    famMass: familyMass(skills),                   // mass per ecosystem family
+    candYears: candidateYears(cvText, { profileYears, today }),
   };
 }
 
-// The core: returns { score, band, coverage, cosine, have:[surface], gap:[surface] }.
-// Perf knobs (all optional, results identical): `jdToks` = pre-tokenized JD text;
-// `cv` = a prepCv() object so the CV isn't re-tokenized/re-vectorized per JD.
-export function scoreMatch(jdText, cvText, { topK = 18, idf = null, cvKeywords = null, jdToks = null, cv = null } = {}) {
+// ─── scoring tunables (all in one place so calibration is auditable) ──────────
+const W_CORE = 0.50;   // weight on the role's PRIMARY-stack coverage (the discriminator)
+const W_SKILL = 0.30;  // weight on overall recognized-skill coverage
+const W_LEX = 0.20;    // weight on the legacy lexical blend (a backstop)
+const MIN_SKILLS = 4;  // JD recognized-skill count for FULL skill-regime confidence
+const SIBLING_CREDIT = 0.5;  // max core credit for a same-family substitute (Vue≈React)
+const FAM_UNIT = 1.0;  // family-mass that counts as "solidly in this ecosystem"
+const CORE_CUT = 0.5;  // coreCoverage below which a stack-conflict penalty can apply
+const ALIGN_VETO = 0.6; // familyAlignment at/above which the conflict penalty is vetoed
+const PENALTY_FLOOR = 0.45; // hardest stack-conflict multiplier (at coreCoverage 0)
+const COMBINED_FLOOR = 0.40; // two soft penalties can never drag below this
+const LEX_FULL = 0.55; // lexScore value treated as "1.0" when rescaling the fallback
+
+// The core: returns { score, band, coverage, relevance, cosine, coreCoverage,
+// skillCoverage, have:[skill], gap:[skill], reasons:{...} }. Perf knobs (optional,
+// results identical): `jdToks` = pre-tokenized JD; `cv` = a prepCv() object so the
+// CV isn't re-recognized/re-vectorized per JD. `title`/`profileYears`/`today` feed
+// the experience-fit multiplier (all optional — it stays neutral when unknown).
+export function scoreMatch(jdText, cvText, { topK = 18, idf = null, cvKeywords = null, jdToks = null, cv = null, title = '', profileYears = null, today = null } = {}) {
   const jdT = jdToks || normTokens(jdText);
-  const cvP = cv || prepCv(cvText, { idf, topK: Math.max(topK, 24) });
+  const cvP = cv || prepCv(cvText, { idf, topK: Math.max(topK, 24), profileYears, today });
   if (!jdT.length || !cvP.toks.length) {
-    return { score: 0, band: 'Weak', coverage: 0, cosine: 0, have: [], gap: [], keywords: [] };
+    return { score: 0, band: 'Weak', coverage: 0, relevance: 0, cosine: 0, coreCoverage: 0, skillCoverage: 0, have: [], gap: [], keywords: [], reasons: {} };
   }
+
+  // ── 1) legacy lexical blend (now a backstop, not the whole score) ──
   const cvSet = cvP.set;
   const jdSet = new Set(jdT);
   const keywords = keywordsFromToks(jdT, topK);
-  const matched = keywords.filter((k) => cvSet.has(k));
-  // coverage (JD→CV): of the JD's salient asks, how many does the candidate have.
-  const coverage = keywords.length ? matched.length / keywords.length : 0;
-  // relevance (CV→JD): of the candidate's OWN salient terms (skills/domains), how
-  // many does this JD mention. A job in the candidate's field hits many; an
-  // off-field job hits few. This is the half the old score ignored — without it a
-  // perfect-domain match and a vaguely-overlapping one scored nearly the same.
-  // cvKeywords is the same for every JD scored against one CV — the caller (board)
-  // precomputes it ONCE and passes it in, instead of re-tokenizing the CV per JD.
+  const matchedKw = keywords.filter((k) => cvSet.has(k));
+  const coverage = keywords.length ? matchedKw.length / keywords.length : 0;
   const cvKw = cvKeywords || cvP.keywords;
   const relevance = cvKw.length ? cvKw.filter((k) => jdSet.has(k)).length / cvKw.length : 0;
-
-  // TF-IDF cosine as a lexical-similarity proxy. A caller (board.mjs) can pass a
-  // CORPUS idf built over every posting + the CV so shared rare skills carry real
-  // weight; without one we fall back to a 2-doc (JD, CV) corpus for standalone use.
   const jdTf = buildTf(jdT);
   let useIdf = idf;
-  if (!useIdf) {
-    useIdf = emptyIdf();
-    indexAdd(useIdf, jdTf);
-    indexAdd(useIdf, cvP.tf);
-  }
-  // cvP.vec was built against the corpus idf — only reuse it when scoring with
-  // that same idf (the fallback 2-doc idf above is a different space).
+  if (!useIdf) { useIdf = emptyIdf(); indexAdd(useIdf, jdTf); indexAdd(useIdf, cvP.tf); }
   const cvVec = (idf && cvP.vec) ? cvP.vec : tfidfVec(cvP.tf, useIdf);
   const cos = cosine(tfidfVec(jdTf, useIdf), cvVec);
+  const lexScore = 0.45 * coverage + 0.35 * relevance + 0.2 * cos;
 
-  // Bidirectional blend: qualification (coverage) + field-relevance (relevance) +
-  // overall lexical similarity (cosine).
-  const score = +(0.45 * coverage + 0.35 * relevance + 0.2 * cos).toFixed(4);
+  // ── 2) skill recognition: candidate (proficiency-weighted) vs JD (required/nice) ──
+  const cvSk = cvP.skills;                  // Map canonical -> { family, stackDefining, weight }
+  const cvFam = cvP.famMass;                // { family: summed weight }
+  const jd = jdSkills(jdText);
+  const R = jd.required, Nc = jd.nice, A = jd.all;
+
+  // candidate's credit for a specific JD skill: exact match (proficiency weight) OR
+  // a same-family substitute (a Vue dev gets partial credit toward a React ask).
+  const credit = (canonical, family) => {
+    const hit = cvSk.get(canonical);
+    if (hit) return Math.min(1, hit.weight);
+    const mass = cvFam[family] || 0;
+    return mass > 0 ? Math.min(SIBLING_CREDIT, SIBLING_CREDIT * Math.min(1, mass / FAM_UNIT)) : 0;
+  };
+
+  // coreCoverage: over the JD's REQUIRED stack-defining skills only (per-JD core).
+  const jdCore = [...R].filter(([, m]) => m.stackDefining).map(([c, m]) => ({ c, family: m.family }));
+  const matchedCore = [], missingCore = [];
+  let coreCoverage;
+  if (jdCore.length) {
+    let s = 0;
+    for (const { c, family } of jdCore) { const cr = credit(c, family); s += cr; (cr >= 0.75 ? matchedCore : missingCore).push(c); }
+    coreCoverage = s / jdCore.length;
+  } else {
+    coreCoverage = null; // no stack-defining requirement → neutral; set to skillCoverage below
+  }
+
+  // skillCoverage: all JD skills, required full weight, nice-to-have half weight.
+  let num = 0, den = 0;
+  for (const [c, m] of R) { num += credit(c, m.family); den += 1; }
+  for (const [c, m] of Nc) { if (R.has(c)) continue; num += 0.5 * credit(c, m.family); den += 0.5; }
+  const skillCoverage = den ? num / den : 0;
+  if (coreCoverage === null) coreCoverage = skillCoverage;
+
+  // ── 3) compose base; blend toward lexical as recognition confidence drops ──
+  const conf = Math.min(1, A.size / MIN_SKILLS);          // 0 (no skills) → 1 (≥MIN_SKILLS)
+  const lexScaled = Math.min(1, lexScore / LEX_FULL);     // legacy score on the SAME 0–1 scale
+  const baseRecognized = W_CORE * coreCoverage + W_SKILL * skillCoverage + W_LEX * lexScore;
+  let base = conf * baseRecognized + (1 - conf) * lexScaled;
+
+  // ── 4) stack-conflict penalty: continuous ramp, family-MASS gated, align-vetoed ──
+  let stackPenalty = 1, stackMismatch = null;
+  if (jdCore.length) {
+    const famCount = Object.create(null);
+    for (const { family } of jdCore) famCount[family] = (famCount[family] || 0) + 1;
+    const domFamily = Object.keys(famCount).sort((a, b) => famCount[b] - famCount[a])[0];
+    const candDomMass = cvFam[domFamily] || 0;
+    // familyAlignment: graded share of the JD core whose family the candidate is in.
+    let align = 0;
+    for (const { family } of jdCore) align += Math.min(1, (cvFam[family] || 0) / FAM_UNIT);
+    align /= jdCore.length;
+    // Fires only when the candidate is genuinely OUT of the dominant ecosystem
+    // (low core coverage AND little mass in that family AND low overall alignment).
+    if (coreCoverage < CORE_CUT && candDomMass < FAM_UNIT && align < ALIGN_VETO) {
+      stackPenalty = Math.max(PENALTY_FLOOR, Math.min(1, PENALTY_FLOOR + (1 - PENALTY_FLOOR) * (coreCoverage / CORE_CUT)));
+      stackMismatch = { family: domFamily, missing: missingCore.slice(0, 4) };
+    }
+  }
+
+  // ── 5) experience-fit multiplier: conservative, neutral when unknown ──
+  const reqY = jdRequiredYears(jdText, title);
+  const candY = cvP.candYears;
+  let expFit = 1, expNote = 'unverified';
+  if (reqY.confident && candY.confident) {
+    const bar = Math.max(0, reqY.years);
+    if (bar <= 1) { if (candY.years >= 6) { expFit = 0.92; expNote = `overqualified (~${candY.years}y, entry role)`; } else expNote = 'entry-level'; }
+    else if (candY.years >= bar) expNote = `meets ${bar}+y`;
+    else { expFit = Math.max(0.7, 0.7 + 0.3 * (candY.years / bar)); expNote = `~${candY.years}y vs ${bar}+y wanted`; }
+  }
+
+  // ── 6) combine WITHOUT compounding (single worst penalty, floored), then clamp ──
+  const combined = Math.max(COMBINED_FLOOR, Math.min(stackPenalty, expFit));
+  let score = base * combined;
+  score = Number.isFinite(score) ? +Math.max(0, Math.min(1, score)).toFixed(4) : 0;
+
+  // thin JD (almost no recognized skills) → don't emit a confident top band.
+  const thin = A.size < 2;
+  let band = bandFor(score);
+  if (thin && bandRank(band) < bandRank('Moderate')) band = 'Moderate';
+
+  // ── display: matched / missing JD skills (skill-based have/gap), with lexical fallback ──
   const jdSurface = surfaceMap(jdText);
   const display = (stems) => stems.map((s) => jdSurface.get(s) || s);
+  const allJd = [...A.keys()];
+  const have = allJd.filter((c) => credit(c, A.get(c).family) >= 0.75);
+  const gap = allJd.filter((c) => credit(c, A.get(c).family) < 0.3);
   return {
     score,
-    band: bandFor(score),
+    band,
     coverage: +coverage.toFixed(4),
     relevance: +relevance.toFixed(4),
     cosine: +cos.toFixed(4),
-    have: display(matched),
-    gap: display(keywords.filter((k) => !cvSet.has(k))),
-    keywords: display(keywords),
+    coreCoverage: +coreCoverage.toFixed(4),
+    skillCoverage: +skillCoverage.toFixed(4),
+    // skill-based have/gap when the JD names skills; else fall back to keyword overlap.
+    have: A.size ? have : display(matchedKw),
+    gap: A.size ? gap : display(keywords.filter((k) => !cvSet.has(k))),
+    keywords: A.size ? allJd : display(keywords),
+    reasons: {
+      matchedCore, missingCore, stackMismatch,
+      experience: { required: reqY.years, candidate: candY.confident ? candY.years : null, note: expNote, multiplier: +expFit.toFixed(3) },
+      stackPenalty: +stackPenalty.toFixed(3),
+      confidence: +conf.toFixed(2),
+    },
   };
 }
 
@@ -268,48 +374,68 @@ export function selfTest() {
   const ok = (c, m) => { assert.ok(c, m); n++; };
   const eq = (a, b, m) => { assert.equal(a, b, m); n++; };
 
-  // bands (calibrated floors: STRONGEST 0.52 · Very strong 0.45 · Strong 0.38 · Moderate 0.30)
-  eq(bandFor(0.90), 'STRONGEST', 'band STRONGEST'); eq(bandFor(0.48), 'STRONGEST', 'band STRONGEST at floor');
-  eq(bandFor(0.44), 'Very strong', 'band Very strong'); eq(bandFor(0.38), 'Strong', 'band Strong');
+  // bands (re-calibrated floors: STRONGEST 0.78 · Very strong 0.62 · Strong 0.46 · Moderate 0.30)
+  eq(bandFor(0.90), 'STRONGEST', 'band STRONGEST'); eq(bandFor(0.78), 'STRONGEST', 'band STRONGEST at floor');
+  eq(bandFor(0.70), 'Very strong', 'band Very strong'); eq(bandFor(0.50), 'Strong', 'band Strong');
   eq(bandFor(0.30), 'Moderate', 'band Moderate'); eq(bandFor(0.1), 'Weak', 'band Weak');
 
-  // fitScore: calibrated 0–10, monotonic, anchored to band floors
+  // fitScore: calibrated 0–10, monotonic, anchored to the new band floors
   eq(fitScore(0), 0, 'fit 0 → 0'); eq(fitScore(1), 10, 'fit 1 caps at 10');
-  ok(fitScore(0.48) >= 8.4 && fitScore(0.48) <= 8.6, `fit at STRONGEST floor ≈ 8.5 (got ${fitScore(0.48)})`);
-  ok(fitScore(0.50) > fitScore(0.40) && fitScore(0.40) > fitScore(0.30), 'fit is monotonic in raw score');
+  ok(fitScore(0.78) >= 8.4 && fitScore(0.78) <= 8.6, `fit at STRONGEST floor ≈ 8.5 (got ${fitScore(0.78)})`);
+  ok(fitScore(0.80) > fitScore(0.60) && fitScore(0.60) > fitScore(0.40), 'fit is monotonic in raw score');
   ok(bandRank('STRONGEST') < bandRank('Strong') && bandRank('Strong') < bandRank('Weak'), 'bandRank orders best→worst');
 
-  // jdKeywords surfaces the salient terms
+  // jdKeywords surfaces the salient terms (lexical layer unchanged)
   const kws = jdKeywords('We need Python, Airflow and Kubernetes. Python Python.', 5);
   ok(kws.includes(stem('python')), 'jdKeywords includes repeated salient term');
 
-  const cv = 'Built data pipelines in Python and Airflow, productionising ML models on AWS; cut latency 40%. SQL, pandas, ETL.';
-  const strongJd = 'Looking for a data engineer strong in Python, Airflow, SQL and ETL to build ML data pipelines on AWS.';
-  const weakJd = 'Seeking a frontend designer skilled in Figma, typography, brand identity and motion graphics for marketing.';
+  // ── THE HEADLINE FIX: a Node/React CV must rank a Node JD FAR above a Spring/Java JD ──
+  const nodeCv = ['## Skills', '- React, Redux, TypeScript, Node.js, Express, NestJS, MongoDB, Docker, Kubernetes, AWS',
+    '## Experience', '### Acme — Senior Full Stack Developer — 2021 – Present',
+    '- Built React + TypeScript SPAs and Node.js/Express REST APIs; deployed on AWS with Docker.'].join('\n');
+  const nodeJd = 'Full Stack Developer (Node.js / React). Build REST APIs in Node.js and Express and React/TypeScript frontends. MongoDB, Docker, Kubernetes, AWS. 3+ years.';
+  const springJd = 'Java Full Stack Developer (Spring Boot). Build REST APIs in Java with Spring Boot, Hibernate and JPA, frontends in Angular. Microservices, Docker, Kubernetes, AWS, PostgreSQL. Senior, 8+ years.';
+  const onNode = scoreMatch(nodeJd, nodeCv, { title: 'Full Stack Developer' });
+  const onSpring = scoreMatch(springJd, nodeCv, { title: 'Java Full Stack Developer' });
+  eq(onNode.band, 'STRONGEST', `Node CV × Node JD is STRONGEST (got ${onNode.score} ${onNode.band})`);
+  ok(bandRank(onSpring.band) >= bandRank('Moderate'), `Node CV × Spring JD lands Moderate-or-Weak, NOT Very strong (got ${onSpring.score} ${onSpring.band})`);
+  ok(onNode.score - onSpring.score > 0.4, `huge separation between right and wrong stack (${onNode.score} vs ${onSpring.score})`);
+  ok(onSpring.reasons.stackMismatch && onSpring.reasons.stackMismatch.family === 'java-jvm', 'Spring mismatch flags the java-jvm stack conflict');
+  ok(onSpring.reasons.missingCore.includes('Spring Boot') && onSpring.reasons.missingCore.includes('Java'), 'missingCore lists the unmet core stack');
+  ok(onNode.reasons.matchedCore.includes('React') && onNode.reasons.matchedCore.includes('Node.js'), 'matchedCore lists the met core stack');
 
-  const strong = scoreMatch(strongJd, cv);
-  const weak = scoreMatch(weakJd, cv);
-  ok(strong.score > weak.score, `strong JD scores higher than weak (${strong.score} > ${weak.score})`);
-  ok(bandRank(strong.band) <= bandRank('Strong'), `well-matched JD reaches at least Strong (got ${strong.score} ${strong.band})`);
-  ok(strong.have.some((h) => /python/i.test(h)), 'have[] surfaces a matched skill (Python)');
-  ok(weak.gap.length > 0, 'weak JD reports gaps');
-  ok(weak.band === 'Weak' || weak.band === 'Moderate', `mismatched JD lands low (got ${weak.band})`);
+  // proficiency / polyglot: a CV that only LISTS the stack (no real experience) must NOT
+  // score like a specialist who BUILT with it.
+  const polyglotCv = ['## Skills', '- Python, pandas, PyTorch, Java, Spring Boot',
+    '## Experience', '### DataCo — Data Scientist — 2020 – Present', '- Built ML models in Python with PyTorch and pandas.'].join('\n');
+  const realSpringCv = ['## Skills', '- Java, Spring Boot, Hibernate',
+    '## Experience', '### BankCo — Backend Engineer — 2018 – Present', '- Built microservices in Java with Spring Boot and Hibernate; designed JPA schemas.'].join('\n');
+  const polyOnSpring = scoreMatch(springJd, polyglotCv, { title: 'Java Full Stack Developer' });
+  const realOnSpring = scoreMatch(springJd, realSpringCv, { title: 'Java Full Stack Developer' });
+  ok(realOnSpring.score > polyOnSpring.score, `a real Spring engineer outranks a Python dev who merely lists Spring (${realOnSpring.score} > ${polyOnSpring.score})`);
 
-  // display uses readable surface forms, not bare stems
-  ok(strong.keywords.some((k) => k === 'Python' || k === 'Airflow' || k === 'Kubernetes' || /[A-Z]/.test(k) || k.length > 3), 'keywords shown as surface forms');
+  // required vs nice-to-have: a "React a plus" line on a DS JD must not make a React dev a top fit
+  const dsJd = 'Senior Data Scientist. Required: Python, PyTorch, machine learning. Nice to have: exposure to React and some Node.js. 5+ years.';
+  const dsCv = '## Skills\n- Python, PyTorch, scikit-learn, pandas, SQL\n## Experience\n### X — Data Scientist — 2018 – Present\n- ML in Python with PyTorch.';
+  ok(scoreMatch(dsJd, dsCv, { title: 'Senior Data Scientist' }).score > scoreMatch(dsJd, nodeCv, { title: 'Senior Data Scientist' }).score,
+    'a data scientist outranks a React dev for a DS role (React is only nice-to-have)');
 
-  // empty inputs are safe
-  eq(scoreMatch('', cv).score, 0, 'empty JD → 0'); eq(scoreMatch(strongJd, '').score, 0, 'empty CV → 0');
+  // experience multiplier: damps an under-experienced candidate; neutral when unknown
+  const seniorJd = 'Senior Engineer, 8+ years. Build React and Node.js apps.';
+  const juniorCv = '## Experience\n### Y — React Developer — 2024 – Present\n- React and Node.js.\n## Skills\n- React, Node.js, TypeScript';
+  const expR = scoreMatch(seniorJd, juniorCv, { title: 'Senior Engineer', today: '2026-06-13' });
+  ok(expR.reasons.experience.multiplier < 1, 'under-experienced candidate gets an experience damp');
+  eq(scoreMatch('Build React apps with Node.js.', nodeCv).reasons.experience.note, 'unverified', 'experience neutral when no years stated');
 
-  // jdKeywords edge cases
-  eq(jdKeywords(strongJd, 0).length, 0, 'topK=0 returns no keywords');
-  const boilerplateJd = 'We are looking for someone who wants to join a great team and work on various tools.';
-  ok(jdKeywords(boilerplateJd, 8).every((k) => !JD_BOILERPLATE.has(k)), 'pure-boilerplate JD yields no skill keywords');
-  ok(!scoreMatch(strongJd, cv).gap.some((g) => /^(if|range|value|various|who)$/i.test(g)), 'noise words no longer surface as gaps');
+  // degenerate inputs are finite + safe
+  eq(scoreMatch('', nodeCv).score, 0, 'empty JD → 0'); eq(scoreMatch(nodeJd, '').score, 0, 'empty CV → 0');
+  ok(Number.isFinite(scoreMatch('We value teamwork and growth.', nodeCv).score), 'pure-prose JD yields a finite score');
+  const thin = scoreMatch('React.', nodeCv);
+  ok(bandRank(thin.band) >= bandRank('Moderate'), 'a one-skill JD is capped (no confident STRONGEST off one token)');
 
-  // identical text → top score; boilerplate-only JD → low
-  ok(scoreMatch(cv, cv).score >= 0.85, `identical CV/JD scores STRONGEST (got ${scoreMatch(cv, cv).score})`);
-  ok(scoreMatch(boilerplateJd, cv).score < 0.4, 'boilerplate-only JD scores low (no real overlap)');
+  // identical text still tops out; off-domain prose stays low
+  ok(scoreMatch(nodeCv, nodeCv).score >= 0.85, `identical CV/JD scores STRONGEST (got ${scoreMatch(nodeCv, nodeCv).score})`);
+  ok(scoreMatch('Seeking a florist with floral design and customer service skills.', nodeCv).score < 0.4, 'unrelated JD scores low');
 
   console.log(`match-score self-test: ${n} checks passed`);
   process.exit(0);
