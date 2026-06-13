@@ -20,6 +20,7 @@
 // Usage:
 //   node scripts/jobspy.mjs                                  # profile-driven, JSON
 //   node scripts/jobspy.mjs --country Germany --city Berlin --recent 7
+//   node scripts/jobspy.mjs --countries "Germany,France,Italy" --concurrency 3   # sweep, one ingest
 //   node scripts/jobspy.mjs --search "data engineer,ml engineer" --results 25
 //   node scripts/jobspy.mjs --boards indeed,zip_recruiter,google,linkedin
 //   node scripts/jobspy.mjs --remote
@@ -46,6 +47,10 @@ const PROFILE = join(ROOT, 'data', 'profile.yml');
 const DEFAULT_BOARDS = ['indeed', 'zip_recruiter', 'glassdoor', 'google'];
 const DEFAULT_COUNTRY = 'Luxembourg';
 const DEFAULT_RESULTS = 40; // per board per search term (was 20) — pull more per role
+// Multi-country sweeps fetch this many countries at once. Kept deliberately low: the
+// job boards rate-limit aggressive scraping, so a small pool is meaningfully faster
+// than one-at-a-time without risking a temporary block. Override with --concurrency.
+const DEFAULT_CONCURRENCY = 3;
 
 // ─── pure helpers (exported for --self-test) ──────────────────────────
 
@@ -173,14 +178,16 @@ function runSidecar(config, { timeoutMs = 170_000, bin = pythonBin(), script = P
 
 // ─── main ─────────────────────────────────────────────────────────────
 
-// Fetch → ingest. Returns the JSON envelope. `runner` is injectable for tests.
-export async function fetchAndIngest(args, { runner = runSidecar, dryRun = false } = {}) {
-  const config = deriveConfig(readProfile(), args);
+// Run the sidecar for ONE config and return its raw postings — NO ingest. Shared by
+// the single- and multi-country paths so every invocation dedups + persists in
+// exactly one ingest() call. (The multi path ingests once for the whole sweep, which
+// is what lets it fetch countries in parallel without racing the dedup ledger.)
+async function fetchPostings(config, { runner = runSidecar } = {}) {
   const { err, stdout, stderr } = await runner(config);
   const { diag, fatal } = parseDiagnostics(stderr);
 
   if (fatal) {
-    return { ok: false, error: `${fatal.fatal}${fatal.hint ? ' — ' + fatal.hint : ''}`, config };
+    return { ok: false, postings: [], diag, error: `${fatal.fatal}${fatal.hint ? ' — ' + fatal.hint : ''}` };
   }
 
   // A spawn failure (no python on PATH and no .venv) returns an exec error with
@@ -189,11 +196,10 @@ export async function fetchAndIngest(args, { runner = runSidecar, dryRun = false
   if (err && !String(stdout).trim()) {
     const enoent = /ENOENT/.test(String(err.message || ''));
     return {
-      ok: false,
+      ok: false, postings: [], diag,
       error: enoent
         ? 'python not found — run `npm run jobspy:install` (creates .venv + installs python-jobspy)'
         : `jobspy sidecar failed to run: ${String(err.message || err).slice(0, 200)}`,
-      config,
     };
   }
 
@@ -202,9 +208,35 @@ export async function fetchAndIngest(args, { runner = runSidecar, dryRun = false
     postings = JSON.parse(stdout.trim() || '[]');
   } catch {
     const hint = err && /ENOENT/.test(String(err.message)) ? ' — python not found; run npm run jobspy:install' : '';
-    return { ok: false, error: `jobspy sidecar produced no JSON${hint}`, stderr: stderr.slice(0, 500), config };
+    return { ok: false, postings: [], diag, error: `jobspy sidecar produced no JSON${hint}` };
   }
   if (!Array.isArray(postings)) postings = [];
+  return { ok: true, postings, diag };
+}
+
+// Run async `task(item, i)` over `items` with at most `limit` calls in flight at
+// once; results keep input order. Lets a multi-country sweep fetch a few countries
+// concurrently without spawning one python process per country all at once (which
+// would hammer the boards and risk a rate-limit block). Exported for --self-test.
+export async function mapPool(items, limit, task) {
+  const list = Array.from(items);
+  const results = new Array(list.length);
+  const workers = Math.max(1, Math.min(Number(limit) | 0 || 1, list.length || 1));
+  let next = 0;
+  async function worker() {
+    for (let i = next++; i < list.length; i = next++) {
+      results[i] = await task(list[i], i);
+    }
+  }
+  await Promise.all(Array.from({ length: workers }, () => worker()));
+  return results;
+}
+
+// Fetch → ingest. Returns the JSON envelope. `runner` is injectable for tests.
+export async function fetchAndIngest(args, { runner = runSidecar, dryRun = false } = {}) {
+  const config = deriveConfig(readProfile(), args);
+  const { ok, postings, diag, error } = await fetchPostings(config, { runner });
+  if (!ok) return { ok: false, error, config };
 
   // Ingest through the shared engine (dedup + save JDs). source per-item already
   // set by the sidecar (indeed/zip_recruiter/google); 'jobspy' is the fallback.
@@ -226,9 +258,52 @@ export async function fetchAndIngest(args, { runner = runSidecar, dryRun = false
   };
 }
 
+// Multi-country sweep: fetch each country's boards with bounded concurrency, then
+// dedup + persist the WHOLE pile in a SINGLE ingest() call. One ingest = one atomic
+// read-modify-write of the dedup ledger, so concurrent fetches can't race or
+// double-write (the bug the web UI used to dodge by looping one country per HTTP
+// round-trip), and a posting that surfaces in several countries is deduped in one
+// pass. A country whose sidecar fails is recorded and skipped — it never aborts the
+// sweep. `runner` is injectable for tests.
+export async function fetchManyAndIngest(countries, args, { runner = runSidecar, dryRun = false, concurrency = DEFAULT_CONCURRENCY } = {}) {
+  const profile = readProfile();
+  const clean = [...new Set((countries || []).map((c) => String(c || '').trim()).filter(Boolean))];
+  if (!clean.length) return { ok: false, error: 'no countries given' };
+
+  const perCountry = await mapPool(clean, concurrency, async (country) => {
+    // A multi-country sweep is whole-country by definition: force city empty so a
+    // profile city can't mis-scope every country to one town.
+    const config = deriveConfig(profile, { ...args, country, city: '' });
+    const { ok, postings, error } = await fetchPostings(config, { runner });
+    return { country, ok, error: ok ? undefined : error, received: postings.length, postings, boards: config.sites };
+  });
+
+  // Pool every country's postings and dedup/persist them in ONE ingest call.
+  const allPostings = perCountry.flatMap((r) => r.postings);
+  const res = ingest(allPostings, { source: 'jobspy', mode: 'default', dryRun });
+
+  const failed = perCountry.filter((r) => !r.ok).length;
+  return {
+    ok: true,
+    source: 'jobspy',
+    countries: clean,
+    perCountry: perCountry.map(({ country, ok, error, received }) => ({ country, ok, error, received })),
+    boards: perCountry[0]?.boards || [],
+    received: allPostings.length,
+    perBoard: [],
+    counts: res.counts,
+    added: res.added,
+    saved_jds: res.saved_jds,
+    failed,
+    concurrency,
+    dryRun,
+  };
+}
+
 function parseArgs(argv) {
   const out = { json: true, selfTest: false, dryRun: false, remote: false,
-    search: null, boards: null, country: null, city: null, results: null, recent: null, jobType: null };
+    search: null, boards: null, country: null, countries: null, concurrency: null,
+    city: null, results: null, recent: null, jobType: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const val = () => argv[++i] ?? '';
@@ -243,6 +318,10 @@ function parseArgs(argv) {
     else if (a.startsWith('--boards=')) out.boards = splitList(a.slice(9));
     else if (a === '--country') out.country = val();
     else if (a.startsWith('--country=')) out.country = a.slice(10);
+    else if (a === '--countries') out.countries = splitList(val());
+    else if (a.startsWith('--countries=')) out.countries = splitList(a.slice(12));
+    else if (a === '--concurrency') out.concurrency = Number(val()) || null;
+    else if (a.startsWith('--concurrency=')) out.concurrency = Number(a.slice(14)) || null;
     else if (a === '--city') out.city = val();
     else if (a.startsWith('--city=')) out.city = a.slice(7);
     else if (a === '--results') out.results = Number(val()) || null;
@@ -257,6 +336,20 @@ function parseArgs(argv) {
 function printSummary(r) {
   if (!r.ok) {
     process.stderr.write(`jobspy: ${r.error}\n`);
+    return;
+  }
+  // Multi-country sweep: per-country breakdown instead of per-board.
+  if (r.perCountry) {
+    console.log(`careeros jobspy — ${r.countries.length} countries (concurrency ${r.concurrency}, boards: ${r.boards.join(', ')})`);
+    console.log('');
+    console.log(`  received:           ${r.received}`);
+    for (const c of r.perCountry) {
+      console.log(`    · ${c.country}: ${c.ok ? `${c.received} seen` : `ERROR ${c.error}`}`);
+    }
+    console.log(`  new openings added: ${r.counts?.added ?? 0}${r.dryRun ? '  (dry run — nothing written)' : ''}`);
+    console.log(`  duplicates:         ${r.counts?.dup ?? 0}`);
+    if (r.failed) console.log(`  countries failed:   ${r.failed}`);
+    if (!r.dryRun) console.log('\n  → see the ranked board:  node scripts/board.mjs --summary');
     return;
   }
   const where = [r.city, r.country].filter(Boolean).join(', ');
@@ -370,13 +463,62 @@ async function selfTest() {
   assert.equal(f.ok, false);
   assert.match(f.error, /not installed/);
 
+  // mapPool: order preserved, never more than `limit` tasks in flight at once.
+  let inFlight = 0, maxInFlight = 0;
+  const pooled = await mapPool([1, 2, 3, 4, 5], 2, async (x) => {
+    inFlight++; maxInFlight = Math.max(maxInFlight, inFlight);
+    await Promise.resolve();
+    inFlight--;
+    return x * 2;
+  });
+  assert.deepEqual(pooled, [2, 4, 6, 8, 10], 'mapPool preserves input order');
+  assert.ok(maxInFlight <= 2, 'mapPool respects the concurrency limit');
+
+  // fetchManyAndIngest: every country's postings dedup + persist in ONE ingest, so a
+  // posting that appears in several countries is added exactly once. Each stubbed
+  // country yields a unique own-posting plus a SHARED posting common to all.
+  const manyRunner = async (config) => {
+    const slug = config.country.replace(/\s+/g, '-');
+    const own = { title: 'Data Engineer', company: `Co-${config.country}`, location: 'Berlin',
+      url: `https://example.test/jobspy-many-${slug}`, posted: '', description: 'x', source: 'indeed' };
+    const shared = { title: 'ML Engineer', company: 'GlobalCo', location: 'Berlin',
+      url: 'https://example.test/jobspy-many-shared', posted: '', description: 'x', source: 'indeed' };
+    return { err: null, stdout: JSON.stringify([own, shared]),
+      stderr: '{"received":2,"boards":[{"site":"indeed","term":"x","count":2}]}' };
+  };
+  const many = await fetchManyAndIngest(['Germany', 'France', 'Spain'], parseArgs(['--dry-run']),
+    { runner: manyRunner, dryRun: true, concurrency: 2 });
+  assert.equal(many.ok, true);
+  assert.equal(many.received, 6, '3 countries × 2 postings each = 6 received');
+  assert.equal(many.perCountry.length, 3);
+  assert.ok(many.perCountry.every((c) => c.ok && c.received === 2), 'every country reports its postings');
+  assert.equal(many.counts.added, 4, '3 unique own + 1 shared (deduped across countries) = 4 added in one ingest');
+  assert.equal(many.failed, 0);
+  assert.equal(many.dryRun, true);
+
+  // De-dups the country list and skips a failing country without aborting the sweep.
+  const flakyRunner = async (config) => (config.country === 'France'
+    ? { err: { message: 'boom' }, stdout: '', stderr: '' }
+    : manyRunner(config));
+  const flaky = await fetchManyAndIngest(['Germany', 'Germany', 'France'], parseArgs(['--dry-run']),
+    { runner: flakyRunner, dryRun: true, concurrency: 3 });
+  assert.deepEqual(flaky.countries, ['Germany', 'France'], 'duplicate countries collapsed');
+  assert.equal(flaky.failed, 1, 'the failing country is counted, not fatal');
+  assert.ok(flaky.perCountry.find((c) => c.country === 'France' && !c.ok), 'failed country flagged ok:false');
+
+  // No countries → a clean ok:false, not a throw.
+  const none = await fetchManyAndIngest([], parseArgs([]), { runner: manyRunner });
+  assert.equal(none.ok, false);
+
   console.log('jobspy.mjs self-test passed');
 }
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.selfTest) { await selfTest(); return; }
-  const r = await fetchAndIngest(args, { dryRun: args.dryRun });
+  const r = args.countries?.length
+    ? await fetchManyAndIngest(args.countries, args, { dryRun: args.dryRun, concurrency: args.concurrency || DEFAULT_CONCURRENCY })
+    : await fetchAndIngest(args, { dryRun: args.dryRun });
   if (args.json) console.log(JSON.stringify(r));
   else printSummary(r);
   if (!r.ok) process.exitCode = 1;
