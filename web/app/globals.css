@@ -847,6 +847,96 @@ select {
 .jd-more .expect { margin-top: 8px; }
 
 /* ============================================================================
+   multi-select (checkbox dropdown) — Country / Type filters
+   ========================================================================== */
+.ms { position: relative; display: inline-block; }
+.ms__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  text-align: left;
+}
+.ms__summary { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ms__caret { color: var(--fg-faint); font-size: 0.8em; flex: 0 0 auto; }
+.ms__panel {
+  position: absolute;
+  z-index: 50;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 100%;
+  max-height: 320px;
+  overflow: auto;
+  background: var(--bg-raised);
+  border: 1px solid var(--signal-dim);
+  border-radius: 6px;
+  padding: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+.ms__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px 6px;
+  border-bottom: 1px solid var(--fg-ghost);
+  margin-bottom: 4px;
+}
+.ms__count { color: var(--fg-faint); font-size: var(--fs-label); text-transform: uppercase; letter-spacing: 0.04em; }
+.ms__clear {
+  background: none; border: none; cursor: pointer;
+  color: var(--signal); font-size: var(--fs-label); text-transform: uppercase; letter-spacing: 0.04em;
+}
+.ms__opt {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--fg);
+  font-size: var(--fs-data);
+  white-space: nowrap;
+}
+.ms__opt:hover { background: var(--bg-row-hover); }
+.ms__opt.is-on { color: var(--fg); }
+.ms__opt input { position: absolute; opacity: 0; width: 0; height: 0; }
+.ms__box {
+  flex: 0 0 auto;
+  width: 16px; height: 16px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--fg-faint);
+  border-radius: 3px;
+  color: var(--bg);
+  font-size: 11px; line-height: 1;
+}
+.ms__opt.is-on .ms__box { background: var(--signal); border-color: var(--signal); }
+
+/* saved-job control in the detail drawer */
+.drawer__save {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 0 2px;
+}
+.btn--saved {
+  color: var(--signal);
+  border-color: var(--signal);
+}
+.drawer__save-hint {
+  color: var(--fg-faint);
+  font-size: var(--fs-label);
+}
+.drawer__save-hint code {
+  color: var(--fg);
+  background: var(--bg-raised);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.95em;
+}
+
+/* ============================================================================
    queue indicator
    ========================================================================== */
 .queue {

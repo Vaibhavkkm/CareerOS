@@ -34,7 +34,7 @@ import assert from 'node:assert/strict';
 
 import { stem, stemTokens } from '../lib/text.mjs';
 import { buildTf, emptyIdf, tfidfVec, cosine, indexAdd } from '../lib/tfidf.mjs';
-import { cvSkills, jdSkills, familyMass, jdRequiredYears, candidateYears, isManagerialJd } from '../lib/skills.mjs';
+import { cvSkills, jdSkills, familyMass, jdRequiredYears, candidateYears, isManagerialJd, functionFit } from '../lib/skills.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_CV = join(ROOT, 'data', 'cv.master.md');
@@ -189,7 +189,7 @@ const LEX_FULL = 0.55; // lexScore value treated as "1.0" when rescaling the fal
 // results identical): `jdToks` = pre-tokenized JD; `cv` = a prepCv() object so the
 // CV isn't re-recognized/re-vectorized per JD. `title`/`profileYears`/`today` feed
 // the experience-fit multiplier (all optional — it stays neutral when unknown).
-export function scoreMatch(jdText, cvText, { topK = 18, idf = null, cvKeywords = null, jdToks = null, cv = null, title = '', profileYears = null, today = null } = {}) {
+export function scoreMatch(jdText, cvText, { topK = 18, idf = null, cvKeywords = null, jdToks = null, cv = null, title = '', profileYears = null, today = null, targets = null } = {}) {
   const jdT = jdToks || normTokens(jdText);
   const cvP = cv || prepCv(cvText, { idf, topK: Math.max(topK, 24), profileYears, today });
   if (!jdT.length || !cvP.toks.length) {
@@ -299,8 +299,13 @@ export function scoreMatch(jdText, cvText, { topK = 18, idf = null, cvKeywords =
     }
   }
 
+  // ── 5b) job-function fit: a role that shares the candidate's TOOLS but is a
+  // different FUNCTION than their target roles (e.g. a Reliability Engineer using
+  // Python/SQL/ML for a Data Scientist) is damped. Neutral when no profile/targets. ──
+  const fn = functionFit(title, targets);
+
   // ── 6) combine WITHOUT compounding (single worst penalty, floored), then clamp ──
-  const combined = Math.max(COMBINED_FLOOR, Math.min(stackPenalty, expFit));
+  const combined = Math.max(COMBINED_FLOOR, Math.min(stackPenalty, expFit, fn.fit));
   let score = base * combined;
   score = Number.isFinite(score) ? +Math.max(0, Math.min(1, score)).toFixed(4) : 0;
 
@@ -330,6 +335,7 @@ export function scoreMatch(jdText, cvText, { topK = 18, idf = null, cvKeywords =
     reasons: {
       matchedCore, missingCore, stackMismatch,
       experience: { required: reqY.years, candidate: candY.confident ? candY.years : null, note: expNote, multiplier: +expFit.toFixed(3) },
+      functionMismatch: fn.onTarget ? null : true,
       stackPenalty: +stackPenalty.toFixed(3),
       confidence: +conf.toFixed(2),
     },

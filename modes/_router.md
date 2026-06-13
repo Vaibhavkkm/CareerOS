@@ -24,6 +24,7 @@ otherwise apply auto-pipeline detection.
 | `onboard` / `setup` | `modes/onboard.md` | First run: turn an uploaded CV + cover letter into profile + master CV + learned voice |
 | `hunt` / `find` | `modes/hunt.md` | Live discovery: search job boards (+ ATS fallback) → ingest → match board |
 | `board` / `matches` | `modes/board.md` | Rank open roles by match-to-your-CV (bands + recency); one-click tailor |
+| `saved` / `shortlist` | `modes/saved.md` | Your ★ bookmarked jobs; `saved build-all` makes a CV+CL for every one |
 | `evaluate` / `eval` | `modes/evaluate.md` | Score one posting (A–G report) |
 | `compare` | `modes/compare.md` | Rank 2+ postings |
 | `build-cv` / `cv` | `modes/build-cv.md` | Tailor a CV for a report/company |

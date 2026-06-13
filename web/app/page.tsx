@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { BoardResponse } from '@/lib/types';
 import { TopBar } from '@/components/TopBar';
-import { FilterBar, type Filters, type FetchRecentOpts, COUNTRIES, ALL_COUNTRIES } from '@/components/FilterBar';
+import { FilterBar, type Filters, type FetchRecentOpts, COUNTRIES } from '@/components/FilterBar';
 import { BoardTable } from '@/components/BoardTable';
 import { DetailDrawer } from '@/components/DetailDrawer';
 import { CommandPalette, type Command } from '@/components/CommandPalette';
@@ -16,10 +16,13 @@ export default function BoardPage() {
   // Where to fetch from — drives JobSpy country_indeed + location. Lifted here (not
   // inside FilterBar) so refresh, the command palette, and the fetch button all act
   // on the same selection.
-  const [place, setPlace] = useState<FetchRecentOpts>({ country: 'Luxembourg', city: '', jobType: '' });
+  const [place, setPlace] = useState<FetchRecentOpts>({ countries: ['Luxembourg'], city: '', jobTypes: [] });
   const [drawer, setDrawer] = useState<number>(-1);
   const [busy, setBusy] = useState(false);
   const [palette, setPalette] = useState(false);
+  // Saved/bookmarked jobs — a set of saved URLs (for ★ state) + the total count.
+  const [savedUrls, setSavedUrls] = useState<Set<string>>(new Set());
+  const [savedCount, setSavedCount] = useState(0);
   const { toasts, push, dismiss } = useToasts();
 
   // Monotonic sequence so out-of-order /api/board responses can't clobber fresh
@@ -36,10 +39,11 @@ export default function BoardPage() {
       const qs = new URLSearchParams();
       if (f.min) qs.set('min', f.min);
       if (f.recent) qs.set('recent', f.recent);
-      // Country / city / type filter the BOARD too (not just the next fetch).
-      if (place.country && place.country !== ALL_COUNTRIES) qs.set('country', place.country);
+      // Country / city / type filter the BOARD too (not just the next fetch). These
+      // are multi-select: a comma-separated list matches ANY (empty = all / any).
+      if (place.countries.length) qs.set('country', place.countries.join(','));
       if (place.city.trim()) qs.set('city', place.city.trim());
-      if (place.jobType) qs.set('type', place.jobType);
+      if (place.jobTypes.length) qs.set('type', place.jobTypes.join(','));
       // Pin a just-fetched posting to the top so it's findable, not buried by rank.
       if (opts.pin) qs.set('pin', opts.pin);
       const r = await api<BoardResponse>(`/api/board?${qs.toString()}`);
@@ -59,6 +63,36 @@ export default function BoardPage() {
       }
     },
     [push, place],
+  );
+
+  // ── saved jobs (bookmark shortlist) ──
+  const loadSaved = useCallback(async () => {
+    if (IS_PUBLIC) return;
+    const r = await api<{ ok: boolean; count?: number; saved?: { url?: string }[] }>('/api/save');
+    if (r.ok) {
+      setSavedUrls(new Set((r.saved || []).map((s) => s.url).filter((u): u is string => !!u)));
+      setSavedCount(r.count ?? (r.saved || []).length);
+    }
+  }, []);
+  useEffect(() => { loadSaved(); }, [loadSaved]);
+
+  // Toggle save for a board row. Optimistic, then re-syncs from the engine.
+  const toggleSave = useCallback(
+    async (row: { url?: string; jd_path?: string; company?: string; role?: string; location?: string; posted?: string; band?: string; score?: number }) => {
+      if (IS_PUBLIC) { openForkGate(); return; }
+      const isSaved = !!row.url && savedUrls.has(row.url);
+      const r = await api<{ ok: boolean; count?: number; error?: string }>('/api/save', {
+        method: 'POST',
+        body: JSON.stringify(isSaved ? { action: 'remove', url: row.url } : { action: 'add', job: row }),
+      });
+      if (r.ok) {
+        push(isSaved ? 'removed from saved' : 'saved — build all later with /cos saved build-all', isSaved ? 'info' : 'ok');
+        loadSaved();
+      } else {
+        push(r.error || 'could not update saved', 'err');
+      }
+    },
+    [savedUrls, push, loadSaved],
   );
 
   // Debounced so changing the country/type dropdowns OR typing a city re-filters the
@@ -171,32 +205,34 @@ export default function BoardPage() {
     async (opts: FetchRecentOpts, recent: string) => {
       if (IS_PUBLIC) { openForkGate(); return; }
       setBusy(true);
-      // "All countries": hand the whole list to ONE server request. The engine
-      // fetches each country's boards with bounded concurrency, then dedups +
-      // persists the whole pile in a SINGLE ingest — so there's no ledger race (the
-      // reason this used to loop one country per round-trip) and a job seen in
-      // several countries is added once. One long request, no per-country streaming;
-      // city is ignored. See web/app/api/fetch-recent + scripts/jobspy.mjs.
-      if (opts.country === ALL_COUNTRIES) {
-        push(`fetching CV-matched jobs · all ${COUNTRIES.length} countries in one sweep (may take a few minutes)…`, 'info');
+      // Country is multi-select: empty = ALL markets, else the ticked subset. A type
+      // fetch can target one JobSpy job_type; with several (or none) ticked we fetch
+      // ANY type and let the board's type filter narrow the view.
+      const sweep = opts.countries.length === 0 ? COUNTRIES : opts.countries;
+      const jobType = opts.jobTypes.length === 1 ? opts.jobTypes[0] : '';
+
+      // 2+ countries → ONE server request that fetches each country's boards with
+      // bounded concurrency, dedups, and persists in a SINGLE ingest (no ledger race;
+      // a job seen in several countries is added once). City is ignored for a sweep.
+      if (sweep.length > 1) {
+        const scope = opts.countries.length === 0 ? `all ${COUNTRIES.length} countries` : `${sweep.length} countries`;
+        push(`fetching CV-matched jobs · ${scope} in one sweep (may take a few minutes)…`, 'info');
         const r = await api<{
           ok: boolean; received?: number; counts?: { added?: number }; failed?: number;
           perCountry?: { country: string; ok: boolean; received?: number; error?: string }[]; error?: string;
         }>('/api/fetch-recent', {
           method: 'POST',
-          body: JSON.stringify({ countries: COUNTRIES, recent: recent || undefined, jobType: opts.jobType || undefined }),
+          body: JSON.stringify({ countries: sweep, recent: recent || undefined, jobType: jobType || undefined }),
         });
         setBusy(false);
         if (r.ok) {
           const totalNew = r.counts?.added ?? 0;
           const failed = r.failed ?? 0;
-          // Surface any country whose boards failed (e.g. a rate-limit block) so a
-          // partial sweep isn't silently reported as a complete one.
           for (const c of r.perCountry || []) {
             if (!c.ok) push(`${c.country} · ${c.error || 'fetch failed'}`, 'err');
           }
           push(
-            `all countries done · ${totalNew} new on board (${r.received ?? 0} seen)${failed ? ` · ${failed} failed` : ''}`,
+            `${scope} done · ${totalNew} new on board (${r.received ?? 0} seen)${failed ? ` · ${failed} failed` : ''}`,
             totalNew ? 'ok' : 'info',
           );
           load(filters);
@@ -206,10 +242,11 @@ export default function BoardPage() {
         return;
       }
 
-      const typeLabel = opts.jobType ? ` · ${opts.jobType}` : '';
-      const where = [opts.city.trim(), opts.country].filter(Boolean).join(', ');
+      const country = sweep[0];
+      const typeLabel = jobType ? ` · ${jobType}` : '';
+      const where = [opts.city.trim(), country].filter(Boolean).join(', ');
       push(`fetching CV-matched jobs · ${where || 'profile default'}${typeLabel}…`, 'info');
-      const r = await postFetch(opts.country, opts.city.trim(), recent, opts.jobType);
+      const r = await postFetch(country, opts.city.trim(), recent, jobType);
       setBusy(false);
       if (r.ok) {
         push(`fetched ${r.received ?? 0} · ${r.counts?.added ?? 0} new on board`, 'ok');
@@ -303,7 +340,15 @@ export default function BoardPage() {
         )}
       </main>
       {drawer >= 0 && rows[drawer] && (
-        <DetailDrawer row={rows[drawer]} today={today} onClose={() => setDrawer(-1)} onEnqueue={enqueue} />
+        <DetailDrawer
+          row={rows[drawer]}
+          today={today}
+          onClose={() => setDrawer(-1)}
+          onEnqueue={enqueue}
+          saved={!!rows[drawer].url && savedUrls.has(rows[drawer].url)}
+          savedCount={savedCount}
+          onToggleSave={() => toggleSave(rows[drawer])}
+        />
       )}
       {palette && <CommandPalette commands={commands} onClose={() => setPalette(false)} />}
       <Toaster toasts={toasts} onDismiss={dismiss} />

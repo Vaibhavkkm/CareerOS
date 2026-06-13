@@ -14,6 +14,7 @@ const ALLOW = new Set([
   'doctor.mjs',
   'hunt-ingest.mjs',
   'jobspy.mjs',
+  'saved.mjs',
 ]);
 
 export interface RunResult<T = unknown> {

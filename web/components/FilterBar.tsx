@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { IconScan, IconRefresh, IconGlobe } from './Icons';
+import { MultiSelect } from './MultiSelect';
 
 export interface Filters {
   min: string;
@@ -8,9 +9,9 @@ export interface Filters {
 }
 
 export interface FetchRecentOpts {
-  country: string;
+  countries: string[]; // [] = all countries (no filter); else a subset to filter + fetch
   city: string;
-  jobType: string; // '' = any; else a JobSpy job_type (fulltime|internship|contract|temporary|parttime)
+  jobTypes: string[]; // [] = any type; else JobSpy job_types to filter + fetch
 }
 
 // Job-type values → friendly labels. '' = every type. The first four map to
@@ -146,43 +147,33 @@ export function FilterBar({
       <div className={`toolbar__more ${moreOpen ? 'is-open' : ''}`}>
         <div className="toolbar__spacer" />
 
-        {/* Live multi-board fetch: country + city → Indeed/ZipRecruiter/Google */}
+        {/* Live multi-board fetch: country + city → Indeed/ZipRecruiter/Google.
+            Country & Type are MULTI-select (tick several) — they filter the board AND
+            scope the fetch. Empty = all / any. */}
         <div className="field">
-        <span className="field__label">country</span>
-        <select
-          className="input"
-          aria-label="Country"
-          value={place.country}
-          onChange={(e) => onPlaceChange({ ...place, country: e.target.value })}
-          style={{ width: 170 }}
-          disabled={busy}
-        >
-          <option value={ALL_COUNTRIES}>🌍 All countries</option>
-          {COUNTRIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="field">
-        <span className="field__label">type</span>
-        <select
-          className="input"
-          aria-label="Job type"
-          value={place.jobType}
-          onChange={(e) => onPlaceChange({ ...place, jobType: e.target.value })}
-          style={{ width: 150 }}
-          disabled={busy}
-          title="Restrict the fetch to a job type (e.g. Internship, Permanent, Fixed-term)"
-        >
-          {JOB_TYPES.map(([val, label]) => (
-            <option key={val || 'any'} value={val}>
-              {label}
-            </option>
-          ))}
-        </select>
-      </div>
+          <span className="field__label">country</span>
+          <MultiSelect
+            ariaLabel="Country (multi-select)"
+            options={COUNTRIES.map((c) => [c, c] as [string, string])}
+            selected={place.countries}
+            onChange={(countries) => onPlaceChange({ ...place, countries })}
+            emptyLabel="🌍 All countries"
+            width={170}
+            disabled={busy}
+          />
+        </div>
+        <div className="field">
+          <span className="field__label">type</span>
+          <MultiSelect
+            ariaLabel="Job type (multi-select)"
+            options={JOB_TYPES.filter(([v]) => v).map(([v, l]) => [v, l] as [string, string])}
+            selected={place.jobTypes}
+            onChange={(jobTypes) => onPlaceChange({ ...place, jobTypes })}
+            emptyLabel="Any type"
+            width={150}
+            disabled={busy}
+          />
+        </div>
       <form
         className="field"
         onSubmit={(e) => {
@@ -193,12 +184,12 @@ export function FilterBar({
         <input
           className="input"
           aria-label="City"
-          placeholder={place.country === ALL_COUNTRIES ? 'city — n/a for all' : 'city (optional)…'}
-          value={place.country === ALL_COUNTRIES ? '' : place.city}
+          placeholder={place.countries.length === 1 ? 'city (optional)…' : 'city — pick 1 country'}
+          value={place.countries.length === 1 ? place.city : ''}
           onChange={(e) => onPlaceChange({ ...place, city: e.target.value })}
           style={{ width: 130 }}
-          disabled={busy || place.country === ALL_COUNTRIES}
-          title={place.country === ALL_COUNTRIES ? 'City is ignored when fetching all countries' : undefined}
+          disabled={busy || place.countries.length !== 1}
+          title={place.countries.length === 1 ? undefined : 'City applies when exactly one country is selected'}
         />
       </form>
       <button
