@@ -46,12 +46,24 @@ const RECENCY: [string, string][] = [
 ];
 
 // Country drives JobSpy's country_indeed; city drives its location. Full country
-// names only (JobSpy rejects 2-letter codes like "us"/"ca"). ZipRecruiter + Google
-// only return results for US/Canada, so those two unlock the extra boards. LinkedIn
-// is deferred, so the live boards are Indeed / ZipRecruiter / Google Jobs.
+// names only (JobSpy rejects 2-letter codes like "us"/"ca"), and each name here
+// must lowercase-match an entry in JobSpy's `Country` enum (it resolves via
+// Country.from_string) — every one below is verified against that list.
+// ZipRecruiter + Google only return results for US/Canada, so those two unlock the
+// extra boards; the rest still scrape Indeed (and Google Jobs as a best effort).
+// LinkedIn is deferred, so the live boards are Indeed / ZipRecruiter / Google Jobs.
+// Curated to well-known job markets and grouped by region for the dropdown.
 export const COUNTRIES = [
-  'Luxembourg', 'United States', 'Canada', 'United Kingdom', 'Germany',
-  'France', 'Belgium', 'Netherlands', 'Switzerland', 'Italy', 'India',
+  // Home + North America
+  'Luxembourg', 'United States', 'Canada',
+  // Europe
+  'United Kingdom', 'Ireland', 'Germany', 'France', 'Belgium', 'Netherlands',
+  'Switzerland', 'Austria', 'Italy', 'Spain', 'Portugal', 'Sweden', 'Norway',
+  'Denmark', 'Poland',
+  // Asia-Pacific + Middle East
+  'Australia', 'New Zealand', 'Japan', 'Singapore', 'United Arab Emirates', 'India',
+  // Latin America + Africa
+  'Brazil', 'Mexico', 'South Africa',
 ];
 
 // Sentinel: fetch every country in COUNTRIES, one after another (the fetch writes a

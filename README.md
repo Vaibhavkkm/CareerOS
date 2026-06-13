@@ -154,8 +154,9 @@ Nothing is ever applied for you; you review the matches and tailor with one comm
 **No-agent option — the "fetch recent" button (and `npm run fetch`).** Once the Python
 sidecar is installed (see Getting started), the board's **fetch recent** control pulls live
 openings from **Indeed + ZipRecruiter + Google Jobs** straight from the browser — no agent,
-no MCP — filtered by **country** (Luxembourg, United States, Canada, United Kingdom, Germany,
-France, Belgium, Netherlands, Switzerland, Italy, India — or **all countries** in one sweep),
+no MCP — filtered by **country** (Luxembourg, the US, Canada, the UK, and ~25 other major
+markets — Germany, France, Italy, Spain, Australia, Japan, Singapore, the UAE, India, … — or
+**all countries** in one sweep),
 **city**, and **job type**, deduped and ranked onto your board in one click. Same from the CLI:
 ```bash
 node scripts/jobspy.mjs --country Germany --city Berlin --recent 7 --summary
