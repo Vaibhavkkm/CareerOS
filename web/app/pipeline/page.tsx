@@ -7,6 +7,8 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Toaster, useToasts } from '@/components/Toast';
 import { api } from '@/components/util';
 
+const STATUS_ORDER = ['evaluated', 'applied', 'responded', 'interview', 'offer', 'rejected'];
+
 const NEXT_STATUS: Record<string, string> = {
   evaluated: 'applied',
   applied: 'responded',
@@ -34,6 +36,8 @@ function statusPill(s: string): string {
 export default function PipelinePage() {
   const [records, setRecords] = useState<TrackerRecord[] | null>(null);
   const [confirm, setConfirm] = useState<number | null>(null);
+  const [filter, setFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const { toasts, push, dismiss } = useToasts();
 
   const load = useCallback(async () => {
@@ -68,6 +72,10 @@ export default function PipelinePage() {
   );
 
   const recs = records || [];
+  const filtered = recs.filter((r) =>
+    (!filter || r.company.toLowerCase().includes(filter.toLowerCase()) || r.role.toLowerCase().includes(filter.toLowerCase())) &&
+    (!statusFilter || r.status === statusFilter)
+  );
 
   return (
     <div className="app">
@@ -77,7 +85,7 @@ export default function PipelinePage() {
           <b>{recs.length}</b> applications tracked
         </span>
         <div className="statusline__right">
-          <span>truth · data/tracker.jsonl</span>
+          {recs.length > 0 && <span className="dim">{new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>}
         </div>
       </div>
       <div className="main">
@@ -92,6 +100,27 @@ export default function PipelinePage() {
           ) : (
             <>
               <Pipeline records={records} />
+              <div className="pipeline-filter">
+                <input
+                  className="input"
+                  placeholder="filter by company, role…"
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
+                  aria-label="Filter applications"
+                  style={{ maxWidth: 280 }}
+                />
+                <div className="pipeline-filter__status">
+                  {STATUS_ORDER.map((s) => (
+                    <button
+                      key={s}
+                      className={`seg__btn ${statusFilter === s ? 'seg__btn--on' : ''}`}
+                      onClick={() => setStatusFilter((f) => (f === s ? '' : s))}
+                    >
+                      {STATUS_LABEL[s]}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <table className="ttable">
                 <thead>
                   <tr>
@@ -99,17 +128,25 @@ export default function PipelinePage() {
                     <th>Date</th>
                     <th>Company</th>
                     <th>Role</th>
-                    <th className="num">Score</th>
+                    <th className="num" title="Fit score 0–10 (from board evaluation)">Score /10</th>
                     <th>Status</th>
                     <th />
                   </tr>
                 </thead>
                 <tbody>
-                  {records.map((r) => (
+                  {filtered.map((r) => (
                     <tr key={r.id}>
                       <td className="num dim">{r.id}</td>
                       <td className="dim">{r.date}</td>
-                      <td>{r.company}</td>
+                      <td>
+                        {r.url ? (
+                          <a href={r.url} target="_blank" rel="noreferrer" style={{ color: 'inherit', borderBottom: '1px solid var(--hairline-2)' }}>
+                            {r.company}
+                          </a>
+                        ) : (
+                          r.company
+                        )}
+                      </td>
                       <td className="dim">{r.role}</td>
                       <td className="num">{Number.isFinite(Number(r.score)) ? Number(r.score).toFixed(1) : '—'}</td>
                       <td>
@@ -124,10 +161,12 @@ export default function PipelinePage() {
                       </td>
                     </tr>
                   ))}
-                  {records.length === 0 && (
+                  {filtered.length === 0 && (
                     <tr>
                       <td colSpan={7} className="dim" style={{ padding: '24px 10px' }}>
-                        No applications yet. Evaluate a role from the Board to start tracking.
+                        {recs.length === 0
+                          ? 'No applications yet. Evaluate a role from the Board to start tracking.'
+                          : 'No applications match the current filter.'}
                       </td>
                     </tr>
                   )}

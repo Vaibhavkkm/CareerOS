@@ -8,11 +8,13 @@ export function BoardTable({
   today,
   selected,
   onSelect,
+  onLoad,
 }: {
   rows: BoardRow[];
   today: string;
   selected: number;
   onSelect: (i: number) => void;
+  onLoad?: () => void;
 }) {
   return (
     <table className="board">
@@ -33,18 +35,34 @@ export function BoardTable({
           const fit = Number.isFinite(r.fit) ? r.fit : 0;
           const pct = Math.max(0, Math.min(100, (fit / 10) * 100));
           const have = r.have || [];
+          const gap = r.gap || [];
+          const totalChips = have.length + gap.length;
+          // Show top 2 have chips + top 1 gap chip (if any)
+          const haveSlice = have.slice(0, 2);
+          const gapSlice = gap.slice(0, 1);
+          const shown = haveSlice.length + gapSlice.length;
+          const more = totalChips - shown;
           return (
             <tr
-              key={(r.url || r.jd_path || 'row') + i}
+              key={r.url || r.jd_path || `row-${i}`}
               className={`board__row ${selected === i ? 'is-sel' : ''}`}
               onClick={() => onSelect(i)}
               tabIndex={0}
               role="button"
+              data-rowindex={i}
               aria-label={`Open ${r.role || 'role'} at ${r.company || 'company'}`}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
                   onSelect(i);
+                } else if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  const next = document.querySelector<HTMLElement>(`[data-rowindex='${i + 1}']`);
+                  next?.focus();
+                } else if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  const prev = document.querySelector<HTMLElement>(`[data-rowindex='${i - 1}']`);
+                  prev?.focus();
                 }
               }}
             >
@@ -75,13 +93,18 @@ export function BoardTable({
               <td className="cell-skills">
                 <div className="chips chips--clip">
                   <span className="chips__row">
-                    {have.slice(0, 3).map((h, j) => (
+                    {haveSlice.map((h, j) => (
                       <span key={`h${j}`} className="chip chip--have">
                         {h}
                       </span>
                     ))}
+                    {gapSlice.map((g, j) => (
+                      <span key={`g${j}`} className="chip chip--gap-inline">
+                        {g}
+                      </span>
+                    ))}
                   </span>
-                  {have.length > 3 && <span className="chip chip--more">+{have.length - 3}</span>}
+                  {more > 0 && <span className="chip chip--more">+{more}</span>}
                 </div>
               </td>
             </tr>

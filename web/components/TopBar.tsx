@@ -4,8 +4,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { QueueIndicator } from './QueueIndicator';
 import { ActionsMenu } from './ActionsMenu';
+import { LLMSettings } from './LLMSettings';
 import { useAgentStatus } from './useAgentStatus';
 import { IS_PUBLIC, openForkGate } from '@/lib/public';
+import { IconBolt } from './Icons';
 
 const TABS = [
   { href: '/', label: 'Board' },
@@ -17,6 +19,7 @@ const TABS = [
 export function TopBar() {
   const path = usePathname();
   const [actions, setActions] = useState(false);
+  const [llmOpen, setLlmOpen] = useState(false);
   const { watching } = useAgentStatus();
   return (
     <header className="topbar">
@@ -27,7 +30,7 @@ export function TopBar() {
       </div>
       <nav className="nav">
         {TABS.map((t) => {
-          const active = t.href === '/' ? path === '/' : path.startsWith(t.href);
+          const active = t.href === '/' ? path === '/' : path === t.href || path.startsWith(t.href + '/');
           return (
             <Link key={t.href} href={t.href} className={`nav__item ${active ? 'nav__item--active' : ''}`}>
               {t.label}
@@ -43,17 +46,24 @@ export function TopBar() {
       )}
       <span
         className={`agentdot ${watching ? 'is-live' : 'is-off'}`}
-        title={watching ? 'Agent watching — actions you click run automatically in your Claude Code' : 'Agent not watching — run /cos ui watch so actions run automatically (or /cos ui to drain once)'}
+        title={watching ? 'Daemon live — actions process automatically' : 'Daemon not running — start with: npm run daemon (or npm run start for web + daemon together)'}
+        tabIndex={0}
+        role="button"
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') e.currentTarget.blur(); }}
       >
         <span className="agentdot__dot" />
         {watching ? 'agent live' : 'agent off'}
       </span>
+      <button className="actions-btn" onClick={() => setLlmOpen(true)} title="Configure LLM provider — Claude CLI, Ollama, or OpenAI-compatible">
+        LLM
+      </button>
       <button className="actions-btn" onClick={() => setActions(true)} title="All actions — everything CareerOS can do">
-        ⚡ Actions
+        <IconBolt size={12} /> Actions
       </button>
       <QueueIndicator />
       <span className="kbd">⌘K</span>
       {actions && <ActionsMenu onClose={() => setActions(false)} />}
+      {llmOpen && <LLMSettings onClose={() => setLlmOpen(false)} />}
     </header>
   );
 }

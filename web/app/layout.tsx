@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { ForkGateHost } from '@/components/ForkGate';
 import { QueueWatcher } from '@/components/QueueWatcher';
+import { QueueProvider } from '@/components/QueueContext';
 
 const SITE_URL = 'https://careeros.vaibhavkkm.com';
 const DESCRIPTION =
@@ -49,9 +50,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
-        {children}
-        <ForkGateHost />
-        <QueueWatcher />
+        <QueueProvider>
+          {children}
+          <ForkGateHost />
+          <QueueWatcher />
+        </QueueProvider>
       </body>
     </html>
   );

@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useRef } from 'react';
 import type { QueueRequest } from '@/lib/types';
-import { api } from './util';
+import { useQueue } from './QueueContext';
 import { Toaster, useToasts } from './Toast';
 import { IS_PUBLIC } from '@/lib/public';
 
@@ -10,10 +10,9 @@ import { IS_PUBLIC } from '@/lib/public';
 // notification (if the user allowed it). It is mounted once in the root layout, so
 // the notification fires on whatever page the user is on (or even another tab).
 //
-// This is the "how do I know when it's ready?" half of the web↔agent handshake: the
-// browser has no LLM, so the in-session /cos agent does the work and flips the
-// request's status; this component watches that flip (queued/claimed → done/failed)
-// and tells the user, without them having to stare at the terminal.
+// Now consumes QueueContext instead of polling /api/queue independently — this
+// eliminates the duplicate poll (QueueIndicator + QueueWatcher both previously
+// called the API every 4s).
 
 const LABELS: Record<string, string> = {
   evaluate: 'Job evaluation',
@@ -33,6 +32,7 @@ function label(req: QueueRequest): string {
 }
 
 export function QueueWatcher() {
+  const { requests } = useQueue();
   const { toasts, push, dismiss } = useToasts();
   // Last seen status per request id — so we only fire on a TRANSITION, not every poll.
   const seen = useRef<Map<string, string>>(new Map());
@@ -66,16 +66,17 @@ export function QueueWatcher() {
     [push],
   );
 
-  const load = useCallback(async () => {
-    const r = await api<{ ok: boolean; requests?: QueueRequest[] }>('/api/queue');
-    if (!r || !Array.isArray(r.requests)) return;
+  // React to changes in the requests array from context (which is updated every 4s
+  // by QueueProvider's single interval — no duplicate polling).
+  useEffect(() => {
+    if (IS_PUBLIC) return;
     const prev = seen.current;
     const next = new Map<string, string>();
-    for (const req of r.requests) {
+    for (const req of requests) {
       next.set(req.id, req.status);
       const was = prev.get(req.id);
       // Fire only on a real transition INTO a terminal state. `primed` skips the
-      // very first poll so we don't announce tasks that finished before the page
+      // very first batch so we don't announce tasks that finished before the page
       // even loaded.
       if (primed.current && was && was !== req.status && (req.status === 'done' || req.status === 'failed')) {
         notify(req);
@@ -83,14 +84,7 @@ export function QueueWatcher() {
     }
     seen.current = next;
     primed.current = true;
-  }, [notify]);
-
-  useEffect(() => {
-    if (IS_PUBLIC) return;
-    load();
-    const t = setInterval(load, 4000);
-    return () => clearInterval(t);
-  }, [load]);
+  }, [requests, notify]);
 
   return <Toaster toasts={toasts} onDismiss={dismiss} />;
 }

@@ -7,9 +7,9 @@ import { BoardTable } from '@/components/BoardTable';
 import { DetailDrawer } from '@/components/DetailDrawer';
 import { CommandPalette, type Command } from '@/components/CommandPalette';
 import { Toaster, useToasts } from '@/components/Toast';
-import { CvUpload } from '@/components/CvUpload';
 import { api } from '@/components/util';
 import { IS_PUBLIC, openForkGate } from '@/lib/public';
+import { BulkActions } from '@/components/BulkActions';
 
 export default function BoardPage() {
   const [board, setBoard] = useState<BoardResponse | null>(null);
@@ -18,7 +18,9 @@ export default function BoardPage() {
   // inside FilterBar) so refresh, the command palette, and the fetch button all act
   // on the same selection.
   const [place, setPlace] = useState<FetchRecentOpts>({ country: 'Luxembourg', city: '', jobType: '' });
-  const [drawer, setDrawer] = useState<number>(-1);
+  // Use stable row identity (URL or jd_path) instead of row index so the drawer
+  // stays open across reloads and filter changes.
+  const [drawerKey, setDrawerKey] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [palette, setPalette] = useState(false);
   const { toasts, push, dismiss } = useToasts();
@@ -31,9 +33,8 @@ export default function BoardPage() {
     async (f: Filters) => {
       const seq = ++loadSeq.current;
       setBusy(true);
-      // Close the drawer first: it's keyed by row INDEX, and a reload re-filters +
-      // re-sorts rows, so the same index could otherwise point at a different job.
-      setDrawer(-1);
+      // NOTE: do NOT reset drawerKey here — stable row identity means the drawer
+      // stays open if the row still exists in the new result set.
       const qs = new URLSearchParams();
       if (f.min) qs.set('min', f.min);
       if (f.recent) qs.set('recent', f.recent);
@@ -73,7 +74,7 @@ export default function BoardPage() {
         // close the detail drawer. A single Escape shouldn't nuke both.
         let paletteWasOpen = false;
         setPalette((p) => { paletteWasOpen = p; return false; });
-        if (!paletteWasOpen) setDrawer(-1);
+        if (!paletteWasOpen) setDrawerKey(null);
       }
     };
     window.addEventListener('keydown', h);
@@ -90,7 +91,7 @@ export default function BoardPage() {
         method: 'POST',
         body: JSON.stringify({ kind, args }),
       });
-      if (r.ok) push(`${kind} queued — run /cos ui in Claude Code to process`, 'ok');
+      if (r.ok) push(`${kind} queued — daemon will process (run npm run daemon if not started)`, 'ok');
       else push(r.error || 'could not queue', 'err');
     },
     [push],
@@ -220,8 +221,13 @@ export default function BoardPage() {
     [filters, load, scan, fetchRecent, refresh, place],
   );
 
-  const strongest = rows.filter((r) => r.band === 'STRONGEST').length;
-  const veryStrongPlus = rows.filter((r) => r.band === 'STRONGEST' || r.band === 'Very strong').length;
+  // Normalise band strings defensively so any API casing change doesn't silently zero these counts
+  const normalise = (b: string) => b.toLowerCase().replace(/[^a-z]/g, '');
+  const strongest = rows.filter((r) => normalise(r.band) === 'strongest').length;
+  const veryStrongPlus = rows.filter((r) => ['strongest', 'verystrong'].includes(normalise(r.band))).length;
+
+  // Derive selected row index from stable URL/jd_path key
+  const selectedIndex = drawerKey != null ? rows.findIndex((r) => (r.url || r.jd_path) === drawerKey) : -1;
 
   return (
     <div className="app">
@@ -259,30 +265,37 @@ export default function BoardPage() {
           onFetchRecent={fetchRecent}
           busy={busy}
         />
+        {rows.length > 0 && <BulkActions rows={rows} />}
         {!board ? (
-          <div className="placeholder">loading board…</div>
+          <div className="placeholder">
+            <span className="wizard__spinner" style={{ display: 'inline-block', marginRight: 8 }} />
+            loading board…
+          </div>
         ) : rows.length === 0 ? (
           <div className="placeholder">
-            <b>Start here — upload your CV.</b>
+            <b>Board is empty.</b>
             <div className="hint" style={{ marginBottom: 18 }}>
-              CareerOS ranks jobs against <b>your</b> CV, so the first step is teaching it your facts. Drop in your
-              CV(s) below (add several to build a richer master), then <b>Hunt</b> or paste a job URL to fill the board.
+              CareerOS ranks jobs against your CV. First-time?{' '}
+              <a href="/setup" style={{ color: 'var(--signal)' }}>Upload your CV on the Setup page</a>{' '}
+              to teach CareerOS your facts. Then hunt for roles or paste a job URL above.
             </div>
-            <CvUpload />
-            <div className="hint" style={{ marginTop: 24 }}>
-              Already set up? Auto-fetch roles from the{' '}
-              <a href="/hunt" style={{ color: 'var(--signal)' }}>
-                Hunt
-              </a>{' '}
-              tab, run <b>scan</b> for your tracked companies, or paste a job URL above.
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <a href="/setup" className="btn btn--primary">Upload CV → Setup</a>
+              <a href="/hunt" className="btn btn--ghost">Hunt for roles</a>
             </div>
           </div>
         ) : (
-          <BoardTable rows={rows} today={today} selected={drawer} onSelect={(i) => setDrawer(i)} />
+          <BoardTable
+            rows={rows}
+            today={today}
+            selected={selectedIndex}
+            onSelect={(i) => setDrawerKey(rows[i] ? (rows[i].url || rows[i].jd_path || null) : null)}
+            onLoad={() => load(filters)}
+          />
         )}
       </main>
-      {drawer >= 0 && rows[drawer] && (
-        <DetailDrawer row={rows[drawer]} today={today} onClose={() => setDrawer(-1)} onEnqueue={enqueue} />
+      {selectedIndex >= 0 && rows[selectedIndex] && (
+        <DetailDrawer row={rows[selectedIndex]} today={today} onClose={() => setDrawerKey(null)} onEnqueue={enqueue} />
       )}
       {palette && <CommandPalette commands={commands} onClose={() => setPalette(false)} />}
       <Toaster toasts={toasts} onDismiss={dismiss} />

@@ -5,6 +5,7 @@ import { TopBar } from '@/components/TopBar';
 import { Toaster, useToasts } from '@/components/Toast';
 import { api } from '@/components/util';
 import { IconHunt, IconBolt } from '@/components/Icons';
+import { IS_PUBLIC } from '@/lib/public';
 
 const RECENCY: [string, string][] = [
   ['1', '24h'],
@@ -26,17 +27,24 @@ export default function HuntPage() {
   const [role, setRole] = useState('');
   const [location, setLocation] = useState('');
   const [recent, setRecent] = useState('7');
+  const [autoRecent, setAutoRecent] = useState('7');
   const [hunts, setHunts] = useState<QueueRequest[]>([]);
+  const [totalHunts, setTotalHunts] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
+  const [queued, setQueued] = useState(false);
   const { toasts, push, dismiss } = useToasts();
 
   const loadHunts = useCallback(async () => {
     const r = await api<{ ok: boolean; requests?: QueueRequest[] }>('/api/queue');
     if (r && Array.isArray(r.requests)) {
-      setHunts(r.requests.filter((x) => x.kind === 'hunt').reverse().slice(0, 8));
+      const allHunts = r.requests.filter((x) => x.kind === 'hunt');
+      setTotalHunts(allHunts.length);
+      setHunts(allHunts.reverse().slice(0, 8));
     }
   }, []);
 
   useEffect(() => {
+    if (IS_PUBLIC) return;
     loadHunts();
     const t = setInterval(loadHunts, 4000);
     return () => clearInterval(t);
@@ -44,12 +52,18 @@ export default function HuntPage() {
 
   const enqueueHunt = useCallback(
     async (args: Record<string, unknown>) => {
+      setSubmitting(true);
       const r = await api<{ ok: boolean; error?: string }>('/api/queue', {
         method: 'POST',
         body: JSON.stringify({ kind: 'hunt', args }),
       });
-      if (r.ok) push('hunt queued — run /cos hunt (or /cos ui) in Claude Code to fetch live', 'ok');
-      else push(r.error || 'could not queue hunt', 'err');
+      setSubmitting(false);
+      if (r.ok) {
+        push('hunt queued — run /cos hunt (or /cos ui) in Claude Code to fetch live', 'ok');
+        setQueued(true);
+      } else {
+        push(r.error || 'could not queue hunt', 'err');
+      }
       loadHunts();
     },
     [push, loadHunts],
@@ -80,15 +94,40 @@ export default function HuntPage() {
             matches on the Board. AI-assisted search: verify details with the employer before applying.
           </div>
 
-          <button
-            className="btn btn--primary"
-            style={{ padding: '11px 18px', marginBottom: 28 }}
-            onClick={() => enqueueHunt({ recent: Number(recent) || 7 })}
-          >
-            <IconBolt /> auto-hunt from my profile
-          </button>
+          {/* Auto-hunt with its own dedicated recency control */}
+          <div className="huntauto">
+            <span className="huntauto__label">posted within</span>
+            <div className="seg">
+              {RECENCY.map(([v, l]) => (
+                <button
+                  type="button"
+                  key={l}
+                  className={`seg__btn ${autoRecent === v ? 'seg__btn--on' : ''}`}
+                  onClick={() => setAutoRecent(v)}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+            <button
+              className="btn btn--primary"
+              style={{ padding: '11px 18px' }}
+              onClick={() => enqueueHunt({ recent: Number(autoRecent) || 7 })}
+              disabled={submitting}
+            >
+              <IconBolt /> {submitting ? 'queuing…' : 'auto-hunt from my profile'}
+            </button>
+          </div>
 
-          <div className="section__h" style={{ maxWidth: 540 }}>
+          {queued && (
+            <div className="note" style={{ marginTop: 12 }}>
+              Hunt queued.{' '}
+              <a href="/" style={{ color: 'var(--signal)' }}>Go to Board →</a>{' '}
+              to see results after running <code>/cos ui</code>.
+            </div>
+          )}
+
+          <div className="section__h" style={{ maxWidth: 540, marginTop: 28 }}>
             or target a specific search
           </div>
           <form
@@ -115,7 +154,7 @@ export default function HuntPage() {
               <label>location</label>
               <input
                 className="input"
-                placeholder="(blank = use my profile location) · or “remote”"
+                placeholder="(blank = use my profile location) · or &quot;remote&quot;"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
               />
@@ -135,8 +174,8 @@ export default function HuntPage() {
                 ))}
               </div>
             </div>
-            <button className="btn" type="submit">
-              <IconHunt /> queue hunt
+            <button className="btn" type="submit" disabled={submitting}>
+              {submitting ? 'queuing…' : <><IconHunt /> queue hunt</>}
             </button>
           </form>
 
@@ -152,6 +191,11 @@ export default function HuntPage() {
                   <span className="qrow__args">{argstr(h.args)}</span>
                 </div>
               ))
+            )}
+            {totalHunts > 8 && (
+              <div className="faint" style={{ fontSize: 'var(--fs-micro)', marginTop: 8 }}>
+                {totalHunts - 8} older hunts not shown — see the queue panel (Queue button in the top bar)
+              </div>
             )}
           </div>
         </div>

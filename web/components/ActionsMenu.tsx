@@ -40,8 +40,8 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: 'Run in my Claude Code · triggered from here',
-    note: 'Tip: run /cos ui watch once in Claude Code — then these run in your terminal automatically when you click. Otherwise run /cos ui to drain.',
+    title: 'Run via daemon · queued here, processed automatically',
+    note: 'Daemon auto-processes these. Start with npm run daemon (or npm run start for web + daemon together).',
     items: [
       { type: 'queue', id: 'hunt', label: 'Hunt from my profile', desc: 'Auto-fetch roles matched to your target roles + locations.', kind: 'hunt', args: {} },
       { type: 'command', id: 'evaluate', label: 'Evaluate a job', desc: 'Score one posting out of 5 with a written report.', cmd: 'evaluate', arg: 'job URL or report#' },
@@ -80,7 +80,7 @@ export function ActionsMenu({ onClose }: { onClose: () => void }) {
   const [status, setStatus] = useState<{ id: string; msg: string; kind: 'ok' | 'err' | 'muted' } | null>(null);
   const [targets, setTargets] = useState<Record<string, string>>({});
   const { watching } = useAgentStatus(4000);
-  const queuedMsg = watching ? 'sent — running in your Claude Code now' : 'queued — run /cos ui (or /cos ui watch to auto-run)';
+  const queuedMsg = watching ? 'queued — daemon processing now' : 'queued — daemon will pick this up (run npm run daemon if not started)';
 
   const run = useCallback(async (it: Item) => {
     if (IS_PUBLIC && it.type !== 'link') { openForkGate(); return; }
@@ -120,7 +120,7 @@ export function ActionsMenu({ onClose }: { onClose: () => void }) {
           <span className="agentdot__dot" />
           {watching
             ? 'Agent watching — what you trigger runs in your Claude Code automatically.'
-            : 'Agent not watching — run /cos ui watch in Claude Code so clicks run automatically (or /cos ui to drain once).'}
+            : 'Daemon not running — start with npm run daemon in your terminal so queued actions process automatically.'}
         </div>
         <div className="actions__body">
           {GROUPS.map((g) => (

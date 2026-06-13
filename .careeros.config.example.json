@@ -1,0 +1,30 @@
+{
+  "_comment": "Copy to .careeros.config.json and fill in your settings. See README for full docs.",
+
+  "provider": "claude-cli",
+  "_provider_options": ["claude-cli", "ollama", "openai-compat"],
+
+  "model": null,
+  "_model_notes": {
+    "claude-cli":    "null = whatever Claude Code defaults to",
+    "ollama":        "e.g. llama3.2, qwen2.5:14b, mistral, gemma3:12b (needs >=8k context)",
+    "openai-compat": "e.g. meta-llama/llama-3.2-3b-instruct:free (OpenRouter), llama-3.3-70b-versatile (Groq)"
+  },
+
+  "endpoint": null,
+  "_endpoint_notes": {
+    "ollama":            "http://localhost:11434 (default — change if non-standard port)",
+    "openai-compat":     "https://openrouter.ai/api  OR  https://api.groq.com/openai  OR  http://localhost:1234 (LM Studio)",
+    "claude-cli":        "not used"
+  },
+
+  "apiKey": null,
+  "_apiKey_notes": {
+    "openai-compat": "your OpenRouter / Groq / Together.ai / Anthropic key",
+    "ollama":        "not needed",
+    "claude-cli":    "not needed (uses your Claude Code login)"
+  },
+
+  "pollIntervalMs": 15000,
+  "_pollIntervalMs_notes": "how often the daemon checks the queue (ms). 15000 = 15 sec"
+}

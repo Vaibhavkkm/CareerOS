@@ -136,7 +136,7 @@ export function FilterBar({
           style={{ width: 170 }}
           disabled={busy}
         >
-          <option value={ALL_COUNTRIES}>🌍 All countries</option>
+          <option value={ALL_COUNTRIES}>All countries</option>
           {COUNTRIES.map((c) => (
             <option key={c} value={c}>
               {c}

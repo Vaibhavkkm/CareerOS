@@ -18,6 +18,7 @@ const ALLOW = new Set([
   'gaps.mjs',
   'salary.mjs',
   'cv-lint.mjs',
+  'parse-cv.mjs',
 ]);
 
 export interface RunResult<T = unknown> {
