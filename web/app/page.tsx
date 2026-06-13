@@ -171,31 +171,38 @@ export default function BoardPage() {
     async (opts: FetchRecentOpts, recent: string) => {
       if (IS_PUBLIC) { openForkGate(); return; }
       setBusy(true);
-      // "All countries": fan out over every listed country, SEQUENTIALLY — the
-      // fetch writes a shared dedup ledger (scan-history/inbox/jds), so running
-      // them in parallel would race and double-write. City is ignored here.
+      // "All countries": hand the whole list to ONE server request. The engine
+      // fetches each country's boards with bounded concurrency, then dedups +
+      // persists the whole pile in a SINGLE ingest — so there's no ledger race (the
+      // reason this used to loop one country per round-trip) and a job seen in
+      // several countries is added once. One long request, no per-country streaming;
+      // city is ignored. See web/app/api/fetch-recent + scripts/jobspy.mjs.
       if (opts.country === ALL_COUNTRIES) {
-        let totalRecv = 0;
-        let totalNew = 0;
-        let failed = 0;
-        push(`fetching CV-matched jobs · all ${COUNTRIES.length} countries (sequential)…`, 'info');
-        for (const c of COUNTRIES) {
-          const r = await postFetch(c, '', recent, opts.jobType);
-          if (r.ok) {
-            totalRecv += r.received ?? 0;
-            totalNew += r.counts?.added ?? 0;
-            push(`${c} · +${r.counts?.added ?? 0} new (${r.received ?? 0} seen)`, 'info');
-          } else {
-            failed += 1;
-            push(`${c} · ${r.error || 'fetch failed'}`, 'err');
-          }
-        }
+        push(`fetching CV-matched jobs · all ${COUNTRIES.length} countries in one sweep (may take a few minutes)…`, 'info');
+        const r = await api<{
+          ok: boolean; received?: number; counts?: { added?: number }; failed?: number;
+          perCountry?: { country: string; ok: boolean; received?: number; error?: string }[]; error?: string;
+        }>('/api/fetch-recent', {
+          method: 'POST',
+          body: JSON.stringify({ countries: COUNTRIES, recent: recent || undefined, jobType: opts.jobType || undefined }),
+        });
         setBusy(false);
-        push(
-          `all countries done · ${totalNew} new on board (${totalRecv} seen)${failed ? ` · ${failed} failed` : ''}`,
-          totalNew ? 'ok' : 'info',
-        );
-        load(filters);
+        if (r.ok) {
+          const totalNew = r.counts?.added ?? 0;
+          const failed = r.failed ?? 0;
+          // Surface any country whose boards failed (e.g. a rate-limit block) so a
+          // partial sweep isn't silently reported as a complete one.
+          for (const c of r.perCountry || []) {
+            if (!c.ok) push(`${c.country} · ${c.error || 'fetch failed'}`, 'err');
+          }
+          push(
+            `all countries done · ${totalNew} new on board (${r.received ?? 0} seen)${failed ? ` · ${failed} failed` : ''}`,
+            totalNew ? 'ok' : 'info',
+          );
+          load(filters);
+        } else {
+          push(r.error || 'fetch failed', 'err');
+        }
         return;
       }
 
