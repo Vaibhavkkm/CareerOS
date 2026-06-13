@@ -19,15 +19,32 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join, basename } from 'node:path';
 import assert from 'node:assert/strict';
 
+import yaml from 'js-yaml';
+
 import { scoreMatch, bandRank, STARS, buildCorpusIdf, prepCv, normTokens, fitScore } from './match-score.mjs';
 import { fetchPosting, saveJd } from './fetch-jd.mjs';
 import { runPool } from './scan.mjs';
 import { extractLanguages, formatLanguages } from '../lib/languages.mjs';
+import { targetTerms } from '../lib/skills.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CV_PATH = join(ROOT, 'data', 'cv.master.md');
 const JDS_DIR = join(ROOT, 'data', 'jds');
 const INBOX = join(ROOT, 'data', 'inbox.md');
+const PROFILE_PATH = join(ROOT, 'data', 'profile.yml');
+
+// The candidate's on-target job functions, from profile.yml target_roles. Lets the
+// scorer damp roles that share the candidate's TOOLS but not their target FUNCTION
+// (e.g. a Reliability Engineer using Python/ML for a Data Scientist). Empty set when
+// no profile → function-fit stays neutral.
+function readTargetTerms() {
+  try {
+    if (!existsSync(PROFILE_PATH)) return new Set();
+    const p = yaml.load(readFileSync(PROFILE_PATH, 'utf8')) || {};
+    const tr = p.target_roles || {};
+    return targetTerms(tr.primary || [], tr.archetypes || []);
+  } catch { return new Set(); }
+}
 
 // ─── pure parsing/format helpers (exported for tests) ─────────────────
 
@@ -103,6 +120,7 @@ function scoreRow(c, cv, scoreCtx, jdToks = null) {
     score: s.score, fit: fitScore(s.score), band: s.band, have: s.have, gap: s.gap,
     // why this band: surfaced so the board/UI can explain a low rank honestly.
     stack_mismatch: m ? m.family : '', exp_note: s.reasons?.experience?.note || '',
+    function_mismatch: s.reasons?.functionMismatch ? true : false,
   };
 }
 
@@ -266,6 +284,22 @@ export function employmentTypeText(role, content) {
   return `${role || ''} ${lines.slice(0, 4).join(' ')}`.trim();
 }
 
+// Multi-select aware: the country and type board filters accept a COMMA-SEPARATED
+// list and keep a posting if it matches ANY chosen value (so the user can tick
+// several countries / job types). An empty list = no filter. City is a single
+// substring, ANDed with the country match.
+export function passesCountry(loc, countryCsv, city = '') {
+  if (city && !matchesLocation(loc, { city })) return false;
+  const list = String(countryCsv || '').split(',').map((s) => s.trim()).filter(Boolean);
+  if (!list.length || list.includes('All countries')) return true;
+  return list.some((ct) => matchesLocation(loc, { country: ct }));
+}
+export function passesType(text, typeCsv) {
+  const list = String(typeCsv || '').split(',').map((s) => s.trim()).filter(Boolean);
+  if (!list.length) return true;
+  return list.some((ty) => matchesType(text, ty));
+}
+
 // Job type isn't stored structurally per JD, so classify best-effort from the
 // role title (+ an explicit employment-type line). "fulltime" means "permanent" →
 // anything that ISN'T an internship/part-time/temp/academic-fixed-term role.
@@ -302,7 +336,9 @@ export function matchesType(text, type) {
 // short label ('3–5 yrs', '5+ yrs') or '' when none is stated. Prefers ranges, then
 // explicit "N+ years", then a year-count in an experience context.
 export function extractExperience(text) {
-  const t = String(text || '').toLowerCase();
+  // De-escape Indeed/markdown backslashes first ("8\+ years" → "8+ years"), else the
+  // requirement is invisible to the patterns below and the column shows blank.
+  const t = String(text || '').replace(/\\([-+&%$#_.~(){}[\]/])/g, '$1').toLowerCase();
   // Reject implausible values (>15 yrs is almost always noise) and AGE requirements
   // ("at least 18 years old / of age"), which would otherwise read as experience.
   const ok = (lo, hi) => {
@@ -413,8 +449,8 @@ async function main() {
   // Display filters: country/city/type restrict WHAT THE BOARD SHOWS (not just what a
   // fetch pulls), so the filter row actually filters the board.
   const filtered = unique.filter((c) =>
-    matchesLocation(c.location, { country: args.country, city: args.city }) &&
-    matchesType(employmentTypeText(c.role, c.content), args.type));
+    passesCountry(c.location, args.country, args.city) &&
+    passesType(employmentTypeText(c.role, c.content), args.type));
 
   // 3) score + assemble. ONE TF-IDF index across the shown postings + the CV makes the
   // cosine discriminative. Tokenize each JD ONCE (shared by the idf and the score)
@@ -425,7 +461,8 @@ async function main() {
   // Recognize the CV's skills + estimate professional years ONCE (resolved against
   // `today` so "Present" date ranges are computed consistently for the whole board).
   const cvPrep = prepCv(cv, { idf: corpusIdf, today });
-  const scoreCtx = { idf: corpusIdf, cvKeywords: cvPrep.keywords, cv: cvPrep, today };
+  const targets = readTargetTerms(); // candidate's on-target functions (profile.yml)
+  const scoreCtx = { idf: corpusIdf, cvKeywords: cvPrep.keywords, cv: cvPrep, today, targets };
   const rows = filtered.map((c, i) => scoreRow(c, cv, scoreCtx, jdToksList[i]));
   const board = assembleBoard(rows, { minBand: args.min, recentDays: Number.isFinite(args.recent) ? args.recent : null, today });
   // Cap rendered rows for UI responsiveness; the full filtered count is still
@@ -593,7 +630,18 @@ export function selfTest() {
     'matchesType: contract role excluded from fulltime');
   ok(matchesType('Senior Consultant', 'fulltime') && !matchesType('Senior Consultant', 'contract'),
     'matchesType: bare "consultant" is permanent, not contract');
+  // multi-select country/type filters: match ANY of a comma-separated list
+  ok(passesCountry('New York, NY, US', 'United States,Germany') && passesCountry('Berlin, DE', 'United States,Germany'),
+    'passesCountry: matches ANY of multiple countries');
+  ok(!passesCountry('Toronto, ON, CA', 'United States,Germany'), 'passesCountry: excludes a country not in the list');
+  ok(passesCountry('anywhere', '') && passesCountry('anywhere', 'All countries'), 'passesCountry: empty / all → no filter');
+  ok(!passesCountry('New York, NY, US', 'United States', 'berlin'), 'passesCountry: city is ANDed (NY ≠ berlin)');
+  ok(passesType('Data Science Intern', 'internship,phd') && passesType('PhD Position', 'internship,phd'),
+    'passesType: matches ANY of multiple types');
+  ok(!passesType('Senior Data Engineer', 'internship,phd'), 'passesType: excludes a type not in the list');
+  ok(passesType('Anything', ''), 'passesType: empty → no filter');
   eq(extractExperience('We need 3-5 years of experience'), '3–5 yrs', 'experience: range');
+  eq(extractExperience('Minimum 8\\+ years of experience'), '8+ yrs', 'experience: de-escapes Indeed "8\\+ years"');
   eq(extractExperience('Requires 5+ years in data'), '5+ yrs', 'experience: N+');
   eq(extractExperience('Join our great team'), '', 'experience: none');
   eq(extractExperience('You must be at least 18 years old to apply'), '', 'experience: ignores age requirement');

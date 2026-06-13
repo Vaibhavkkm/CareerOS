@@ -72,11 +72,17 @@ export function DetailDrawer({
   today,
   onClose,
   onEnqueue,
+  saved = false,
+  savedCount = 0,
+  onToggleSave,
 }: {
   row: BoardRow;
   today: string;
   onClose: () => void;
   onEnqueue: (kind: string, args: Record<string, unknown>) => void;
+  saved?: boolean;
+  savedCount?: number;
+  onToggleSave?: () => void;
 }) {
   const [jd, setJd] = useState<JdDetail | null>(null);
 
@@ -231,6 +237,23 @@ export function DetailDrawer({
             )}
           </div>
         </div>
+
+        {onToggleSave && (
+          <div className="drawer__save">
+            <button
+              className={`btn ${saved ? 'btn--saved' : ''}`}
+              onClick={onToggleSave}
+              title={saved ? 'Remove from your saved shortlist' : 'Save this job to build a CV + CL for it later'}
+            >
+              {saved ? '★ saved' : '☆ save'}
+            </button>
+            {savedCount > 0 && (
+              <span className="drawer__save-hint">
+                {savedCount} saved · build them all with <code>/cos saved build-all</code>
+              </span>
+            )}
+          </div>
+        )}
 
         <div className="drawer__actions">
           <button className="btn btn--primary" onClick={() => onEnqueue('evaluate', args)}>
