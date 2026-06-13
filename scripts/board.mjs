@@ -302,7 +302,9 @@ export function matchesType(text, type) {
 // short label ('3–5 yrs', '5+ yrs') or '' when none is stated. Prefers ranges, then
 // explicit "N+ years", then a year-count in an experience context.
 export function extractExperience(text) {
-  const t = String(text || '').toLowerCase();
+  // De-escape Indeed/markdown backslashes first ("8\+ years" → "8+ years"), else the
+  // requirement is invisible to the patterns below and the column shows blank.
+  const t = String(text || '').replace(/\\([-+&%$#_.~(){}[\]/])/g, '$1').toLowerCase();
   // Reject implausible values (>15 yrs is almost always noise) and AGE requirements
   // ("at least 18 years old / of age"), which would otherwise read as experience.
   const ok = (lo, hi) => {

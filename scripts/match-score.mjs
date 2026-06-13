@@ -34,7 +34,7 @@ import assert from 'node:assert/strict';
 
 import { stem, stemTokens } from '../lib/text.mjs';
 import { buildTf, emptyIdf, tfidfVec, cosine, indexAdd } from '../lib/tfidf.mjs';
-import { cvSkills, jdSkills, familyMass, jdRequiredYears, candidateYears } from '../lib/skills.mjs';
+import { cvSkills, jdSkills, familyMass, jdRequiredYears, candidateYears, isManagerialJd } from '../lib/skills.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_CV = join(ROOT, 'data', 'cv.master.md');
@@ -181,7 +181,7 @@ const FAM_UNIT = 1.0;  // family-mass that counts as "solidly in this ecosystem"
 const CORE_CUT = 0.5;  // coreCoverage below which a stack-conflict penalty can apply
 const ALIGN_VETO = 0.6; // familyAlignment at/above which the conflict penalty is vetoed
 const PENALTY_FLOOR = 0.45; // hardest stack-conflict multiplier (at coreCoverage 0)
-const COMBINED_FLOOR = 0.40; // two soft penalties can never drag below this
+const COMBINED_FLOOR = 0.25; // a single confident penalty can reach Weak; combine is min() (no compounding)
 const LEX_FULL = 0.55; // lexScore value treated as "1.0" when rescaling the fallback
 
 // The core: returns { score, band, coverage, relevance, cosine, coreCoverage,
@@ -270,15 +270,33 @@ export function scoreMatch(jdText, cvText, { topK = 18, idf = null, cvKeywords =
     }
   }
 
-  // ── 5) experience-fit multiplier: conservative, neutral when unknown ──
+  // ── 5) experience-fit multiplier: neutral when unknown, but BITES on a confident gap ──
   const reqY = jdRequiredYears(jdText, title);
   const candY = cvP.candYears;
+  const managerial = isManagerialJd(title, jdText);
   let expFit = 1, expNote = 'unverified';
-  if (reqY.confident && candY.confident) {
+  if (candY.confident) {
     const bar = Math.max(0, reqY.years);
-    if (bar <= 1) { if (candY.years >= 6) { expFit = 0.92; expNote = `overqualified (~${candY.years}y, entry role)`; } else expNote = 'entry-level'; }
-    else if (candY.years >= bar) expNote = `meets ${bar}+y`;
-    else { expFit = Math.max(0.7, 0.7 + 0.3 * (candY.years / bar)); expNote = `~${candY.years}y vs ${bar}+y wanted`; }
+    if (reqY.confident && bar > 1 && candY.years < bar) {
+      // under-experienced: ramp scaled to the gap. A modest gap (1.5y vs 3y) stays
+      // reachable (~0.64); a large gap (1.5y vs 8y) is damped (~0.46) — and a manager
+      // / senior-leadership role is capped harder below. Egregious gaps don't bury the
+      // board wholesale, but they can't read STRONGEST either.
+      const ratio = candY.years / bar;
+      expFit = Math.max(0.3, Math.min(1, 0.35 + 0.55 * ratio));
+      expNote = `~${candY.years}y vs ${bar}+y wanted`;
+    } else if (reqY.confident && bar > 1) {
+      expNote = `meets ${bar}+y`;
+    } else if (reqY.confident && bar <= 1) {
+      if (candY.years >= 6 && !managerial) { expFit = 0.92; expNote = `overqualified (~${candY.years}y, entry role)`; }
+      else expNote = 'entry-level';
+    }
+    // A people-management / senior-leadership role is years of seniority away from a
+    // junior IC even when the technical skills match — cap it hard.
+    if (managerial && candY.years < 3) {
+      expFit = Math.min(expFit, 0.3);
+      expNote = expNote === 'unverified' ? `management role vs ~${candY.years}y exp` : `${expNote} · mgmt role`;
+    }
   }
 
   // ── 6) combine WITHOUT compounding (single worst penalty, floored), then clamp ──
@@ -426,6 +444,16 @@ export function selfTest() {
   const expR = scoreMatch(seniorJd, juniorCv, { title: 'Senior Engineer', today: '2026-06-13' });
   ok(expR.reasons.experience.multiplier < 1, 'under-experienced candidate gets an experience damp');
   eq(scoreMatch('Build React apps with Node.js.', nodeCv).reasons.experience.note, 'unverified', 'experience neutral when no years stated');
+
+  // ── REGRESSION: 8+ year MANAGER role (Indeed-escaped) must NOT be a strong match for a junior ──
+  const jrDsCv = '## Skills\n- Python, pandas, scikit-learn, SQL, machine learning\n## Experience\n### Co — Data Analyst — 01/2023 – 06/2024\n- Built ML models in Python with scikit-learn.';
+  const mgrJd = 'Manager, Data Science. 8\\+ years of experience in data science, with 3\\+ years in a people management role. Lead and manage a team. Python, machine learning, SQL.';
+  const entryDsJd = 'Data Scientist (Entry). 0-2 years experience. Python, machine learning, SQL.';
+  const onMgr = scoreMatch(mgrJd, jrDsCv, { title: 'Manager, Data Science', today: '2026-06-14' });
+  const onEntry = scoreMatch(entryDsJd, jrDsCv, { title: 'Data Scientist', today: '2026-06-14' });
+  eq(onMgr.reasons.experience.required, 8, 'parses "8\\+ years" despite Indeed backslash-escaping (the WAVE-Manager bug)');
+  ok(bandRank(onMgr.band) >= bandRank('Moderate'), `8+y manager role is Weak/Moderate for a junior, not STRONGEST (got ${onMgr.score} ${onMgr.band})`);
+  ok(onEntry.score - onMgr.score > 0.3, `entry DS role ranks far above the 8+y manager role for a junior (${onEntry.score} vs ${onMgr.score})`);
 
   // degenerate inputs are finite + safe
   eq(scoreMatch('', nodeCv).score, 0, 'empty JD → 0'); eq(scoreMatch(nodeJd, '').score, 0, 'empty CV → 0');
