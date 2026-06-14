@@ -56,12 +56,35 @@ function extractExpectations(body: string): { wants: string[]; other: string[] }
 }
 
 // Find a stated salary/compensation, if any (EU postings often omit it).
+// A bare currency figure is NOT enough — postings are full of money amounts that
+// are NOT pay: "$6.9 billion in sales", "raised $20M", "market cap", budgets, etc.
+// So we only accept a figure that is either (a) magnitude-suffixed (k) or stated
+// per period (per year/hour…), or (b) sits next to a salary-context word — and we
+// reject any figure trailed by a big-scale/revenue word. Better to show nothing
+// than to surface a revenue number as someone's salary.
 function extractSalary(body: string): string {
-  const m = (body || '').match(
-    /([€£$]\s?\d[\d.,]*\s?[kK]?(?:\s?(?:–|-|to)\s?[€£$]?\s?\d[\d.,]*\s?[kK]?)?(?:\s?(?:per|\/|a)\s?(?:year|yr|annum|month|mo|hour|hr|day))?|\b(?:EUR|USD|GBP|CHF)\s?\d[\d.,]*\s?[kK]?)/,
-  );
-  if (m) return cleanLine(m[0]);
-  if (/\bcompetitive\b/i.test(body || '') && /\b(salary|compensation|package|remuneration|pay)\b/i.test(body || '')) {
+  const text = body || '';
+  const MONEY =
+    /([€£$]\s?\d[\d.,]*\s?[kK]?(?:\s?(?:–|-|to)\s?[€£$]?\s?\d[\d.,]*\s?[kK]?)?(?:\s?(?:per|\/|a)\s?(?:year|yr|annum|month|mo|hour|hr|day))?|\b(?:EUR|USD|GBP|CHF)\s?\d[\d.,]*\s?[kK]?)/g;
+  // A figure followed by these is a scale/revenue number, never an individual salary.
+  const SCALE = /^\s*(?:bn|billion|million|mn|trillion|m\b)/i;
+  const REVENUE =
+    /\b(?:in sales|sales|revenue|turnover|valuation|funding|raised|market\s*cap|customers|users|employees|arr|mrr|profit|assets under management|aum|budget|contract worth|deal)\b/i;
+  const SALARY_CTX =
+    /\b(?:salary|salaries|compensation|remuneration|package|base pay|gross|net|RAL|per\s*(?:year|annum|month|hour)|\/\s*(?:yr|year|hr|hour|month)|annual\s*(?:salary|pay)|stipend|wage)\b/i;
+  // Looks like pay on its own: has a k-suffix or an explicit per-period.
+  const SELF_PAY = /[kK]\b|(?:per|\/|a)\s?(?:year|yr|annum|month|mo|hour|hr|day)/i;
+
+  let m: RegExpExecArray | null;
+  while ((m = MONEY.exec(text))) {
+    const match = m[0];
+    const end = m.index + match.length;
+    const after = text.slice(end, end + 24);
+    const around = text.slice(Math.max(0, m.index - 40), end + 40);
+    if (SCALE.test(after) || REVENUE.test(around)) continue; // revenue/scale, not pay
+    if (SELF_PAY.test(match) || SALARY_CTX.test(around)) return cleanLine(match);
+  }
+  if (/\bcompetitive\b/i.test(text) && /\b(salary|compensation|package|remuneration|pay)\b/i.test(text)) {
     return 'Competitive (see posting)';
   }
   return '';

@@ -1202,7 +1202,9 @@ select {
    ========================================================================== */
 .toaster {
   position: fixed;
-  bottom: var(--s4);
+  /* Top-right so toasts never cover the detail-drawer action bar (Build CV / CL,
+     Evaluate, Save) which sits at the bottom of the screen. */
+  top: var(--s4);
   right: var(--s4);
   z-index: 80;
   display: flex;
@@ -1224,7 +1226,7 @@ select {
 }
 @keyframes toastin {
   from {
-    transform: translateX(12px);
+    transform: translateY(-12px);
     opacity: 0;
   }
 }
