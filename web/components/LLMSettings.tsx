@@ -127,8 +127,11 @@ export function LLMSettings({ onClose }: { onClose: () => void }) {
                     style={{
                       display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
                       border: `1px solid ${cfg.provider === p ? 'var(--signal)' : 'var(--hairline-2)'}`,
-                      background: cfg.provider === p ? 'color-mix(in srgb, var(--signal) 6%, var(--bg))' : 'var(--bg-raised)',
+                      background: cfg.provider === p ? 'rgba(99,102,241,0.14)' : 'rgba(255,255,255,0.06)',
+                      borderRadius: 'var(--radius)',
                       cursor: 'pointer', fontSize: 'var(--fs-data)',
+                      boxShadow: cfg.provider === p ? '0 0 0 1px rgba(129,140,248,0.3)' : 'none',
+                      transition: 'background 0.12s ease, border-color 0.12s ease',
                     }}
                   >
                     <input
@@ -149,7 +152,7 @@ export function LLMSettings({ onClose }: { onClose: () => void }) {
             </div>
 
             {showModel && (
-              <div className="field" style={{ marginBottom: 'var(--s3)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 'var(--s3)' }}>
                 <label className="field__label">
                   Model
                   <span className="field__help">{cfg.provider === 'ollama' ? 'must be pulled via ollama pull' : 'model ID from provider'}</span>
@@ -166,7 +169,7 @@ export function LLMSettings({ onClose }: { onClose: () => void }) {
             )}
 
             {showEndpoint && (
-              <div className="field" style={{ marginBottom: 'var(--s3)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 'var(--s3)' }}>
                 <label className="field__label">
                   Endpoint
                   {ENDPOINT_HELP[cfg.provider] && (
@@ -186,7 +189,7 @@ export function LLMSettings({ onClose }: { onClose: () => void }) {
             )}
 
             {showKey && (
-              <div className="field" style={{ marginBottom: 'var(--s3)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 'var(--s3)' }}>
                 <label className="field__label">
                   API Key
                   <span className="field__help">{KEY_HELP[cfg.provider]}</span>
@@ -204,7 +207,7 @@ export function LLMSettings({ onClose }: { onClose: () => void }) {
               </div>
             )}
 
-            <div className="field" style={{ marginBottom: 'var(--s5)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 'var(--s5)' }}>
               <label className="field__label">
                 Daemon poll interval
                 <span className="field__help">how often queue is checked</span>
