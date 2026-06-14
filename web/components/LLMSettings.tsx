@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from './util';
 import { IS_PUBLIC, openForkGate } from '@/lib/public';
 
@@ -106,7 +107,7 @@ export function LLMSettings({ onClose }: { onClose: () => void }) {
   const showKey = cfg.provider === 'openai-compat';
   const showModel = cfg.provider !== 'claude-cli';
 
-  return (
+  const modal = (
     <div className="modal" role="dialog" aria-modal="true" aria-label="LLM settings">
       <div className="modal__card llmsettings" style={{ width: 'min(520px, 94vw)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--s4)' }}>
@@ -239,4 +240,5 @@ export function LLMSettings({ onClose }: { onClose: () => void }) {
       </div>
     </div>
   );
+  return createPortal(modal, document.body);
 }

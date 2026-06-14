@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from './util';
 import { useAgentStatus } from './useAgentStatus';
 import { IS_PUBLIC, openForkGate } from '@/lib/public';
@@ -109,7 +110,7 @@ export function ActionsMenu({ onClose }: { onClose: () => void }) {
     setStatus(r.ok ? { id: it.id, msg: queuedMsg, kind: 'ok' } : { id: it.id, msg: r.error || 'could not queue', kind: 'err' });
   }, [targets]);
 
-  return (
+  const panel = (
     <div className="actions" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="actions__panel" role="dialog" aria-label="Actions">
         <div className="actions__head">
@@ -156,4 +157,5 @@ export function ActionsMenu({ onClose }: { onClose: () => void }) {
       </div>
     </div>
   );
+  return createPortal(panel, document.body);
 }
