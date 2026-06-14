@@ -14,14 +14,14 @@ export async function call(systemPrompt, userMessage, { model, endpoint } = {}) 
       { role: 'user', content: userMessage },
     ],
     stream: false,
-    options: { num_ctx: 16384 },  // request larger context window
+    options: { num_ctx: 8192 },  // 8k enough for CV/CL; 16k KV cache eats 3GB on M2
   };
 
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(300_000),
+    signal: AbortSignal.timeout(900_000), // 15 min — local models are slow; 14B can take 8-12 min on M2
   });
 
   if (!res.ok) {
