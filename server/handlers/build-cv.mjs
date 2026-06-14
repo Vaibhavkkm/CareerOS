@@ -4,7 +4,11 @@ import { join } from 'node:path';
 import { ROOT } from '../config.mjs';
 
 function loadTemplate(name) {
-  try { return readFileSync(join(ROOT, 'templates', name), 'utf8'); } catch { return null; }
+  try {
+    const raw = readFileSync(join(ROOT, 'templates', name), 'utf8');
+    // Strip % comment lines to reduce token count (saves ~800 tokens, prevents context overflow)
+    return raw.split('\n').filter((l) => !l.trimStart().startsWith('%')).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  } catch { return null; }
 }
 import {
   collectMode, collectProfile, collectJD, collectReport,
@@ -45,8 +49,8 @@ export async function handle(args, generate) {
   const systemPrompt = collectMode('build-cv');
   const contextBlock = buildContextBlock({
     profile,
-    jd: truncate(jd || '', 6000),
-    report: truncate(report || '', 4000),
+    jd: truncate(jd || '', 3000),   // tighter limit: template adds ~1k chars to prompt
+    report: truncate(report || '', 2000),
     extra: selectedTemplate !== 'default'
       ? `## CV Template\nUse template: ${selectedTemplate}`
       : null,

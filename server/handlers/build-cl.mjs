@@ -4,7 +4,10 @@ import { join } from 'node:path';
 import { ROOT } from '../config.mjs';
 
 function loadTemplate(name) {
-  try { return readFileSync(join(ROOT, 'templates', name), 'utf8'); } catch { return null; }
+  try {
+    const raw = readFileSync(join(ROOT, 'templates', name), 'utf8');
+    return raw.split('\n').filter((l) => !l.trimStart().startsWith('%')).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  } catch { return null; }
 }
 import {
   collectMode, collectProfile, collectJD, collectReport,
@@ -55,8 +58,8 @@ export async function handle(args, generate) {
   const systemPrompt = collectMode('build-cl');
   const contextBlock = buildContextBlock({
     profile,
-    jd: truncate(jd || '', 6000),
-    report: truncate(report || '', 3000),
+    jd: truncate(jd || '', 3000),   // tighter: template injection adds ~1k chars
+    report: truncate(report || '', 2000),
   });
 
   const slug = slugify(args.company || args.target || 'cl');

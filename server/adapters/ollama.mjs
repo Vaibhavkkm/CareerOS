@@ -14,7 +14,7 @@ export async function call(systemPrompt, userMessage, { model, endpoint } = {}) 
       { role: 'user', content: userMessage },
     ],
     stream: false,
-    options: { num_ctx: 8192 },  // 8k enough for CV/CL; 16k KV cache eats 3GB on M2
+    options: { num_ctx: 10240 }, // 10k fits template+profile+JD; 8k overflowed (prompt=8333)
   };
 
   const res = await fetch(url, {
