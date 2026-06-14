@@ -42,9 +42,10 @@ const PY_SCRIPT = join(ROOT, 'scripts', 'jobspy_fetch.py');
 const PROFILE = join(ROOT, 'data', 'profile.yml');
 
 // Glassdoor added to the default sweep for breadth (it covers EU/UK/CA well where
-// ZipRecruiter is US/CA-only). LinkedIn stays deferred (rate-limits hardest) but is
-// available via --boards. Per-board failures degrade gracefully in the sidecar.
-const DEFAULT_BOARDS = ['indeed', 'zip_recruiter', 'glassdoor', 'google'];
+// ZipRecruiter is US/CA-only). LinkedIn is now in the default set too (it returns
+// strong EU results); it rate-limits harder than the others, so per-board failures
+// degrade gracefully in the sidecar and just yield fewer rows when throttled.
+const DEFAULT_BOARDS = ['indeed', 'zip_recruiter', 'glassdoor', 'google', 'linkedin'];
 const DEFAULT_COUNTRY = 'Luxembourg';
 const DEFAULT_RESULTS = 40; // per board per search term (was 20) — pull more per role
 // Multi-country sweeps fetch this many countries at once. Kept deliberately low: the
@@ -386,8 +387,8 @@ async function selfTest() {
     location: { country: 'Luxembourg', city: 'Luxembourg' },
   };
   const def = deriveConfig(profile, parseArgs([]));
-  assert.deepEqual(def.sites, ['indeed', 'zip_recruiter', 'glassdoor', 'google'], 'default board set (LinkedIn excluded)');
-  assert.ok(!def.sites.includes('linkedin'));
+  assert.deepEqual(def.sites, ['indeed', 'zip_recruiter', 'glassdoor', 'google', 'linkedin'], 'default board set (LinkedIn included)');
+  assert.ok(def.sites.includes('linkedin'));
   assert.deepEqual(def.search_terms, ['Data Scientist', 'Data Engineer']);
   assert.equal(def.country, 'Luxembourg');
   assert.equal(def.location, 'Luxembourg');

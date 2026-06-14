@@ -14,6 +14,12 @@ export interface FetchRecentOpts {
   jobTypes: string[]; // [] = any type; else JobSpy job_types to filter + fetch
 }
 
+// Default boards a fetch hits — LinkedIn included by default, same as Indeed. Kept
+// in sync with scripts/jobspy.mjs DEFAULT_BOARDS. LinkedIn throttles hardest, so it
+// degrades gracefully (fewer rows) rather than failing the fetch.
+export const FETCH_BOARDS_BASE = ['indeed', 'zip_recruiter', 'glassdoor', 'google', 'linkedin'];
+export const fetchBoards = () => FETCH_BOARDS_BASE.join(',');
+
 // Job-type values → friendly labels. '' = every type. The first four map to
 // native JobSpy job_type filters; "phd"/"postdoc" aren't JobSpy types, so the
 // fetch turns them into search terms instead (handled in scripts/jobspy.mjs),
@@ -52,7 +58,8 @@ const RECENCY: [string, string][] = [
 // Country.from_string) — every one below is verified against that list.
 // ZipRecruiter + Google only return results for US/Canada, so those two unlock the
 // extra boards; the rest still scrape Indeed (and Google Jobs as a best effort).
-// LinkedIn is deferred, so the live boards are Indeed / ZipRecruiter / Google Jobs.
+// Default boards are Indeed / ZipRecruiter / Glassdoor / Google Jobs; LinkedIn is
+// opt-in via the fetch toggle (it throttles scrapers hardest, no login required).
 // Curated to well-known job markets and grouped by region for the dropdown.
 export const COUNTRIES = [
   // Home + North America
@@ -196,7 +203,7 @@ export function FilterBar({
         className="btn"
         onClick={() => onFetchRecent(place)}
         disabled={busy}
-        title="Fetch only recent listings (uses the 'posted' window) from Indeed, ZipRecruiter & Google Jobs"
+        title="Fetch only recent listings (uses the 'posted' window) from Indeed, ZipRecruiter, Glassdoor, Google Jobs & LinkedIn"
       >
         <IconGlobe /> fetch recent
       </button>

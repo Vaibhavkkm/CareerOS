@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { BoardResponse } from '@/lib/types';
 import { TopBar } from '@/components/TopBar';
-import { FilterBar, type Filters, type FetchRecentOpts, COUNTRIES } from '@/components/FilterBar';
+import { FilterBar, type Filters, type FetchRecentOpts, COUNTRIES, fetchBoards } from '@/components/FilterBar';
 import { BoardTable } from '@/components/BoardTable';
 import { DetailDrawer } from '@/components/DetailDrawer';
 import { CommandPalette, type Command } from '@/components/CommandPalette';
@@ -193,10 +193,10 @@ export default function BoardPage() {
   // One fetch round-trip for a single country/city. Kept separate so the
   // "All countries" path can call it per-country without re-rendering between each.
   const postFetch = useCallback(
-    (country: string, city: string, recent: string, jobType: string) =>
+    (country: string, city: string, recent: string, jobType: string, boards: string) =>
       api<{ ok: boolean; counts?: { added?: number }; received?: number; error?: string }>(
         '/api/fetch-recent',
-        { method: 'POST', body: JSON.stringify({ country, city, recent: recent || undefined, jobType: jobType || undefined }) },
+        { method: 'POST', body: JSON.stringify({ country, city, recent: recent || undefined, jobType: jobType || undefined, boards }) },
       ),
     [],
   );
@@ -210,6 +210,7 @@ export default function BoardPage() {
       // ANY type and let the board's type filter narrow the view.
       const sweep = opts.countries.length === 0 ? COUNTRIES : opts.countries;
       const jobType = opts.jobTypes.length === 1 ? opts.jobTypes[0] : '';
+      const boards = fetchBoards();
 
       // 2+ countries → ONE server request that fetches each country's boards with
       // bounded concurrency, dedups, and persists in a SINGLE ingest (no ledger race;
@@ -222,7 +223,7 @@ export default function BoardPage() {
           perCountry?: { country: string; ok: boolean; received?: number; error?: string }[]; error?: string;
         }>('/api/fetch-recent', {
           method: 'POST',
-          body: JSON.stringify({ countries: sweep, recent: recent || undefined, jobType: jobType || undefined }),
+          body: JSON.stringify({ countries: sweep, recent: recent || undefined, jobType: jobType || undefined, boards }),
         });
         setBusy(false);
         if (r.ok) {
@@ -246,7 +247,7 @@ export default function BoardPage() {
       const typeLabel = jobType ? ` · ${jobType}` : '';
       const where = [opts.city.trim(), country].filter(Boolean).join(', ');
       push(`fetching CV-matched jobs · ${where || 'profile default'}${typeLabel}…`, 'info');
-      const r = await postFetch(country, opts.city.trim(), recent, jobType);
+      const r = await postFetch(country, opts.city.trim(), recent, jobType, boards);
       setBusy(false);
       if (r.ok) {
         push(`fetched ${r.received ?? 0} · ${r.counts?.added ?? 0} new on board`, 'ok');
