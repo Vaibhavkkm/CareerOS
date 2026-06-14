@@ -336,7 +336,7 @@ export default function BoardPage() {
             </div>
           </div>
         ) : (
-          <BoardTable rows={rows} today={today} selected={drawer} onSelect={(i) => setDrawer(i)} />
+          <BoardTable rows={rows} today={today} selected={drawer} onSelect={(i) => setDrawer(i)} showCountry={place.countries.length !== 1} />
         )}
       </main>
       {drawer >= 0 && rows[drawer] && (

@@ -6,6 +6,7 @@ export interface BoardRow {
   url: string;
   posted: string;
   location: string;
+  country?: string; // display label derived from location (e.g. "Luxembourg", "Remote")
   experience: string;
   jd_path: string;
   source: string;

@@ -533,6 +533,7 @@ select {
 /* ── column widths (table-layout: fixed) ── */
 .board th.col-fit, .cell-fit { width: 92px; }
 .board th.col-match, .cell-band { width: 122px; }
+.board th.col-country, .cell-country { width: 104px; }
 .board th.col-exp, .cell-exp { width: 76px; }
 .board th.col-posted, .cell-age { width: 80px; }
 .board th.col-lang, .cell-lang { width: 124px; }
@@ -558,6 +559,15 @@ select {
 .fit__fill--strong { background: var(--band-strong); }
 .fit__fill--moderate { background: var(--band-moderate); }
 .fit__fill--weak { background: var(--band-weak); }
+
+/* ── country cell (shown only when the board spans multiple countries) ── */
+.cell-country {
+  color: var(--fg-dim);
+  font-size: var(--fs-data);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* ── experience-required cell ── */
 .cell-exp {
@@ -1011,11 +1021,28 @@ select {
 }
 .qrow {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr auto auto;
   gap: 4px var(--s3);
   align-items: center;
   padding: var(--s3);
   border-bottom: 1px solid var(--hairline);
+}
+.qrow__cancel {
+  grid-row: 1;
+  grid-column: 3;
+  justify-self: end;
+  appearance: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  font-size: var(--fs-micro);
+  color: var(--fg-faint);
+  transition: color 0.12s ease;
+}
+.qrow__cancel:hover {
+  color: var(--band-weak, #c0392b);
 }
 .qrow__kind {
   color: var(--fg);

@@ -50,12 +50,19 @@
 \raggedbottom
 \raggedright
 \setlength{\tabcolsep}{0in}
-\linespread{1.0}
+\linespread{1.04}
 
-% --- Section formatting ---
+% --- Elegant palette (subtle, print-safe; ATS-neutral — colour never carries text meaning) ---
+\definecolor{ink}{RGB}{34,34,34}        % near-black body
+\definecolor{headgray}{RGB}{70,80,95}   % refined slate for headings
+\definecolor{rulegray}{RGB}{180,186,196}% hairline rule
+\color{ink}
+
+% --- Section formatting: slate small-caps + full-width hairline rule ---
 \titleformat{\section}{
-  \vspace{-8pt}\scshape\raggedright\large
-}{}{0em}{}[\color{black}\titlerule \vspace{-7pt}]
+  \vspace{2pt}\large\scshape\color{headgray}\raggedright
+}{}{0em}{}[\vspace{1pt}{\color{rulegray}\titlerule[0.8pt]}\vspace{-4pt}]
+\titlespacing*{\section}{0pt}{10pt}{5pt}
 
 % --- Custom commands ---
 \newcommand{\resumeSubheading}[4]{
@@ -72,10 +79,14 @@
 \begin{document}
 
 %----------HEADING----------
+% Letter-spacing is applied ONLY to the name + role line (decorative, not keyword
+% text) so ATS parsers still read every section/skill verbatim. Keep it that way.
 \begin{center}
-    {\Huge \scshape <<FULL_NAME>>} \\ \vspace{2pt}
+    {\addfontfeature{LetterSpace=14.0}\fontsize{30}{34}\selectfont\scshape <<FULL_NAME>>}\\[5pt]
+    {\color{headgray}\addfontfeature{LetterSpace=18.0}\footnotesize\scshape <<ROLE_LINE: lead with the role applied for, e.g. Data Scientist \ \textbullet \ Machine Learning Engineer \ \textbullet \ Data Engineer>>}\\[7pt]
+    {\color{rulegray}\rule{0.62\textwidth}{0.6pt}}\\[6pt]
     \small
-    \href{mailto:<<EMAIL>>}{<<EMAIL>>} \textbar{} <<PHONE>> \textbar{} \href{https://<<LINKEDIN>>}{<<LINKEDIN>>} \textbar{} \href{https://<<GITHUB>>}{<<GITHUB>>} \textbar{} \href{https://<<PORTFOLIO>>}{<<PORTFOLIO>>} \\ \vspace{2pt}
+    \href{mailto:<<EMAIL>>}{<<EMAIL>>} \textbar{} <<PHONE>> \textbar{} \href{https://<<LINKEDIN>>}{<<LINKEDIN>>} \textbar{} \href{https://<<GITHUB>>}{<<GITHUB>>} \textbar{} \href{https://<<PORTFOLIO>>}{<<PORTFOLIO>>} \\ \vspace{3pt}
     <<LOCATION_LINE: e.g. City | Work authorization | Nationality | Languages>>
 \end{center}
 

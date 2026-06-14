@@ -37,6 +37,18 @@ export function QueueIndicator() {
     if (r && r.ok) load();
   }, [load]);
 
+  // Cancel a still-queued request the user added by mistake. The engine refuses
+  // once the agent has claimed it, so this is only offered for `queued` rows.
+  const cancelReq = useCallback(
+    async (id: string) => {
+      const r = await api<{ ok: boolean; reason?: string }>(`/api/queue/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+      if (r && r.ok) load();
+    },
+    [load],
+  );
+
   return (
     <div className="queue">
       <button className="queue__btn" onClick={() => setOpen((o) => !o)} title="Agent request queue">
@@ -77,6 +89,16 @@ export function QueueIndicator() {
               <span className={`pill pill--${r.status}`}>{r.status}</span>
               <span className="qrow__args">{summarizeArgs(r.args)}</span>
               {r.status === 'done' && <ResultLinks result={r.result} />}
+              {r.status === 'queued' && (
+                <button
+                  className="qrow__cancel"
+                  onClick={() => cancelReq(r.id)}
+                  title="Cancel — remove this request from the queue (added by mistake?)"
+                  aria-label={`Cancel queued ${r.kind} request`}
+                >
+                  ✕
+                </button>
+              )}
             </div>
           ))}
           {recent.length > 0 && (

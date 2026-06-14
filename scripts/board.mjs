@@ -114,7 +114,8 @@ function scoreRow(c, cv, scoreCtx, jdToks = null) {
   const m = s.reasons?.stackMismatch;
   return {
     company: c.company, role: c.role, url: c.url, posted: c.posted || '',
-    location: c.location || '', experience: extractExperience(c.content || ''),
+    location: c.location || '', country: countryLabel(c.location),
+    experience: extractExperience(c.content || ''),
     languages: formatLanguages(extractLanguages(c.content || ''), { max: 4 }),
     jd_path: c.jd_path || '', source: c.source,
     score: s.score, fit: fitScore(s.score), band: s.band, have: s.have, gap: s.gap,
@@ -260,6 +261,20 @@ const COUNTRY_CODES = {
   germany: 'de', france: 'fr', belgium: 'be', netherlands: 'nl', switzerland: 'ch',
   italy: 'it', india: 'in',
 };
+// Best-effort country label for a location string, reusing the same code/name
+// knowledge the filters use. Returns a display name ("Luxembourg"), "Remote",
+// or '' when the location carries no recognizable country. Used to show a
+// Country column when the board spans multiple countries.
+export function countryLabel(loc) {
+  const L = String(loc || '').toLowerCase();
+  if (!L) return '';
+  for (const [name, code] of Object.entries(COUNTRY_CODES)) {
+    const hasCode = new RegExp(`(^|[\\s,])${code}([\\s,]|$)`).test(L);
+    if (hasCode || L.includes(name)) return name.replace(/\b\w/g, (m) => m.toUpperCase());
+  }
+  if (L.includes('remote')) return 'Remote';
+  return '';
+}
 export function matchesLocation(loc, { country = '', city = '' } = {}) {
   const L = String(loc || '').toLowerCase();
   const cty = String(city || '').trim().toLowerCase();

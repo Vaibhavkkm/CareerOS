@@ -183,6 +183,27 @@ export function purgeStagedUploads(record, { root = ROOT, uploadsDir = UPLOADS_D
   return removed;
 }
 
+// Cancel a request the user enqueued by mistake. ONLY a still-`queued` request
+// can be cancelled — once the agent has claimed/run it, removing it mid-flight
+// would desync the agent's work, so we refuse and report the current state.
+// The cancelled record is archived (audit trail) and removed from the active
+// queue; any staged uploads it referenced are purged (same PII hygiene as fail).
+export function cancel(id, { path = DEFAULT_QUEUE, archive = DEFAULT_ARCHIVE, now, root = ROOT, uploadsDir = UPLOADS_DIR } = {}) {
+  const records = readQueue(path);
+  const idx = records.findIndex((r) => r.id === id);
+  if (idx === -1) return { ok: false, reason: 'not-found' };
+  const rec = records[idx];
+  if (rec.status !== 'queued') return { ok: false, reason: `already-${rec.status}`, record: rec };
+  rec.status = 'cancelled';
+  rec.completed_at = now || new Date().toISOString();
+  mkdirSync(dirname(archive), { recursive: true });
+  appendFileSync(archive, JSON.stringify(rec) + '\n');
+  records.splice(idx, 1);
+  writeQueue(records, path);
+  const purged = purgeStagedUploads(rec, { root, uploadsDir });
+  return { ok: true, record: rec, purged };
+}
+
 // Internal: load, find, validate a transition, mutate, atomic-write. Returns
 // { ok, record?, reason? }. `expect` is the status the record must currently be in.
 function transition(id, expect, mutate, { path = DEFAULT_QUEUE, now } = {}) {
@@ -265,6 +286,7 @@ Usage:
   ui-queue claim --id <id>
   ui-queue complete --id <id> --result '<json>'
   ui-queue fail --id <id> --error "<msg>"
+  ui-queue cancel --id <id> # remove a still-queued request (enqueued by mistake)
   ui-queue clear            # archive done/failed out of the active queue
   ui-queue --self-test`;
 
@@ -317,6 +339,11 @@ function main() {
       case 'fail': {
         const r = fail(a.id, a.error || 'unspecified error');
         out(a.json, r, r.ok ? `failed ${a.id}` : `cannot fail ${a.id}: ${r.reason}`);
+        return process.exit(r.ok ? 0 : 1);
+      }
+      case 'cancel': {
+        const r = cancel(a.id);
+        out(a.json, r, r.ok ? `cancelled ${a.id}` : `cannot cancel ${a.id}: ${r.reason}`);
         return process.exit(r.ok ? 0 : 1);
       }
       default:
@@ -439,6 +466,28 @@ export function selfTest() {
     const cleared2 = clearCompleted({ path: cpath, archive: carch });
     eq(cleared2.archived, 0, 'clear is a no-op when nothing is terminal');
     eq(readQueue(carch).length, 2, 'archive unchanged on no-op clear');
+
+    // ── cancel: remove a still-queued request; refuse once claimed; archive + purge ──
+    const xpath = join(tmp, 'data', 'ui', 'cancel-q.jsonl');
+    const xarch = join(tmp, 'data', 'ui', 'cancel-q.archive.jsonl');
+    const x1 = enqueue({ kind: 'evaluate', args: { id: 1 } }, { path: xpath });
+    const x2 = enqueue({ kind: 'evaluate', args: { id: 2 } }, { path: xpath });
+    ok(!cancel('missing', { path: xpath }).ok, 'cancel missing -> not ok');
+    const xc = cancel(x1.id, { path: xpath, archive: xarch });
+    ok(xc.ok && xc.record.status === 'cancelled', 'cancel a queued request -> cancelled');
+    eq(readQueue(xpath).length, 1, 'cancelled request removed from active queue');
+    eq(readQueue(xpath)[0].id, x2.id, 'the other queued request survives');
+    eq(readQueue(xarch).length, 1, 'cancelled request archived for audit');
+    claim(x2.id, { path: xpath });
+    const xc2 = cancel(x2.id, { path: xpath, archive: xarch });
+    ok(!xc2.ok && xc2.reason === 'already-claimed', 'cannot cancel a request the agent already claimed');
+    // cancel purges staged uploads (PII hygiene), hard-fenced like fail()
+    const cv3 = 'data/ui/uploads/2026-06-11-00-00-00/cv-z.pdf';
+    mkdirSync(join(tmp, dirname(cv3)), { recursive: true });
+    writeFileSync(join(tmp, cv3), '%PDF');
+    const ob3 = enqueue({ kind: 'onboard', args: { cv: cv3 } }, { path: xpath });
+    const xc3 = cancel(ob3.id, { path: xpath, archive: xarch, root: tmp, uploadsDir });
+    ok(xc3.ok && !existsSync(join(tmp, cv3)), 'staged upload purged on cancel too');
 
     console.log(`ui-queue self-test: ${n} checks passed`);
     return 0;

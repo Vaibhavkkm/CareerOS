@@ -8,11 +8,13 @@ export function BoardTable({
   today,
   selected,
   onSelect,
+  showCountry = false,
 }: {
   rows: BoardRow[];
   today: string;
   selected: number;
   onSelect: (i: number) => void;
+  showCountry?: boolean;
 }) {
   return (
     <table className="board">
@@ -22,6 +24,7 @@ export function BoardTable({
           <th className="col-fit">Fit</th>
           <th className="col-match">Match</th>
           <th>Role / Company</th>
+          {showCountry && <th className="col-country">Country</th>}
           <th className="col-exp">Exp.</th>
           <th className="col-posted">Posted</th>
           <th className="col-lang">Language</th>
@@ -70,6 +73,7 @@ export function BoardTable({
                   {r.source && <span className="src">{r.source}</span>}
                 </div>
               </td>
+              {showCountry && <td className="cell-country">{r.country || '—'}</td>}
               <td className="cell-exp">{r.experience || '—'}</td>
               <td className="cell-age">{ageLabel(r.posted, today)}</td>
               <td className="cell-lang" title={r.languages || ''}>{r.languages || '—'}</td>
