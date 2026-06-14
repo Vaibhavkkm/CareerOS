@@ -93,17 +93,27 @@ export function DetailDrawer({
     return () => { live = false; };
   }, [query]);
 
+  // Sort docs: PDF types first (cv > cl > report > tex), then by date desc
+  const TYPE_ORDER: Record<string, number> = { cv: 0, cl: 1, report: 2, tex: 3 };
+  const sortDocs = (arr: DocEntry[]) =>
+    [...arr].sort((a, b) => {
+      const to = (TYPE_ORDER[a.type] ?? 9) - (TYPE_ORDER[b.type] ?? 9);
+      return to !== 0 ? to : b.ts.localeCompare(a.ts);
+    });
+
   // Poll for generated docs — auto-switches to docs tab when first doc arrives
   const pollDocs = useCallback(() => {
     if (!row.jd_path) return;
     api<{ ok: boolean; docs: DocEntry[] }>(`/api/docs?jd_path=${encodeURIComponent(row.jd_path)}`).then((r) => {
       if (!r?.ok) return;
-      setDocs(r.docs);
+      const sorted = sortDocs(r.docs);
+      setDocs(sorted);
       setActiveDoc((prev) => {
-        if (prev) return r.docs.find((d) => d.path === prev.path) || r.docs[0] || null;
-        if (r.docs.length) {
+        // If user selected something, keep it (or fall back to best if deleted)
+        if (prev) return sorted.find((d) => d.path === prev.path) || sorted[0] || null;
+        if (sorted.length) {
           setTab('docs');
-          return r.docs[0];
+          return sorted[0]; // best doc (cv PDF first, then cl, report, tex)
         }
         return null;
       });
