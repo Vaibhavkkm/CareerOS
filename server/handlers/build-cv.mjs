@@ -2,6 +2,10 @@
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { ROOT } from '../config.mjs';
+
+function loadTemplate(name) {
+  try { return readFileSync(join(ROOT, 'templates', name), 'utf8'); } catch { return null; }
+}
 import {
   collectMode, collectProfile, collectJD, collectReport,
   truncate, buildContextBlock, slugify, registerDoc,
@@ -54,12 +58,20 @@ export async function handle(args, generate) {
   const texRel = `data/output/${texFilename}`;
   const texAbs = join(ROOT, texRel);
 
+  // Inject the actual template so local models (Ollama) cannot deviate from structure
+  const cvTemplate = loadTemplate('cv.tex.tmpl');
+  const templateSection = cvTemplate
+    ? `## LaTeX Template — COPY THIS STRUCTURE EXACTLY\n\nYou MUST use this exact template as the base. Fill in the <<PLACEHOLDERS>> with the user's real data. Do NOT change \\documentclass, do NOT use moderncv, beamer, or any class other than article.\n\n\`\`\`latex\n${cvTemplate}\n\`\`\``
+    : '';
+
   const userMessage = [
     contextBlock,
+    templateSection,
     '',
     '## Task',
-    'Generate a complete, tailored, ATS-safe LaTeX CV following your system instructions.',
+    'Generate a complete, tailored, ATS-safe LaTeX CV using the template above.',
     `Output filename: ${texFilename}`,
+    '⚠ CRITICAL: Use ONLY \\documentclass[a4paper,10pt]{article} — NEVER use moderncv, beamer, or any other class (they crash the compiler).',
     'Output ONLY valid LaTeX source code starting with \\documentclass.',
     'Do NOT wrap in markdown code fences. Do NOT add any text before or after the LaTeX.',
     'Every claim must be grounded in data/cv.master.md — never fabricate.',

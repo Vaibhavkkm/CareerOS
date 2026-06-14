@@ -2,6 +2,10 @@
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { ROOT } from '../config.mjs';
+
+function loadTemplate(name) {
+  try { return readFileSync(join(ROOT, 'templates', name), 'utf8'); } catch { return null; }
+}
 import {
   collectMode, collectProfile, collectJD, collectReport,
   truncate, buildContextBlock, slugify, registerDoc,
@@ -61,13 +65,20 @@ export async function handle(args, generate) {
   const texRel = `data/output/${texFilename}`;
   const texAbs = join(ROOT, texRel);
 
+  const clTemplate = loadTemplate('cl.tex.tmpl');
+  const templateSection = clTemplate
+    ? `## LaTeX Template — COPY THIS STRUCTURE EXACTLY\n\nFill in the <<PLACEHOLDERS>> with the user's real data. Do NOT change \\documentclass.\n\n\`\`\`latex\n${clTemplate}\n\`\`\``
+    : '';
+
   const userMessage = [
     contextBlock,
+    templateSection,
     '',
     '## Task',
-    'Generate a complete tailored cover letter in LaTeX following your system instructions.',
+    'Generate a complete tailored cover letter in LaTeX using the template above.',
     `Output filename: ${texFilename}`,
     "Write in the user's voice as learned from their writing samples.",
+    '⚠ CRITICAL: Use ONLY \\documentclass[a4paper,10pt]{article} — NEVER use moderncv, beamer, or any other class.',
     'Output ONLY valid LaTeX. Do NOT wrap in markdown fences.',
     'Every fact must come from data/cv.master.md or data/profile.yml — never fabricate.',
   ].join('\n');

@@ -982,9 +982,6 @@ select {
 
 /* queue popover */
 .qpop {
-  position: absolute;
-  top: calc(var(--topbar-h) + 4px);
-  right: var(--s4);
   z-index: 45;
   width: 380px;
   max-height: 60vh;
@@ -1023,6 +1020,10 @@ select {
   grid-column: 1 / -1;
   color: var(--fg-faint);
   font-size: var(--fs-micro);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 340px;
 }
 .qpop__hint {
   padding: var(--s3);
