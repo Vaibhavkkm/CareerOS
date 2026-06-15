@@ -118,6 +118,109 @@ function breakdownMeters(
   return meters;
 }
 
+// Generated documents (CV/CL PDF, eval report, raw LaTeX) for this job, shown inline.
+// Sources /api/docs (daemon manifest + tracker). Renders nothing until a doc exists,
+// so drawers for jobs you haven't built yet are unchanged.
+type Doc = { type: 'cv' | 'cl' | 'report' | 'tex'; path: string; name: string };
+const docLabel = (t: Doc['type']) =>
+  t === 'cv' ? 'CV' : t === 'cl' ? 'Cover letter' : t === 'report' ? 'Report' : 'LaTeX';
+
+function DocumentsSection({ jdPath, url }: { jdPath?: string; url?: string }) {
+  const [docs, setDocs] = useState<Doc[]>([]);
+  const [sel, setSel] = useState('');
+  const [text, setText] = useState('');
+  const [loadingText, setLoadingText] = useState(false);
+
+  const query = jdPath
+    ? `jd_path=${encodeURIComponent(jdPath)}`
+    : url
+      ? `url=${encodeURIComponent(url)}`
+      : '';
+
+  useEffect(() => {
+    let live = true;
+    setDocs([]);
+    setSel('');
+    if (!query) return;
+    api<{ ok: boolean; docs: Doc[] }>(`/api/docs?${query}`).then((d) => {
+      if (!live) return;
+      const list = d?.docs || [];
+      setDocs(list);
+      if (list.length) setSel(list[0].path);
+    });
+    return () => { live = false; };
+  }, [query]);
+
+  const current = docs.find((d) => d.path === sel);
+  const isPdf = !!current && (current.type === 'cv' || current.type === 'cl');
+  const href = current
+    ? `${isPdf ? '/api/pdf' : '/api/render'}?path=${encodeURIComponent(current.path)}`
+    : '';
+
+  // Load raw text for report/tex (PDFs render in the iframe).
+  useEffect(() => {
+    let live = true;
+    setText('');
+    if (!current || isPdf) return;
+    setLoadingText(true);
+    fetch(`/api/render?path=${encodeURIComponent(current.path)}`)
+      .then((r) => (r.ok ? r.text() : '(could not load this file)'))
+      .then((t) => { if (live) { setText(t); setLoadingText(false); } })
+      .catch(() => { if (live) { setText('(could not load this file)'); setLoadingText(false); } });
+    return () => { live = false; };
+  }, [current?.path, isPdf]);
+
+  if (!docs.length) return null;
+
+  const frameStyle: React.CSSProperties = {
+    width: '100%', height: 460,
+    border: '1px solid var(--hairline)', borderRadius: 'var(--r-control, 6px)',
+    background: 'var(--bg-raised)',
+  };
+
+  return (
+    <div className="section">
+      <div className="section__h">Documents</div>
+      <div className="chips" style={{ marginBottom: 10 }}>
+        {docs.map((d) => (
+          <button
+            key={d.path}
+            className={`chip ${d.path === sel ? 'chip--have' : ''}`}
+            onClick={() => setSel(d.path)}
+            title={d.name}
+            style={{ cursor: 'pointer', border: 'none' }}
+          >
+            {docLabel(d.type)}
+          </button>
+        ))}
+      </div>
+      {current && (
+        <>
+          {isPdf ? (
+            <iframe src={href} title={current.name} style={frameStyle} />
+          ) : (
+            <pre
+              className="jdbody"
+              style={{
+                ...frameStyle, height: 'auto', maxHeight: 460, overflow: 'auto',
+                whiteSpace: 'pre-wrap', wordBreak: 'break-word', padding: 12, margin: 0, fontSize: 12,
+              }}
+            >
+              {loadingText ? 'Loading…' : text}
+            </pre>
+          )}
+          <div style={{ marginTop: 8, display: 'flex', gap: 12, alignItems: 'center' }}>
+            <a href={href} target="_blank" rel="noreferrer" style={{ color: 'var(--gold)', fontSize: 12 }}>
+              Open {docLabel(current.type)} in new tab ↗
+            </a>
+            <span className="faint" style={{ fontSize: 11 }}>{current.name}</span>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // The content of the detail panel — shared between inline desktop and mobile slide-over
 function DrawerContent({
   row,
@@ -211,6 +314,9 @@ function DrawerContent({
       </div>
 
       <div className="drawer__body">
+        {/* Generated CV/CL/report/LaTeX for this job — appears once you've built one */}
+        <DocumentsSection jdPath={row.jd_path} url={row.url} />
+
         {/* Signal breakdown — REAL fields only. Meters use --signal-dim (neutral) per Step 10 */}
         <div className="section">
           <div className="section__h">Signal breakdown</div>
