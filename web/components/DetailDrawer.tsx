@@ -183,17 +183,21 @@ function DocumentsSection({ jdPath, url }: { jdPath?: string; url?: string }) {
     <div className="section">
       <div className="section__h">Documents</div>
       <div className="chips" style={{ marginBottom: 10 }}>
-        {docs.map((d) => (
-          <button
-            key={d.path}
-            className={`chip ${d.path === sel ? 'chip--have' : ''}`}
-            onClick={() => setSel(d.path)}
-            title={d.name}
-            style={{ cursor: 'pointer', border: 'none' }}
-          >
-            {docLabel(d.type)}
-          </button>
-        ))}
+        {docs.map((d) => {
+          const url = `${d.type === 'cv' || d.type === 'cl' ? '/api/pdf' : '/api/render'}?path=${encodeURIComponent(d.path)}`;
+          return (
+            <button
+              key={d.path}
+              className={`chip ${d.path === sel ? 'chip--have' : ''}`}
+              // Click previews inline AND opens the doc in a new tab (per request).
+              onClick={() => { setSel(d.path); window.open(url, '_blank', 'noopener,noreferrer'); }}
+              title={`Open ${docLabel(d.type)} in a new tab`}
+              style={{ cursor: 'pointer', border: 'none' }}
+            >
+              {docLabel(d.type)} ↗
+            </button>
+          );
+        })}
       </div>
       {current && (
         <>
