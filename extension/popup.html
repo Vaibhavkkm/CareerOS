@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { color-scheme: dark; }
+    body { width: 320px; margin: 0; font: 13px/1.4 -apple-system, system-ui, sans-serif; background: #0d1117; color: #e6edf3; }
+    header { padding: 12px 14px 8px; font-weight: 600; border-bottom: 1px solid #21262d; }
+    header span { color: #58a6ff; }
+    .body { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+    label { font-size: 11px; color: #8b949e; }
+    input { width: 100%; box-sizing: border-box; background: #161b22; border: 1px solid #30363d; color: #e6edf3; border-radius: 6px; padding: 6px 8px; font-size: 12px; }
+    button { background: #238636; color: #fff; border: 0; border-radius: 6px; padding: 8px 10px; font-weight: 600; cursor: pointer; }
+    button:disabled { opacity: .6; cursor: default; }
+    .status { min-height: 16px; font-size: 12px; }
+    .ok { color: #3fb950; } .err { color: #f85149; } .muted { color: #8b949e; }
+    details { font-size: 11px; color: #8b949e; }
+    summary { cursor: pointer; }
+  </style>
+</head>
+<body>
+  <header>Send to <span>CareerOS</span></header>
+  <div class="body">
+    <div>
+      <label for="title">Role / title</label>
+      <input id="title" type="text" />
+    </div>
+    <div>
+      <label for="company">Company (optional)</label>
+      <input id="company" type="text" placeholder="e.g. Acme" />
+    </div>
+    <button id="send">Send this job to my board</button>
+    <div id="status" class="status muted">Reading this tab…</div>
+    <details>
+      <summary>Settings</summary>
+      <label for="endpoint">CareerOS panel URL</label>
+      <input id="endpoint" type="text" value="http://127.0.0.1:4317" />
+      <div class="muted">Start it with <code>/cos ui</code> (or <code>npm run web:dev</code>).</div>
+    </details>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

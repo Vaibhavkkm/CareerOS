@@ -18,9 +18,9 @@ const PLAIN = args.includes('--plain') || !process.stdout.isTTY;
 
 const DATA_DIRS = [
   'data', 'data/jds', 'data/reports', 'data/output', 'data/writing-samples',
-  'data/interview-prep', 'data/style', 'data/style/edits',
+  'data/interview-prep', 'data/style', 'data/style/edits', 'data/cv-sources',
   'data/batch', 'data/batch/tracker-additions', 'data/batch/merged',
-  'data/ui', 'data/ui/results',
+  'data/ui', 'data/ui/results', 'data/ui/uploads',
 ];
 
 const checks = [];

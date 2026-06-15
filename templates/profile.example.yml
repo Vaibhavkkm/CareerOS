@@ -57,8 +57,8 @@ location:
   onsite_availability: "Hybrid 2 days; relocation negotiable"
 
 cv:
-  theme: "classic"                # classic | modern (maps to templates/cv.<theme>.tex.tmpl; explicit paths below win)
-  cv_template: "templates/cv.tex.tmpl"
+  theme: "classic"                # classic | modern | academic | compact (node scripts/templates.mjs list); explicit paths below win
+  cv_template: "templates/cv.tex.tmpl"   # explicit override; normally leave to `theme` above
   cl_template: "templates/cl.tex.tmpl"
   font: "texgyretermes"           # texgyretermes | texgyreheros | texgyrepagella | texgyrebonum (classic CL only; themes set their own)
 

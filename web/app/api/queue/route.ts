@@ -9,7 +9,15 @@ export const dynamic = 'force-dynamic';
 // The only request kinds the UI may enqueue (all agent-judgment / MCP work).
 // A tracker `applied` flip is NOT here — it is Class A and needs a human confirm.
 // Mirrors scripts/ui-queue.mjs KINDS (the engine re-validates on enqueue).
-const KINDS = new Set(['onboard', 'evaluate', 'build-cv', 'build-cl', 'apply', 'hunt', 'style', 'fetch-jd']);
+const KINDS = new Set(['onboard', 'evaluate', 'build-cv', 'build-cl', 'apply', 'hunt', 'style', 'fetch-jd', 'command']);
+
+// For a generic `command` request, the `cmd` must be one the watch-mode agent knows
+// how to route (modes/ui.md). Allow-listed here so the browser can't queue an
+// arbitrary string. These map to existing /cos modes / scripts.
+const COMMANDS = new Set([
+  'evaluate', 'build-cv', 'build-cl', 'apply', 'interview-prep', 'mock', 'referral',
+  'negotiate', 'outreach', 'research', 'compare', 'style-learn', 'gaps', 'salary', 'lint',
+]);
 
 // GET /api/queue?status=queued — list requests (the UI polls this).
 export async function GET(request: Request) {
@@ -38,7 +46,12 @@ export async function POST(request: Request) {
 
   const kind = typeof body.kind === 'string' ? body.kind : '';
   if (!KINDS.has(kind)) return bad(`kind must be one of ${[...KINDS].join(', ')}`);
-  const args = body.args && typeof body.args === 'object' ? body.args : {};
+  const args = body.args && typeof body.args === 'object' ? (body.args as Record<string, unknown>) : {};
+  // A generic command must name an allow-listed /cos command.
+  if (kind === 'command') {
+    const cmd = typeof args.cmd === 'string' ? args.cmd : '';
+    if (!COMMANDS.has(cmd)) return bad(`command must be one of ${[...COMMANDS].join(', ')}`);
+  }
   const r = await runScript('ui-queue.mjs', ['enqueue', '--kind', kind, '--args', JSON.stringify(args), '--origin', 'web'], { timeoutMs: 10_000 });
   return fromRun(r, 'could not enqueue request');
 }

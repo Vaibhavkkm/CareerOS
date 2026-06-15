@@ -58,7 +58,7 @@ export interface TrackerStats {
 }
 
 export type QueueStatus = 'queued' | 'claimed' | 'done' | 'failed';
-export type QueueKind = 'onboard' | 'evaluate' | 'build-cv' | 'build-cl' | 'apply' | 'hunt' | 'style';
+export type QueueKind = 'onboard' | 'evaluate' | 'build-cv' | 'build-cl' | 'apply' | 'hunt' | 'style' | 'command';
 
 export interface QueueRequest {
   id: string;

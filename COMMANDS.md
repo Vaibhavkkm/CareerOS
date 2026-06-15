@@ -23,8 +23,10 @@ routing from [`AGENTS.md`](AGENTS.md). The router lives in [`modes/_router.md`](
 | `/cos` *(paste a job post or URL)* | Auto-pilot: read the job → score it → build a tailored CV (if it's a good fit) → draft answers → track it |
 | `/cos evaluate <job/url/file>` | Score one job out of 5 across 6 dimensions, with a written report |
 | `/cos compare <2+ jobs>` | Rank several postings and recommend which to chase |
-| `/cos build-cv <job/company>` | Build a tailored, ATS-safe CV → PDF (saved to a per-job folder `data/output/<company>--<role>/`) |
+| `/cos build-cv <job/company> [--theme classic\|modern\|academic\|compact]` | Build a tailored, ATS-safe CV → PDF (saved to a per-job folder `data/output/<company>--<role>/`); pick a theme or set `cv.theme` in your profile |
 | `/cos build-cl <job/company>` | Build a tailored cover letter → PDF (alongside the CV in the same folder) |
+| `/cos cv-lint` | Flag weak CV bullets (un-quantified, weak-verb, passive, filler) — zero-token, no AI |
+| `/cos gaps` | Skill-gap roadmap across your board: the one skill that unlocks the most roles — zero-token |
 | `/cos saved` | Your ★ bookmarked jobs; `/cos saved build-all` makes a CV+CL for every one |
 | `/cos` *"learn from my edits"* | Look at how you edited a draft and remember your style |
 | `/cos apply <job/company>` | Draft answers for an application form (never auto-submits) |
@@ -34,8 +36,12 @@ routing from [`AGENTS.md`](AGENTS.md). The router lives in [`modes/_router.md`](
 | `/cos digest` | What's new since you last looked — fresh matches + band upgrades only |
 | `/cos mock <company>` | Live mock interview: one question at a time, graded, with a debrief |
 | `/cos interview-prep <co> <role>` | Interview prep tailored to the company and role |
+| `/cos interviews` | Schedule interview rounds, export an `.ics` calendar, time follow-ups — zero-token |
 | `/cos research <company> <role>` | Deep-dive research on a company and role |
+| `/cos referral <company>` | Find a warm path into a company + draft the referral ask + a forwardable blurb |
+| `/cos outreach <company>` | Cold LinkedIn/email outreach to strangers |
 | `/cos negotiate` | Offer/salary negotiation strategy + scripts |
+| `/cos salary <job/url>` | Read the posting's OWN stated pay band (never estimates) — zero-token |
 | `/cos patterns` | What's working in your search, and retune the scoring |
 | `/cos backup` | Snapshot your private `data/` into its own git (push only when you say) |
 
@@ -67,6 +73,45 @@ node scripts/jobspy.mjs --country Luxembourg --recent 3 && node scripts/digest.m
 > harder than the others, so on heavy use it returns fewer rows, but it degrades
 > gracefully (it never fails the whole fetch). Your own LinkedIn session is never
 > touched.
+
+---
+
+## Optional: an AI daemon that drains the queue for you
+
+By default CareerOS is **agent-native** — the AI is the agent in *your* editor, and
+the in-session agent drains anything you queue from the web panel (`/cos ui`). No
+server, no API key. That stays the default and always works.
+
+If you'd rather the web panel process generation on its own **without** an open
+agent session, run the optional background **daemon**. It works with **whatever AI
+you want to plug in**:
+
+```bash
+npm run daemon:setup     # pick a provider + model (writes .careeros.config.json)
+npm run daemon           # start the worker; it drains data/ui/requests.jsonl
+npm start                # or: launch the web panel AND the daemon together
+```
+
+| Provider | How | Key needed? |
+|---|---|---|
+| `claude-cli` *(default)* | Shells out to `claude --print` using your Claude Code login | No |
+| `ollama` | Local models via Ollama (`npm run daemon:ollama --model llama3.2`) | No |
+| `openai-compat` | Any OpenAI-compatible endpoint — OpenRouter, Groq, Together, the **Anthropic API**, LM Studio, vLLM… | Yes (yours) |
+
+> `.careeros.config.json` may hold an API key, so it is **git-ignored** — only the
+> key-free `.careeros.config.example.json` is tracked. The daemon never auto-applies
+> (`apply`/`hunt` still require you) and respects every data-contract guardrail.
+
+---
+
+## Capture a job from any site (browser extension / bookmarklet)
+
+`extension/` ships a tiny **"Send to CareerOS"** Chrome/Edge extension (and a
+no-install `bookmarklet.js`). On any job page it scrapes the title/company/description
+and posts it to your locally-running panel (`POST /api/inbox` on 127.0.0.1) — which
+routes it through `hunt-ingest` onto your board. It only *captures* a posting (never
+applies), is bound to localhost, and is disabled in public-demo mode. See
+[`extension/README.md`](extension/README.md) to install.
 
 ---
 

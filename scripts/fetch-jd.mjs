@@ -396,6 +396,25 @@ export function toMarkdown(posting, fetchedDate) {
   return lines.join('\n') + '\n';
 }
 
+// A generic/placeholder page title that means we scraped a nav shell, not a job
+// (JS-rendered career sites often return only chrome to a plain fetch).
+const GENERIC_ROLE = /^(job\s*details?|jobs?|careers?|vacanc(?:y|ies)|home|open\s*positions?|positions?|offers?|work\s*with\s*us|join\s*us|apply(?:\s*now)?|we\s*are\s*hiring|recruitment|opportunities)$/i;
+
+// Decide whether a generic-HTML scrape actually captured a real posting (vs. a
+// nav-only shell from a JS-rendered page). Length alone isn't enough — a menu can be
+// long — so we also reject placeholder titles and require some job-description signal
+// in shorter captures. When this returns false the caller flags needs_agent_fetch so
+// the in-session agent can WebFetch the rendered page instead.
+export function looksLikeRealPosting(p) {
+  const content = (p?.content || '').trim();
+  const role = (p?.role || '').trim();
+  if (content.length < 120) return false;            // near-empty
+  if (!role || GENERIC_ROLE.test(role)) return false; // nav/placeholder title
+  if (content.length >= 600) return true;            // substantial text — accept
+  // shorter captures must read like a job description, not a menu
+  return /(responsib|requirement|qualif|experience|skills?|you['’]?ll|we['’]?re looking|what you|your (role|profile|mission)|about (the|this) (role|job|position)|tasks?|duties|salary|contract)/i.test(content);
+}
+
 // ─── network orchestration ───────────────────────────────────────────
 // Resolve a URL into a Posting. Tries the ATS API, then a generic HTML scrape.
 // Returns { ok, posting?, source, needs_agent_fetch, error? }. Never throws.
@@ -419,13 +438,15 @@ export async function fetchPosting(url, ctx = makeHttpCtx()) {
   try {
     const html = await ctx.fetchText(url, { maxRedirects: 5 });
     const posting = normalizeGenericHtml(html, url);
-    if (posting.content && posting.content.length > 40) {
+    if (looksLikeRealPosting(posting)) {
       // tag the ATS we detected even though we scraped HTML, for transparency
       if (detected) posting.source = `${detected.ats}-html`;
       return { ok: true, posting, source: posting.source, needs_agent_fetch: false };
     }
-    // Page loaded but had almost no text (likely JS-rendered) → let the agent try.
-    return { ok: false, needs_agent_fetch: true, error: 'page had little/no extractable text (likely JS-rendered)', source: posting.source, posting };
+    // Page loaded but the text looks thin / nav-only (likely a JS-rendered career
+    // site that returns only chrome to a plain fetch) → let the in-session agent
+    // WebFetch the rendered page. The partial capture is returned for transparency.
+    return { ok: false, needs_agent_fetch: true, error: 'page text looks thin or JS-rendered (no clear job description) — agent fetch recommended', source: posting.source, posting };
   } catch (e) {
     return { ok: false, needs_agent_fetch: true, error: e.message, source: detected ? detected.ats : 'generic-html' };
   }
@@ -610,8 +631,14 @@ export async function selfTest() {
   // control/format chars (zero-width space, soft hyphen) are stripped; \n kept
   eq(htmlToText("<p>Air&#8203;flow</p>"), "Airflow", "htmlToText strips a decoded zero-width char");
 
+  // looksLikeRealPosting heuristic — guards against nav-only / JS-rendered shells
+  ok(looksLikeRealPosting({ role: 'Data Engineer', content: 'We are looking for. Responsibilities: build pipelines. ' + 'x'.repeat(600) }), 'real posting (title + signals + length) accepted');
+  ok(!looksLikeRealPosting({ role: 'Job Detail', content: 'Approach Expertise Career Reference '.repeat(20) }), 'generic title "Job Detail" + nav text rejected');
+  ok(!looksLikeRealPosting({ role: 'Senior Data Engineer', content: 'hi' }), 'near-empty content rejected');
+  ok(!looksLikeRealPosting({ role: 'Careers', content: 'x'.repeat(800) }), 'placeholder title rejected even when long');
+
   // fetchPosting orchestration with a MOCKED ctx (no real network)
-  const longHtml = `<html><body><p>${'word '.repeat(20)}</p></body></html>`;
+  const longHtml = `<html><head><title>Data Engineer - Acme</title></head><body><p>We are looking for a Data Engineer. Responsibilities include building data pipelines. Requirements: Python, SQL, and ${'experience '.repeat(40)}</p></body></html>`;
   const ghJson = { title: 'Staff Eng', company_name: 'Acme', content: `<p>${'duty '.repeat(20)}</p>`, absolute_url: 'u', updated_at: '2026-06-01' };
   let r = await fetchPosting('https://boards.greenhouse.io/acme/jobs/1', { fetchJson: async () => ghJson, fetchText: async () => '' });
   ok(r.ok && r.posting.role === 'Staff Eng' && r.source === 'greenhouse' && !r.needs_agent_fetch, 'fetchPosting: ATS API success');
@@ -619,6 +646,10 @@ export async function selfTest() {
   ok(r.ok && /html/.test(r.source) && !r.needs_agent_fetch, 'fetchPosting: API failure falls back to HTML');
   r = await fetchPosting('https://example.com/job', { fetchText: async () => '<html><body>hi</body></html>' });
   ok(!r.ok && r.needs_agent_fetch, 'fetchPosting: near-empty page → needs_agent_fetch');
+  // JS-rendered career site: plain fetch returns only nav chrome + a placeholder title
+  const navJunk = `<html><head><title>Job Detail</title></head><body>${'<a>Approach</a><a>Expertise</a><a>Career</a> '.repeat(20)}</body></html>`;
+  r = await fetchPosting('https://odoo.example.com/jobs/x-389', { fetchText: async () => navJunk });
+  ok(!r.ok && r.needs_agent_fetch, 'fetchPosting: JS-rendered nav-only page (generic title) → needs_agent_fetch');
   r = await fetchPosting('http://127.0.0.1/admin', { fetchText: async () => 'SHOULD NOT BE FETCHED' });
   ok(!r.ok && r.needs_agent_fetch && /private|loopback|blocked/i.test(r.error || ''), 'fetchPosting: SSRF guard blocks a private host');
 

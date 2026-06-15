@@ -90,6 +90,8 @@ export function extractUrl(text: string): string {
 export function FilterBar({
   filters,
   onChange,
+  search,
+  onSearchChange,
   place,
   onPlaceChange,
   onRefresh,
@@ -100,6 +102,8 @@ export function FilterBar({
 }: {
   filters: Filters;
   onChange: (f: Filters) => void;
+  search: string;
+  onSearchChange: (s: string) => void;
   place: FetchRecentOpts;
   onPlaceChange: (p: FetchRecentOpts) => void;
   onRefresh: () => void;
@@ -114,6 +118,37 @@ export function FilterBar({
   const [moreOpen, setMoreOpen] = useState(false);
   return (
     <div className="toolbar">
+      {/* Omnibox: free-text filters the loaded board (company / role / skill / location);
+          paste a job URL + Enter to FETCH that posting onto the board instead. */}
+      <form
+        className="field"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const u = extractUrl(search);
+          if (u) { onFetchUrl(u); onSearchChange(''); }
+        }}
+      >
+        <span className="field__label">search</span>
+        <input
+          className="input"
+          type="search"
+          aria-label="Search the board, or paste a job URL to fetch it"
+          placeholder="company, role, skill — or paste a job URL…"
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          style={{ width: 230 }}
+        />
+        {extractUrl(search) && (
+          <button
+            type="submit"
+            className="btn"
+            disabled={busy}
+            title="Fetch this job posting onto the board"
+          >
+            ↵ fetch
+          </button>
+        )}
+      </form>
       <div className="field">
         <span className="field__label">match</span>
         <div className="seg">

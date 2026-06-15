@@ -4,6 +4,10 @@ Trigger: `/cos outreach <company>` (optionally `<company> for report#` / a role)
 Identifies likely human targets and drafts a short, specific message for each, in
 the candidate's voice. Pure agent playbook — no script of its own.
 
+> If the user might already have a CONNECTION to the company (former colleague,
+> alumni, community tie), use **`modes/referral.md`** instead — a warm referral
+> beats a cold message. This mode is for contacting strangers.
+
 > Load order (the router did this): `modes/_shared.md` → this file →
 > `data/profile.yml` + `data/cv.master.md` (+ `data/_profile.md`). If a report# is
 > given, also read `data/reports/NNN-*.md` for the role, archetype, and proof points.

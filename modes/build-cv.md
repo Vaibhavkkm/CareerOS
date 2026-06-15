@@ -19,6 +19,22 @@ If an eval score exists and is **below `compile_score_threshold`** (default 3.0)
 say so and ask the user to confirm before spending a compile. Don't auto-build
 documents for roles the system recommends skipping.
 
+## Step 0.5 — Pick the template theme
+Resolve which visual theme to build from (all themes share the SAME placeholder
+contract and the SAME ATS-safe preamble — only the look differs):
+- Precedence: a `--theme <name>` on the command → `data/profile.yml` `cv.theme`
+  → default `classic`.
+- Resolve it to a file deterministically:
+  `node scripts/templates.mjs resolve --theme "<name>" --kind cv --json`
+  (use the returned `file`; if `fellBack:true`, tell the user you used the default).
+- Themes: **classic** (neutral, safest), **modern** (slate-accent sans), **academic**
+  (education-first + Publications, for PhD/post-doc/research), **compact** (denser,
+  fits a long history on one page). List them with `node scripts/templates.mjs list`.
+- A genuine two-column layout is intentionally NOT offered — it reorders badly in
+  many ATS parsers and would break the keyword-extraction guarantee.
+Use the resolved file as the template in Step 2/Step 3 instead of the hardcoded
+`templates/cv.tex.tmpl`.
+
 ## Step 1 — Analyze the JD (if not already in a report)
 1. Detect the **archetype** (see `_shared.md`).
 2. Extract **15–20 keywords/phrases** the ATS will likely screen on (skills,
@@ -28,7 +44,8 @@ documents for roles the system recommends skipping.
 ## Step 2 — Build the learning-loop context (THE differentiator)
 Gather, in this exact order — you will inject them into your drafting below:
 1. **Base rules** — this file + `_shared.md` (LaTeX/ATS hard constraints).
-2. **Template contract** — `templates/cv.tex.tmpl` macros/sections.
+2. **Template contract** — the theme file resolved in Step 0.5 (its macros/sections;
+   default `templates/cv.tex.tmpl`).
 3. **Master facts** — `data/cv.master.md` + `data/profile.yml`
    (+ `article-digest.md`). *Ground truth. These win every conflict. Never invent.*
 4. **Job context** — the JD text + extracted keywords + archetype + must-haves.
@@ -47,8 +64,7 @@ Gather, in this exact order — you will inject them into your drafting below:
 > is then a clean template-only CV. The loop improves it over time.
 
 ## Step 3 — Draft the CV
-Working from the resolved theme template (`_shared.md` → Theme resolution;
-default `templates/cv.tex.tmpl`):
+Working from the theme file resolved in Step 0.5 (default `templates/cv.tex.tmpl`):
 - **Summary**: 2–3 sentences, keyword-rich, third person, mirrors the role.
 - **Experience**: include/reorder roles by archetype relevance; most relevant
   first. Rewrite each bullet as **strong verb + quantified, REAL outcome**, woven

@@ -6,6 +6,66 @@ All notable changes to CareerOS are recorded here. The format is based on
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-15
+
+### Added
+
+- **Skill-gap roadmap (`gaps`).** Aggregates the skill gaps across every saved
+  posting and ranks which single skill would unlock the most roles — weighted toward
+  the near-misses you're already close on. Zero-token (`node scripts/gaps.mjs`).
+- **CV bullet linter (`cv-lint`).** Deterministically flags weak bullets
+  (un-quantified, weak-verb, passive, filler, too long/short) using the same signals
+  as the learning loop. Zero-token; `--min-score` works as a CI gate.
+- **Stated-salary reader (`salary`).** Extracts the pay band a posting actually
+  *discloses* (never estimates) — surfaced as a `· €…` column on the board and used
+  as an anchor in `negotiate`.
+- **Interview scheduler (`interviews`).** Tracks interview rounds, exports an
+  `.ics` calendar for Google/Apple/Outlook, and flags follow-ups that are due.
+- **CV theme picker.** `build-cv --theme classic|modern|academic|compact` resolves a
+  theme through a new registry (`scripts/templates.mjs`); adds **Academic** and
+  **Compact** themes (your existing Modern theme is unchanged). All share the same
+  ATS-safe single-column preamble.
+- **Multi-CV onboarding.** `parse-cv --file … --file …` / `--dir <folder>` parses
+  several CVs at once and `onboard` merges them into one richer master (union +
+  dedup, conflicts surfaced for your approval — never fabricated). Keeps the
+  structured-JSON parser (PDF via pdftotext, DOCX via unzip, LinkedIn export).
+- **Warm-referral mode (`referral`).** Maps the warmest realistic path into a
+  company and drafts the ask + a forwardable blurb; `outreach` is now explicitly the
+  *cold* (strangers) path.
+- **Region-aware multi-board fetch.** When you search a region without naming boards,
+  the sweep auto-adds the local board (Naukri for India, Bayt for the Gulf/Egypt,
+  bdjobs for Bangladesh), deduped.
+- **"Send to CareerOS" browser extension + bookmarklet.** Capture a job page from any
+  site straight onto your board via a local-only `POST /api/inbox` (routes through
+  `hunt-ingest`; never auto-applies; 127.0.0.1-bound, off in public mode).
+- **Multi-CV drag-drop upload.** The existing "⤴ my CV/CL" dialog now takes several
+  CVs at once (drag-drop or multi-pick) plus the optional cover letter — in your
+  theme, still safely queuing for the agent (writes only `data/ui/`). The agent merges
+  them into one richer master.
+- **View generated docs inside the job drawer.** A "Documents" section appears in a
+  job's drawer once you've built something for it — the tailored CV/CL PDF shown
+  inline, plus the eval report and raw LaTeX. Sourced from your tracker and the daemon
+  manifest, so it works however the doc was generated.
+- **Board search / fetch omnibox.** A search box on the board filters the loaded
+  openings instantly by company, role, skill, location, or band. Paste a job URL into
+  the same box and press Enter (or the ↵ fetch button) to **fetch** that posting onto
+  the board instead.
+- **Optional AI daemon (`npm run daemon`).** A local background worker that can drain
+  the web queue *without* a live agent session, using **any** AI you choose —
+  `claude-cli` (your Claude Code login, no key), **Ollama** (local), or any
+  **OpenAI-compatible** endpoint (OpenRouter, Groq, Together, the Anthropic API,
+  LM Studio, …). Fully optional and additive — the agent-native model (the in-session
+  agent drains the queue) stays the default. Configure with `npm run daemon:setup`;
+  `.careeros.config.json` (may hold an API key) is git-ignored.
+
+### Fixed
+
+- **JS-rendered career sites no longer save garbage.** A plain fetch of a
+  JavaScript-rendered posting (e.g. Odoo career pages) used to capture only the nav
+  shell and save it as a bogus "Job Detail" posting. The fetcher now detects thin /
+  nav-only / placeholder-title scrapes and flags `needs_agent_fetch`, so the
+  in-session agent fetches the rendered page properly instead.
+
 ## [0.4.0] - 2026-06-15
 
 ### Added
