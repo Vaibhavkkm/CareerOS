@@ -12,6 +12,7 @@ const TABS = [
   { href: '/', label: 'Board' },
   { href: '/hunt', label: 'Hunt' },
   { href: '/pipeline', label: 'Pipeline' },
+  { href: '/saved', label: 'Saved' },
 ];
 
 export function TopBar({
