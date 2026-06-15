@@ -51,7 +51,7 @@ function readTargetTerms() {
 // Parse a data/jds/*.md file (the format fetch-jd writes) back into fields.
 export function parseJdMarkdown(text) {
   const src = String(text || '');
-  const out = { role: '', company: '', url: '', location: '', posted: '', content: '' };
+  const out = { role: '', company: '', url: '', location: '', posted: '', source: '', content: '' };
   const heading = src.match(/^#\s+(.+)$/m);
   if (heading) {
     // "Role — Company"; split on the LAST em-dash so a role containing an
@@ -71,6 +71,7 @@ export function parseJdMarkdown(text) {
   out.url = field('URL');
   out.location = field('Location');
   out.posted = field('Posted');
+  out.source = field('Source'); // the real board the JD came from (indeed/linkedin/…)
   const body = src.split(/^##\s+Full posting\s*$/m)[1] || '';
   out.content = body.split(/^##\s+/m)[0].trim();
   return out;
@@ -206,7 +207,9 @@ function readSavedJds() {
     .filter((f) => f.endsWith('.md'))
     .map((f) => {
       const p = parseJdMarkdown(readFileSync(join(JDS_DIR, f), 'utf8'));
-      return { ...p, jd_path: `data/jds/${f}`, source: 'saved' };
+      // Use the JD's real source (indeed/linkedin/…); never label it 'saved' —
+      // that conflated disk-persisted JDs with the user's bookmark shortlist.
+      return { ...p, jd_path: `data/jds/${f}`, source: p.source || 'jd' };
     })
     .filter((p) => p.content);
 }
