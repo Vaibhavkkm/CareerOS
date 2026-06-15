@@ -2,6 +2,7 @@ import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { ForkGateHost } from '@/components/ForkGate';
+import { QueueProvider } from '@/components/QueueContext';
 
 const SITE_URL = 'https://careeros.vaibhavkkm.com';
 const DESCRIPTION =
@@ -56,7 +57,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         />
       </head>
       <body>
-        {children}
+        <QueueProvider>
+          {children}
+        </QueueProvider>
         <ForkGateHost />
       </body>
     </html>

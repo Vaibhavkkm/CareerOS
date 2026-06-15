@@ -3,30 +3,35 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { QueueIndicator } from './QueueIndicator';
+import { ActionsMenu } from './ActionsMenu';
+import { LLMSettings } from './LLMSettings';
 import { OnboardDialog } from './OnboardDialog';
-// Step 9: TopBar no longer hosts its own Toaster — it receives push via prop
-// so that the single toaster in the page/layout can handle all toasts.
+import { useAgentStatus } from './useAgentStatus';
 import { IS_PUBLIC, openForkGate } from '@/lib/public';
+import { IconBolt } from './Icons';
 
 const TABS = [
   { href: '/', label: 'Board' },
   { href: '/hunt', label: 'Hunt' },
   { href: '/pipeline', label: 'Pipeline' },
+  { href: '/setup', label: 'Setup' },
 ];
 
 export function TopBar({
   onToast,
 }: {
-  /** Optional: receives a push callback so TopBar can emit toasts to the single host */
   onToast?: (msg: string, kind?: 'ok' | 'err' | 'info') => void;
 }) {
   const path = usePathname();
+  const [actions, setActions] = useState(false);
+  const [llmOpen, setLlmOpen] = useState(false);
   const [onboard, setOnboard] = useState(false);
+  const { watching } = useAgentStatus();
+
   return (
     <header className="topbar">
       <div className="brand">
         <b>CAREER</b>
-        {/* Step 10: renamed brand__forge → brand__os */}
         <span className="brand__os">OS</span>
         <span className="brand__cursor" />
       </div>
@@ -46,6 +51,16 @@ export function TopBar({
           DEMO · fork to run
         </button>
       )}
+      <span
+        className={`agentdot ${watching ? 'is-live' : 'is-off'}`}
+        title={watching ? 'Daemon live — actions process automatically' : 'Daemon not running — start with: npm run start'}
+        tabIndex={0}
+        role="button"
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') e.currentTarget.blur(); }}
+      >
+        <span className="agentdot__dot" />
+        {watching ? 'agent live' : 'agent off'}
+      </span>
       <button
         className="btn"
         onClick={() => (IS_PUBLIC ? openForkGate() : setOnboard(true))}
@@ -53,8 +68,16 @@ export function TopBar({
       >
         ⤴ my CV/CL
       </button>
+      <button className="actions-btn" onClick={() => setLlmOpen(true)} title="Configure LLM provider — Claude CLI, Ollama, or OpenAI-compatible">
+        LLM
+      </button>
+      <button className="actions-btn" onClick={() => setActions(true)} title="All actions — everything CareerOS can do">
+        <IconBolt size={12} /> Actions
+      </button>
       <QueueIndicator />
       <span className="kbd">⌘K</span>
+      {actions && <ActionsMenu onClose={() => setActions(false)} />}
+      {llmOpen && <LLMSettings onClose={() => setLlmOpen(false)} />}
       {onboard && (
         <OnboardDialog
           onClose={() => setOnboard(false)}

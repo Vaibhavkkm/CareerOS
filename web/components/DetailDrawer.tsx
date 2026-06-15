@@ -125,6 +125,10 @@ type Doc = { type: 'cv' | 'cl' | 'report' | 'tex'; path: string; name: string };
 const docLabel = (t: Doc['type']) =>
   t === 'cv' ? 'CV' : t === 'cl' ? 'Cover letter' : t === 'report' ? 'Report' : 'LaTeX';
 
+const TYPE_ORDER: Record<string, number> = { cv: 0, cl: 1, report: 2, tex: 3 };
+const sortDocs = (arr: Doc[]) =>
+  [...arr].sort((a, b) => (TYPE_ORDER[a.type] ?? 9) - (TYPE_ORDER[b.type] ?? 9));
+
 function DocumentsSection({ jdPath, url }: { jdPath?: string; url?: string }) {
   const [docs, setDocs] = useState<Doc[]>([]);
   const [sel, setSel] = useState('');
@@ -145,9 +149,9 @@ function DocumentsSection({ jdPath, url }: { jdPath?: string; url?: string }) {
     if (!query) return;
     api<{ ok: boolean; docs: Doc[] }>(`/api/docs?${query}`).then((d) => {
       if (!live) return;
-      const list = d?.docs || [];
-      setDocs(list);
-      if (list.length) setSel(list[0].path);
+      const sorted = sortDocs(d?.docs || []);
+      setDocs(sorted);
+      if (sorted.length) setSel(sorted[0].path);
     });
     return () => { live = false; };
   }, [query]);
