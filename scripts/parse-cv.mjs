@@ -15,13 +15,20 @@
 //
 // Usage:
 //   node scripts/parse-cv.mjs <cv-file> [--emit-master] [--out <file>] [--summary]
+//   node scripts/parse-cv.mjs --file <cv1> [--file <cv2> ...] [--json]   # several CVs
+//   node scripts/parse-cv.mjs --dir <upload-folder> [--json]            # a whole batch
 //   node scripts/parse-cv.mjs --linkedin <export-dir> [--emit-master] [--out <file>]
 //   node scripts/parse-cv.mjs --self-test
+//
+// Single positional file → { ok, source, parsed }. With --file/--dir (one CV, several
+// CVs, or an upload folder) it returns a MULTI envelope { ok, count, docs:[...] } —
+// one entry per source, and a source that cannot be read stays visible as its own
+// { ok:false } entry (never silently dropped) so onboarding can surface it.
 //
 // Exit codes: 0 ok · 1 bad input/extraction failure/self-test failure.
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, readdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { join, extname, basename } from 'node:path';
 import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
@@ -344,12 +351,61 @@ export function toMasterMarkdown(parsed, source = 'upload') {
   return L.join('\n') + '\n';
 }
 
+// ---------- multi-source (several CVs / an upload folder) ----------
+
+// Extensions we treat as CVs when scanning a --dir.
+export const CV_EXTENSIONS = new Set(['.pdf', '.docx', '.doc', '.txt', '.md', '.tex', '.rtf']);
+
+// Parse a list of files into one envelope { ok, count, docs:[...] }. Each doc is
+// { source, ok, parsed? } or { source, ok:false, error, hint? } — failures stay
+// visible (the onboard merge in modes/onboard.md needs to see what could not be read).
+export function parseFiles(files) {
+  const docs = files.map((file) => {
+    const ext = extractText(file);
+    if (!ext.ok) return { source: ext.source, ok: false, error: ext.error, hint: ext.hint };
+    return { source: ext.source, ok: true, parsed: parseCv(ext.text) };
+  });
+  return { ok: docs.some((d) => d.ok), count: docs.length, docs };
+}
+
+// List CV files directly inside a directory (non-recursive), sorted for determinism.
+export function listCvFiles(dir) {
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((f) => CV_EXTENSIONS.has(extname(f).toLowerCase()))
+    .sort()
+    .map((f) => join(dir, f));
+}
+
 // ---------- CLI ----------
 
 function main(argv) {
   const args = argv.slice(2);
   const flag = (f) => args.includes(f);
   const opt = (f) => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : null; };
+  const opts = (f) => { const r = []; for (let i = 0; i < args.length; i++) if (args[i] === f && args[i + 1] != null) r.push(args[++i]); return r; };
+
+  // Multi-source mode: --dir <folder> and/or one or more --file <path>.
+  const dir = opt('--dir');
+  const fileOpts = opts('--file');
+  if (dir || fileOpts.length) {
+    const files = [...fileOpts];
+    if (dir) {
+      if (!existsSync(dir)) { console.log(JSON.stringify({ ok: false, error: `directory not found: ${dir}`, count: 0, docs: [] }, null, 2)); return 1; }
+      files.push(...listCvFiles(dir));
+    }
+    if (!files.length) { console.log(JSON.stringify({ ok: false, error: 'no CV files found (looked for pdf/docx/doc/txt/md/tex/rtf)', count: 0, docs: [] }, null, 2)); return 1; }
+    const env = parseFiles(files);
+    const out = opt('--out');
+    const output = JSON.stringify(env, null, 2);
+    if (out) { writeFileSync(out, output); console.log(JSON.stringify({ ok: env.ok, count: env.count, wrote: out })); }
+    else console.log(output);
+    if (flag('--summary')) {
+      console.error(`parsed ${env.count} source(s): ` +
+        env.docs.map((d) => `${d.source} ${d.ok ? '✓' : '✗'}`).join(', '));
+    }
+    return env.ok ? 0 : 1;
+  }
 
   let result;
   let source;
@@ -468,6 +524,22 @@ async function selfTest() {
   // docx XML conversion
   const txt = docxXmlToText('<w:p><w:r><w:t>Hello</w:t></w:r><w:tab/><w:r><w:t>World &amp; co</w:t></w:r></w:p>');
   ok(txt.includes('Hello World & co'), 'docx xml → text');
+
+  // multi-source: --file/--dir envelope (dependency-free .txt/.md inputs)
+  const mdir = mkdtempSync(join(tmpdir(), 'cvmulti-'));
+  try {
+    writeFileSync(join(mdir, 'one.txt'), 'Ada Lovelace\nEngineer\nada@example.com\n\nSKILLS\nPython, SQL');
+    writeFileSync(join(mdir, 'two.md'), 'Grace Hopper\nada2@example.com\n\nSKILLS\nCOBOL');
+    writeFileSync(join(mdir, 'ignore.png'), 'binary'); // non-CV extension, must be skipped
+    const env = parseFiles(listCvFiles(mdir));
+    ok(env.ok, 'multi parse ok');
+    ok(env.count === 2, `--dir scans only CV files (got ${env.count})`);
+    ok(env.docs.every((d) => d.ok), 'both sources parsed');
+    ok(env.docs.some((d) => d.parsed.contact.email === 'ada@example.com'), 'first source contact parsed');
+    const mixed = parseFiles([join(mdir, 'one.txt'), join(mdir, 'nope.pdf')]);
+    ok(mixed.count === 2 && mixed.docs[1].ok === false, 'unreadable source stays visible, not dropped');
+    ok(mixed.ok === true, 'envelope ok when at least one source parses');
+  } finally { rmSync(mdir, { recursive: true, force: true }); }
 
   console.log(`parse-cv self-test: ${checks} checks passed`);
 }

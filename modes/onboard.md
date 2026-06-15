@@ -18,27 +18,48 @@ the job, in the user's style. This mode does the "learn from your CV + CL" half;
 `build-cv`/`build-cl` then do the "draft for the job" half.
 
 ## Step 0 — Gather the uploads
-Ask the user for (accept whatever they have; CV is required, the rest optional):
-1. **Their CV** — PDF, Word, plain text, or `.tex`. Required (it's the factual
-   ground truth). If they paste text instead of a file, that's fine.
+Ask the user for (accept whatever they have; at least one CV is required, the rest
+optional):
+1. **Their CV(s)** — PDF, Word, plain text, or `.tex`. Required (it's the factual
+   ground truth). **More than one is welcome and encouraged** — many people keep
+   several CVs (a technical one, an academic one, an older one, a different-region
+   one), and each holds real facts the others omit. Collect them ALL; Step 2 merges
+   them into one richer master without inventing anything. If they paste text instead
+   of a file, that's fine.
 2. **A cover letter they wrote** — any past one, even for a different job. Used to
    learn their prose voice. Optional but strongly encouraged.
 3. **Any other writing in their voice** — a blog post, a long email, a bio.
    Optional; improves voice learning.
 
-If they gave a file path, parse it deterministically FIRST:
+**Where the files come from.** Either the user gives you file paths directly, OR they
+uploaded them from the web dashboard's **Setup** tab — in which case a queued
+`onboard` request points at `data/ui/uploads/<id>/` (see `modes/ui.md` drain). Parse
+that whole folder at once: `node scripts/parse-cv.mjs --dir data/ui/uploads/<id> --json`.
+
+If they gave file path(s), parse them **deterministically** with the CV parser —
+don't eyeball the binary. One CV, several CVs, or a whole upload folder:
 
 ```
-node scripts/parse-cv.mjs "<file>"            # → structured JSON (contact, roles, skills, …)
-node scripts/parse-cv.mjs --linkedin "<dir>"  # alternative: an unzipped LinkedIn data export
+node scripts/parse-cv.mjs --file "<cv1.pdf>" --file "<cv2.docx>" --json   # several
+node scripts/parse-cv.mjs --dir  "data/ui/uploads/<id>" --json            # an upload batch
+node scripts/parse-cv.mjs --linkedin "<dir>" --json                       # a LinkedIn data export
 ```
 
-The parser handles PDF (pdftotext), DOCX, txt/md/tex, and LinkedIn-export CSVs,
-and keeps anything it couldn't split cleanly raw under `header` — your job in the
-next steps is to REVIEW its output against the original document, fix mis-parses,
-and fill gaps, not to re-extract from scratch. If the parser errors (missing
-poppler, unsupported format), fall back to reading the file directly or ask the
-user to paste the text. Never guess at content you cannot read — ask.
+Our structured parser extracts text natively with no markitdown dependency: PDFs via
+`pdftotext` (poppler), DOCX via `unzip`, and `.txt`/`.md`/`.tex` read directly. It
+returns structured JSON — for a single source `{ ok, parsed }`, and with multiple
+inputs the envelope `{ ok, count, docs:[{source, ok, parsed}] }`, one entry per
+source; a source that fails to parse stays visible as its own `ok:false` entry
+(never silently dropped). It also supports LinkedIn data-export folders via
+`--linkedin <dir>`. The parser keeps anything it couldn't split cleanly raw under
+`header` — your job in the next steps is to REVIEW its output against the original
+document, fix mis-parses, and fill gaps, not to re-extract from scratch. If a source
+returns `ok:false`, follow its hint (e.g. missing poppler → run `node scripts/doctor.mjs`)
+or ask the user to paste the text. Never guess at content you cannot read — ask.
+
+**Keep the raw parses.** Write each parsed source to `data/cv-sources/<original-name>.md`
+(create the folder) so the merge in Step 2 is reproducible and the user can see what
+came from where. This is User data — never overwrite an existing source file without asking.
 
 ## Step 1 — Extract identity & contact (propose, don't assume)
 From the CV, pull ONLY what is actually present: full name, email, phone,
@@ -54,7 +75,30 @@ future tailored CV is grounded in. Preserve every real fact:
 - **Rewrite nothing into fiction.** Keep the user's real numbers. Where a bullet
   has no metric, KEEP it but flag it: list which bullets lack a quantified outcome
   so the user can add real numbers. Do not fabricate metrics to fill the gap.
-Show the user the structure and your "missing-metric" flags before writing.
+
+### Step 2a — Merge MULTIPLE CVs into one master (when more than one was given)
+If Step 0 produced several parsed sources, **consolidate them into a single
+`data/cv.master.md`** — the union of everything real across them, deduplicated:
+- **Experience** — match roles across sources by `company` + overlapping dates/title.
+  For the same role, UNION its bullets (drop near-duplicates; keep the most specific,
+  quantified wording). Keep roles that appear in only one CV. Never drop a real role.
+- **Skills / projects / education / certifications** — union across all sources,
+  de-duplicated case-insensitively.
+- **Conflicts** — when two CVs disagree on a fact (different dates or titles for the
+  same role, a metric in one but not another), DO NOT pick silently. List each
+  conflict and ask the user which is correct. Never average or invent a reconciliation.
+- **Provenance** — for anything that appeared in only one source, you may note its
+  origin in a comment so the user can verify. Nothing here is fabricated — every line
+  traces to one of the `data/cv-sources/*` files.
+Show the merged structure + the conflict list for approval BEFORE writing the master.
+Show the user the structure and your "missing-metric" flags before writing. To get
+those flags **deterministically** (un-quantified, weak-verb, passive, filler), run
+the bullet linter once the draft `cv.master.md` exists:
+```
+node scripts/cv-lint.mjs --cv data/cv.master.md --summary
+```
+Surface its `weakest` bullets to the user as "here's what to strengthen with real
+numbers" — never invent the numbers yourself.
 
 ## Step 3 — Propose `data/profile.yml`
 Start from `templates/profile.example.yml`. Fill what you can ground in the CV and

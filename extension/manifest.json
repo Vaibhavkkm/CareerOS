@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Send to CareerOS",
+  "version": "0.1.0",
+  "description": "One click to send the job posting you're viewing to your local CareerOS board.",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["http://127.0.0.1/*", "http://localhost/*"],
+  "action": {
+    "default_title": "Send this job to CareerOS",
+    "default_popup": "popup.html"
+  }
+}

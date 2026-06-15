@@ -27,19 +27,24 @@ otherwise apply auto-pipeline detection.
 | `saved` / `shortlist` | `modes/saved.md` | Your ★ bookmarked jobs; `saved build-all` makes a CV+CL for every one |
 | `evaluate` / `eval` | `modes/evaluate.md` | Score one posting (A–G report) |
 | `compare` | `modes/compare.md` | Rank 2+ postings |
-| `build-cv` / `cv` | `modes/build-cv.md` | Tailor a CV for a report/company |
+| `build-cv` / `cv` | `modes/build-cv.md` | Tailor a CV for a report/company (`--theme classic\|modern\|academic\|compact`) |
 | `build-cl` / `cl` | `modes/build-cl.md` | Tailor a cover letter |
 | `apply` | `modes/apply.md` | Live application assistant (form answers) |
+| `cv-lint` / `lint` | run `scripts/cv-lint.mjs --cv data/cv.master.md --summary` | Flag weak CV bullets (un-quantified, weak-verb, passive, filler) — zero-token |
+| `gaps` / `roadmap` | run `scripts/gaps.mjs --summary` | Skill-gap roadmap across your board: which one skill unlocks the most roles — zero-token |
+| `salary` | run `scripts/salary.mjs --jd <jd\|report> --summary` | Read the posting's OWN stated pay band (never estimates) — zero-token |
 | `negotiate` | `modes/negotiate.md` | Salary/offer negotiation strategy + scripts |
 | `scan` | `modes/scan.md` | Discover postings from tracked portals |
 | `pipeline` | `modes/pipeline.md` | Process the `data/inbox.md` queue |
 | `batch` | `modes/batch.md` | Mass-process many URLs (resumable) |
-| `outreach` | `modes/outreach.md` | LinkedIn/email outreach drafts |
+| `outreach` | `modes/outreach.md` | Cold LinkedIn/email outreach drafts (strangers) |
+| `referral` | `modes/referral.md` | Find a warm path into a company + draft the referral ask + a forwardable blurb |
 | `research` | `modes/research.md` | Deep company/role research |
 | `tracker` | `modes/tracker.md` | View/update the application tracker |
 | `followup` | `modes/followup.md` | Follow-up cadence + drafts (applications AND people — see `scripts/contacts.mjs`) |
 | `patterns` | `modes/patterns.md` | Outcome analytics; retune thresholds |
 | `interview-prep` / `prep` | `modes/interview-prep.md` | Interview intel + story mapping |
+| `interviews` / `schedule` | run `scripts/interviews.mjs` | Schedule interview rounds, export a calendar (`.ics`), time follow-ups — zero-token |
 | `mock-interview` / `mock` | `modes/mock-interview.md` | Live rehearsal: one question at a time, STAR+R grading, debrief |
 | `recalibrate-voice` | `modes/recalibrate-voice.md` | Re-learn voice from your writing samples |
 | `style-learn` / `learn` | `modes/style-learn.md` | Distill your edits into the style profile |

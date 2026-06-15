@@ -32,6 +32,11 @@ web/.env.*.local
 *.key
 *.pem
 
+# Optional AI-provider config for the (optional) `npm run daemon`. May hold an API
+# key — NEVER commit it. Copy .careeros.config.example.json → .careeros.config.json
+# locally. The example file (no secrets) is the only one tracked.
+.careeros.config.json
+
 # ─────────────────────────────────────────────────────────────────────────────
 # YOUR DATA & PII — never committed (this repo is PUBLIC)
 # ─────────────────────────────────────────────────────────────────────────────

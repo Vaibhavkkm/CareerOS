@@ -11,10 +11,17 @@
 // Zero tokens, deterministic, no deps. Same shape as every other tool: JSON to
 // stdout by default, --summary for humans, guarded by import.meta.url, --self-test.
 //
-// GUARDRAIL: the queue carries ONLY generation work. `kind` is whitelisted to
-// {onboard, evaluate, build-cv, build-cl, apply, hunt}. A tracker status flip to
-// `applied` is Class A (goes through scripts/tracker.mjs after the human confirms)
-// and is REJECTED here — it can never travel through the queue.
+// GUARDRAIL: the queue carries ONLY generation / setup work. `kind` is whitelisted
+// to {onboard, evaluate, build-cv, build-cl, apply, hunt, command}. A tracker status
+// flip to `applied` is Class A (goes through scripts/tracker.mjs after the human
+// confirms) and is REJECTED here — it can never travel through the queue. (`onboard`
+// carries only POINTERS to uploaded files; `command` carries a named /cos command for
+// the watch-mode agent to run — neither writes user facts or flips a tracker status.)
+//
+// The `heartbeat` subcommand is the web "is the agent watching?" signal — the
+// watch-mode agent (modes/ui.md) writes data/ui/agent.json each poll so the website
+// can show a live "agent connected" status WITHOUT any API key; `heartbeat stop`
+// clears it.
 //
 // Usage:
 //   node scripts/ui-queue.mjs enqueue --kind build-cv --args '{"report":7}'
@@ -23,6 +30,7 @@
 //   node scripts/ui-queue.mjs claim --id <id>
 //   node scripts/ui-queue.mjs complete --id <id> --result '{"pdf":"data/output/..."}'
 //   node scripts/ui-queue.mjs fail --id <id> --error "tectonic failed"
+//   node scripts/ui-queue.mjs heartbeat [stop]
 //   node scripts/ui-queue.mjs --self-test
 
 import {
@@ -35,6 +43,7 @@ import assert from 'node:assert/strict';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_QUEUE = join(ROOT, 'data', 'ui', 'requests.jsonl');
+const HEARTBEAT = join(ROOT, 'data', 'ui', 'agent.json');
 // Append-only history of cleared (done/failed) requests — preserves the audit
 // trail when the UI "clear completed" trims the active queue. Git-ignored (data/).
 const DEFAULT_ARCHIVE = join(ROOT, 'data', 'ui', 'requests.archive.jsonl');
@@ -52,7 +61,11 @@ const UPLOADS_DIR = join(ROOT, 'data', 'ui', 'uploads');
 // `fetch-jd` carries {url} for a posting the engine could NOT scrape itself
 // (bot-protected / JS-rendered); the agent fetches it with its own tools
 // (e.g. WebFetch) and ingests it via hunt-ingest. Still never an `applied` flip.
-export const KINDS = ['onboard', 'evaluate', 'build-cv', 'build-cl', 'apply', 'hunt', 'style', 'fetch-jd'];
+// `command` is the GENERIC bridge: the web enqueues a named /cos command (e.g.
+// {cmd:'mock', target:'Acme Data Engineer'}) and the watch-mode agent runs it in the
+// already-open Claude Code session (see modes/ui.md). It still carries no facts and
+// can never flip a tracker status — the agent routes it to the matching playbook.
+export const KINDS = ['onboard', 'evaluate', 'build-cv', 'build-cl', 'apply', 'hunt', 'style', 'fetch-jd', 'command'];
 export const STATUSES = ['queued', 'claimed', 'done', 'failed'];
 
 // ─── pure helpers ─────────────────────────────────────────────────────
@@ -245,6 +258,21 @@ export function fail(id, error = '', opts = {}) {
   return r;
 }
 
+// ─── agent heartbeat (web "is the agent watching?" signal) ────────────
+// The watch-mode agent (modes/ui.md) calls `heartbeat` each poll so the website can
+// show a live "agent connected — actions run automatically" status. `heartbeat stop`
+// clears it when the agent stops watching. This is how the web feels auto-connected
+// WITHOUT any API key — it just reflects whether the user's /cos ui watch is alive.
+export function writeHeartbeat({ mode = 'watch', now } = {}, path = HEARTBEAT) {
+  mkdirSync(dirname(path), { recursive: true });
+  const ts = now || new Date().toISOString();
+  writeFileSync(path, JSON.stringify({ ts, mode, pid: process.pid }) + '\n');
+  return { ts, mode };
+}
+export function stopHeartbeat(path = HEARTBEAT) {
+  try { rmSync(path, { force: true }); } catch { /* already gone */ }
+}
+
 // ─── CLI ──────────────────────────────────────────────────────────────
 
 function parseArgs(argv) {
@@ -288,6 +316,7 @@ Usage:
   ui-queue fail --id <id> --error "<msg>"
   ui-queue cancel --id <id> # remove a still-queued request (enqueued by mistake)
   ui-queue clear            # archive done/failed out of the active queue
+  ui-queue heartbeat [stop] # watch-mode agent liveness for the web status
   ui-queue --self-test`;
 
 function out(json, obj, human) {
@@ -346,6 +375,11 @@ function main() {
         out(a.json, r, r.ok ? `cancelled ${a.id}` : `cannot cancel ${a.id}: ${r.reason}`);
         return process.exit(r.ok ? 0 : 1);
       }
+      case 'heartbeat': {
+        if (argv.includes('stop')) { stopHeartbeat(); out(a.json, { ok: true, watching: false }, 'agent heartbeat cleared'); }
+        else { const h = writeHeartbeat(); out(a.json, { ok: true, watching: true, ...h }, `agent heartbeat @ ${h.ts}`); }
+        return process.exit(0);
+      }
       default:
         console.error(`unknown subcommand "${a.cmd}"\n`);
         console.log(USAGE);
@@ -373,6 +407,13 @@ export function selfTest() {
     assert.throws(() => makeRequest({ kind: 'nope' }), /invalid kind/); n++;
     assert.throws(() => makeRequest({ kind: 'applied' }), /invalid kind/); n++;
     assert.throws(() => makeRequest({ kind: 'tracker-applied' }), /invalid kind/); n++;
+
+    // the onboard kind (CV upload → merge) is accepted; pointers only, no facts
+    const onb = makeRequest({ kind: 'onboard', args: { dir: 'data/ui/uploads/abc', mode: 'merge' } });
+    eq(onb.kind, 'onboard', 'onboard kind accepted');
+    // the generic command kind (web → watch-mode agent) is accepted
+    const cmdReq = makeRequest({ kind: 'command', args: { cmd: 'mock', target: 'Acme Data Engineer' } });
+    eq(cmdReq.kind, 'command', 'command kind accepted');
 
     // enqueue appends + returns a queued record
     const r1 = enqueue({ kind: 'build-cv', args: { report: 7 } }, { path });
@@ -488,6 +529,16 @@ export function selfTest() {
     const ob3 = enqueue({ kind: 'onboard', args: { cv: cv3 } }, { path: xpath });
     const xc3 = cancel(ob3.id, { path: xpath, archive: xarch, root: tmp, uploadsDir });
     ok(xc3.ok && !existsSync(join(tmp, cv3)), 'staged upload purged on cancel too');
+
+    // ── heartbeat: write then stop (web "agent watching?" liveness signal) ──
+    const hb = join(tmp, 'data', 'ui', 'agent.json');
+    const h = writeHeartbeat({ mode: 'watch', now: '2026-06-09T10:00:00Z' }, hb);
+    eq(h.mode, 'watch', 'heartbeat returns mode');
+    ok(existsSync(hb), 'heartbeat file written');
+    const parsed = JSON.parse(readFileSync(hb, 'utf8'));
+    eq(parsed.ts, '2026-06-09T10:00:00Z', 'heartbeat persists ts');
+    stopHeartbeat(hb);
+    ok(!existsSync(hb), 'heartbeat cleared on stop');
 
     console.log(`ui-queue self-test: ${n} checks passed`);
     return 0;

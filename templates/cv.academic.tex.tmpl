@@ -1,0 +1,150 @@
+% =====================================================================
+%  CareerOS — CV template: "Academic" theme, tectonic / XeTeX
+%  Compile:  tectonic <file>.tex
+%
+%  SAME placeholder contract as templates/cv.tex.tmpl. Differences:
+%   - Education comes FIRST (it leads an academic CV).
+%   - Adds a PUBLICATIONS section (%% REPEAT PUBLICATION) and a GRANTS/AWARDS and
+%     TEACHING section. Delete any section with no real content.
+%   - May run to TWO pages — academic CVs are expected to.
+%  For PhD / post-doc / research / lectureship roles.
+%
+%  VERIFIED ATS RULES (do not "fix"): fontspec + Latin Modern by FILENAME +
+%  Ligatures={NoCommon}; never add glyphtounicode/microtype DisableLigatures.
+% =====================================================================
+\documentclass[a4paper,10pt]{article}
+
+\usepackage{fontspec}
+\defaultfontfeatures{Ligatures={NoCommon}}
+\setmainfont{lmroman10-regular}[
+  Extension      = .otf,
+  BoldFont       = lmroman10-bold,
+  ItalicFont     = lmroman10-italic,
+  BoldItalicFont = lmroman10-bolditalic ]
+
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% --- Margins ---
+\addtolength{\oddsidemargin}{-0.7in}
+\addtolength{\evensidemargin}{-0.7in}
+\addtolength{\textwidth}{1.4in}
+\addtolength{\topmargin}{-.70in}
+\addtolength{\textheight}{1.45in}
+
+\urlstyle{same}
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+\linespread{1.04}
+
+\titleformat{\section}{
+  \vspace{-8pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule \vspace{-7pt}]
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-1pt}\item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & #2 \\
+      \textit{\small#3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-5pt}
+}
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=*]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+
+%-------------------------------------------------------------------------------
+\begin{document}
+
+%----------HEADING----------
+\begin{center}
+    {\Huge \scshape <<FULL_NAME>>} \\ \vspace{2pt}
+    \small
+    \href{mailto:<<EMAIL>>}{<<EMAIL>>} \textbar{} <<PHONE>> \textbar{} \href{https://<<LINKEDIN>>}{<<LINKEDIN>>} \textbar{} \href{https://<<GITHUB>>}{<<GITHUB>>} \textbar{} \href{https://<<PORTFOLIO>>}{<<PORTFOLIO>>} \\ \vspace{2pt}
+    <<LOCATION_LINE: e.g. City | Work authorization | Nationality | Languages>>
+\end{center}
+
+%----------RESEARCH SUMMARY----------
+\section{Research Summary}
+<<SUMMARY: 2-4 sentences on research focus, methods, and contribution, tailored to the role>>
+
+%----------EDUCATION (first for academic CVs)----------
+\section{Education}
+  \resumeSubHeadingListStart
+    %% REPEAT EDUCATION
+    \resumeSubheading
+      {<<SCHOOL>>}{<<CITY_COUNTRY>>}
+      {<<DEGREE_AND_HONORS — incl. thesis title / advisor>>}{<<DATES>>}
+    %% END REPEAT EDUCATION
+  \resumeSubHeadingListEnd
+
+%----------PUBLICATIONS----------
+% List real publications only (newest first). Delete the section if none.
+\section{Publications}
+\begin{enumerate}[leftmargin=*, nosep, label=\arabic*.]
+    \setlength\itemsep{0.12em}
+    %% REPEAT PUBLICATION
+    \item <<AUTHORS (you in bold) (YEAR). TITLE. VENUE/JOURNAL, vol(issue), pages. DOI/URL>>
+    %% END REPEAT PUBLICATION
+\end{enumerate}
+
+%----------RESEARCH / WORK EXPERIENCE----------
+\section{Research \& Work Experience}
+  \resumeSubHeadingListStart
+  %% REPEAT EXPERIENCE  (most relevant first)
+  \resumeSubheading
+    {<<ORG / LAB>>}{<<CITY_COUNTRY>>}
+    {<<TITLE>>}{<<DATES>>}
+  \begin{itemize}[leftmargin=*, topsep=1pt, itemsep=1pt, parsep=0pt]
+      \item[$\bullet$] <<CONTRIBUTION — method, finding, or output; quantified + REAL>>
+      \item[$\bullet$] <<CONTRIBUTION BULLET>>
+  \end{itemize}
+  \vspace{2pt}
+  %% END REPEAT EXPERIENCE
+  \resumeSubHeadingListEnd
+
+%----------TEACHING---------- (optional — delete if none)
+\section{Teaching}
+\begin{itemize}[leftmargin=*, nosep]
+    \setlength\itemsep{0.08em}
+    %% REPEAT TEACHING
+    \item \textbf{<<COURSE / ROLE>>}, <<INSTITUTION>> -- <<TERM/YEAR>>
+    %% END REPEAT TEACHING
+\end{itemize}
+
+%----------GRANTS, AWARDS \& FELLOWSHIPS---------- (optional)
+\section{Grants, Awards \& Fellowships}
+\begin{itemize}[leftmargin=*, nosep]
+    \setlength\itemsep{0.08em}
+    %% REPEAT AWARD
+    \item \textbf{<<AWARD / GRANT>>}, <<BODY>> -- <<YEAR (amount if relevant)>>
+    %% END REPEAT AWARD
+\end{itemize}
+
+%----------SKILLS----------
+\section{Skills \& Methods}
+\begin{itemize}[leftmargin=*, nosep]
+    \setlength\itemsep{0.08em}
+    %% REPEAT SKILLGROUP
+    \item \textbf{<<SKILL_GROUP>>}: <<COMMA-SEPARATED SKILLS, aligned to the JD>>
+    %% END REPEAT SKILLGROUP
+\end{itemize}
+
+%----------REFERENCES---------- (academic CVs commonly list referees; delete otherwise)
+\section{References}
+\begin{itemize}[leftmargin=*, nosep]
+    %% REPEAT REFERENCE
+    \item \textbf{<<REFEREE_NAME>>} -- <<TITLE, ORG>> \textbar{} \href{mailto:<<EMAIL>>}{<<EMAIL>>} \textbar{} \href{https://<<LINKEDIN>>}{<<LINKEDIN>>}
+    %% END REPEAT REFERENCE
+\end{itemize}
+
+\end{document}
