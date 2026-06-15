@@ -6,6 +6,15 @@ All notable changes to CareerOS are recorded here. The format is based on
 
 ## [Unreleased]
 
+### Fixed
+
+- **Generic job-page fetch now extracts the real job, not the nav.** Pages that render
+  the job server-side but wrap it in heavy menu chrome (e.g. Odoo career sites) used to
+  scrape as nav-junk (a bogus "Job Detail" posting) or get punted to an agent. The
+  scraper now strips nav/header/footer, reads the body from the main content region,
+  and falls back to the page `<h1>` when the `<title>` is a placeholder — so these URLs
+  fetch **directly** onto the board (paste one into the board search/omnibox).
+
 ## [0.5.0] - 2026-06-15
 
 ### Added
