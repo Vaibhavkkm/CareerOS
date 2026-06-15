@@ -2,6 +2,7 @@
   "name": "careeros-web",
   "version": "0.2.0",
   "private": true,
+  "license": "AGPL-3.0-or-later",
   "description": "CareerOS — local web control panel (terminal/trading-desk dark UI) over the zero-token engine.",
   "scripts": {
     "dev": "next dev -H 127.0.0.1 -p 4317",

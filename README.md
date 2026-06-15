@@ -390,7 +390,12 @@ system's, and [`AGENTS.md`](AGENTS.md) for how the agent is expected to behave.
 
 ## License & community
 
-- **License:** [MIT](LICENSE) — © 2026 VaibhavKKM.
+- **License:** [GNU AGPL-3.0-or-later](LICENSE) — © 2026 Vaibhav Mangroliya
+  (VaibhavKKM). CareerOS is free software: use it, study it, and build on it. The
+  AGPL keeps it **open** — any modified version you distribute **or run as a
+  network service** must also be released under the AGPL with its source
+  available, and must keep this attribution. In short: contribute back; don't
+  fork it closed or pass it off as your own.
 - **Contributing:** see [`CONTRIBUTING.md`](CONTRIBUTING.md).
 - **Code of Conduct:** [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 - **Security:** report privately per [`SECURITY.md`](SECURITY.md).
