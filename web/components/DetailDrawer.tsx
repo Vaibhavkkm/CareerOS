@@ -359,22 +359,24 @@ function DrawerContent({
       )}
 
       <div className="drawer__actions">
-        <button className="btn btn--primary" onClick={() => onEnqueue('evaluate', args)}>
-          <IconBolt /> Tailor my CV
-        </button>
-        <button className="btn" onClick={() => onEnqueue('build-cv', args)}>
-          <IconDoc /> build cv
+        {/* Primary CTA: actually builds the tailored CV (build-cv). */}
+        <button className="btn btn--primary" onClick={() => onEnqueue('build-cv', args)}>
+          <IconDoc /> Tailor my CV
         </button>
         <button className="btn" onClick={() => onEnqueue('build-cl', args)}>
-          <IconDoc /> build cl
+          <IconDoc /> Cover letter
+        </button>
+        {/* Score the role + write a fit report (a separate step from building). */}
+        <button className="btn" onClick={() => onEnqueue('evaluate', args)}>
+          <IconBolt /> Evaluate fit
         </button>
         <button className="btn" onClick={() => onEnqueue('apply', args)}>
-          apply
+          Draft answers
         </button>
         <div style={{ flex: 1 }} />
         {row.url && (
           <button className="btn btn--ghost" onClick={() => window.open(row.url, '_blank', 'noreferrer')}>
-            <IconExternal /> open posting
+            <IconExternal /> Open posting
           </button>
         )}
       </div>
