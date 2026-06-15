@@ -14,8 +14,10 @@ generic, **public** tool meant to work for ANY user: a person feeds in a job
 description plus their own CV and cover letter; the system learns their facts and
 voice from those uploads (and keeps adapting to their edits), then drafts a new CV
 and cover letter tailored to the job, in that person's style. The "LLM" is *you*,
-the in-session agent — there is no server and no API key, and CareerOS is not
-tied to any one model or vendor. Deterministic mechanical work lives in
+the in-session agent — by default there is no server and no API key (an optional
+background daemon, `server/daemon.mjs`, can run a claude-cli/Ollama/OpenAI-compatible
+provider if a user opts in), and CareerOS is not tied to any one model or vendor.
+Deterministic mechanical work lives in
 `scripts/*.mjs` (zero tokens); judgment and writing live in `modes/*.md`
 playbooks; every candidate-facing artifact is a `.tex` compiled to PDF by
 **tectonic**.
