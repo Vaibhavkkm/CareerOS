@@ -31,8 +31,6 @@ function statusPill(s: string): string {
   return 'pill--queued';
 }
 
-// Link a tracked application's generated CV / cover letter (per-job folder under
-// data/output/). /api/pdf streams them (sandboxed read). Empty → a dim dash.
 function DocLinks({ cv, cl }: { cv?: string; cl?: string }) {
   const items: [string, string][] = [];
   if (cv && cv.toLowerCase().endsWith('.pdf')) items.push(['CV', cv]);
@@ -94,18 +92,51 @@ export default function PipelinePage() {
 
   const recs = records || [];
 
+  // Step 10: stat bar values for Pipeline
+  const applied = recs.filter((r) => ['applied', 'responded', 'interview', 'offer'].includes(r.status)).length;
+  const interviews = recs.filter((r) => ['interview', 'offer'].includes(r.status)).length;
+  const offers = recs.filter((r) => r.status === 'offer').length;
+
   return (
+    // Step 10: same 5-row shell
     <div className="app">
-      <TopBar />
-      <div className="statusline">
-        <span>
-          <b>{recs.length}</b> applications tracked
-        </span>
-        <div className="statusline__right">
-          <span>truth · data/tracker.jsonl</span>
+      {/* Row 1: top bar */}
+      <TopBar onToast={push} />
+
+      {/* Row 2: stat bar — Pipeline: tracked / applied / interviews / offers */}
+      <div className="statbar">
+        <div className="statbar__stat">
+          <span className="statbar__num">{recs.length}</span>
+          <span className="statbar__label">tracked</span>
+        </div>
+        <div className="statbar__sep" />
+        <div className="statbar__stat">
+          <span className="statbar__num">{applied}</span>
+          <span className="statbar__label">applied</span>
+        </div>
+        <div className="statbar__sep" />
+        <div className="statbar__stat">
+          <span className="statbar__num">{interviews}</span>
+          <span className="statbar__label">interviews</span>
+        </div>
+        <div className="statbar__sep" />
+        <div className="statbar__stat">
+          <span className="statbar__num">{offers}</span>
+          <span className="statbar__label">offers</span>
+        </div>
+        <div className="statbar__right">
+          <span className="live">
+            <span className="live__dot" />
+            live
+          </span>
         </div>
       </div>
-      <div className="main">
+
+      {/* Row 3: empty filter bar */}
+      <div style={{ height: 0, borderBottom: '1px solid var(--hair)', background: 'var(--bg)' }} />
+
+      {/* Row 4: scrollable content */}
+      <div className="page-scroll">
         <div className="page">
           <div className="page__h">Pipeline</div>
           <div className="page__lead">
@@ -166,6 +197,15 @@ export default function PipelinePage() {
           )}
         </div>
       </div>
+
+      {/* Row 5: bottom status line */}
+      <div className="statusline">
+        <span><b>{recs.length}</b> applications tracked</span>
+        <div className="statusline__right">
+          <span>truth · data/tracker.jsonl</span>
+        </div>
+      </div>
+
       {confirm != null && (
         <ConfirmDialog
           title="Confirm you applied"

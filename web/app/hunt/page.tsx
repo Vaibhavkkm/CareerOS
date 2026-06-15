@@ -55,18 +55,46 @@ export default function HuntPage() {
     [push, loadHunts],
   );
 
+  // Step 10: stat bar values for Hunt
+  const queued = hunts.filter((h) => h.status === 'queued').length;
+  const claimed = hunts.filter((h) => h.status === 'claimed').length;
+  const done = hunts.filter((h) => h.status === 'done').length;
+
   return (
+    // Step 10: same 5-row shell
     <div className="app">
-      <TopBar />
-      <div className="statusline">
-        <span>
-          auto-fetch openings matched to <b>your profile</b>
-        </span>
-        <div className="statusline__right">
-          <span>indeed · dice · ats</span>
+      {/* Row 1: top bar */}
+      <TopBar onToast={push} />
+
+      {/* Row 2: stat bar — Hunt: queued / claimed / done */}
+      <div className="statbar">
+        <div className="statbar__stat">
+          <span className="statbar__num">{queued}</span>
+          <span className="statbar__label">queued</span>
+        </div>
+        <div className="statbar__sep" />
+        <div className="statbar__stat">
+          <span className="statbar__num">{claimed}</span>
+          <span className="statbar__label">claimed</span>
+        </div>
+        <div className="statbar__sep" />
+        <div className="statbar__stat">
+          <span className="statbar__num">{done}</span>
+          <span className="statbar__label">done</span>
+        </div>
+        <div className="statbar__right">
+          <span className="live">
+            <span className="live__dot" />
+            live
+          </span>
         </div>
       </div>
-      <div className="main">
+
+      {/* Row 3: empty filter bar row (no filters on hunt) */}
+      <div style={{ height: 0, borderBottom: '1px solid var(--hair)', background: 'var(--bg)' }} />
+
+      {/* Row 4: scrollable content */}
+      <div className="page-scroll">
         <div className="page">
           <div className="page__h">Hunt</div>
           <div className="page__lead">
@@ -115,7 +143,7 @@ export default function HuntPage() {
               <label>location</label>
               <input
                 className="input"
-                placeholder="(blank = use my profile location) · or “remote”"
+                placeholder="(blank = use my profile location) · or &quot;remote&quot;"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
               />
@@ -156,6 +184,15 @@ export default function HuntPage() {
           </div>
         </div>
       </div>
+
+      {/* Row 5: bottom status line */}
+      <div className="statusline">
+        <span>auto-fetch openings matched to <b>your profile</b></span>
+        <div className="statusline__right">
+          <span>indeed · dice · ats</span>
+        </div>
+      </div>
+
       <Toaster toasts={toasts} onDismiss={dismiss} />
     </div>
   );
