@@ -5,6 +5,7 @@ import { BandStars } from '@/components/BandStars';
 import { Toaster, useToasts } from '@/components/Toast';
 import { api } from '@/components/util';
 import { IS_PUBLIC, openForkGate } from '@/lib/public';
+import type { Band } from '@/lib/types';
 
 interface SavedJob {
   id?: string;
@@ -14,7 +15,7 @@ interface SavedJob {
   role?: string;
   location?: string;
   posted?: string;
-  band?: string;
+  band?: Band;
   score?: number;
   fit?: number;
   saved_at?: string;
