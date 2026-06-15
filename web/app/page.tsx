@@ -10,44 +10,80 @@ import { Toaster, useToasts } from '@/components/Toast';
 import { api } from '@/components/util';
 import { IS_PUBLIC, openForkGate } from '@/lib/public';
 
+// ── Step 5: useCountUp hook ─────────────────────────────────────────────────
+// rAF lerp from previous value to target, eased ease-out-cubic, tabular-nums.
+// Respects prefers-reduced-motion by snapping instantly.
+function useCountUp(target: number, ms = 550): number {
+  const [value, setValue] = useState(target);
+  const frameRef = useRef<number | null>(null);
+  const startRef = useRef<number | null>(null);
+  const fromRef = useRef(target);
+  const prefersReduced =
+    typeof window !== 'undefined'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false;
+
+  useEffect(() => {
+    if (prefersReduced) { setValue(target); return; }
+    const from = fromRef.current;
+    if (from === target) return;
+    startRef.current = null;
+    if (frameRef.current != null) cancelAnimationFrame(frameRef.current);
+
+    const animate = (ts: number) => {
+      if (startRef.current == null) startRef.current = ts;
+      const elapsed = ts - startRef.current;
+      const t = Math.min(1, elapsed / ms);
+      // ease-out-cubic
+      const eased = 1 - Math.pow(1 - t, 3);
+      const current = Math.round(from + (target - from) * eased);
+      setValue(current);
+      if (t < 1) {
+        frameRef.current = requestAnimationFrame(animate);
+      } else {
+        fromRef.current = target;
+      }
+    };
+    frameRef.current = requestAnimationFrame(animate);
+    return () => { if (frameRef.current != null) cancelAnimationFrame(frameRef.current); };
+  }, [target, ms, prefersReduced]);
+
+  // sync from on unmount so next run starts from the right place
+  useEffect(() => { fromRef.current = value; });
+
+  return value;
+}
+
 export default function BoardPage() {
   const [board, setBoard] = useState<BoardResponse | null>(null);
   const [filters, setFilters] = useState<Filters>({ min: '', recent: '' });
-  // Where to fetch from — drives JobSpy country_indeed + location. Lifted here (not
-  // inside FilterBar) so refresh, the command palette, and the fetch button all act
-  // on the same selection.
   const [place, setPlace] = useState<FetchRecentOpts>({ countries: ['Luxembourg'], city: '', jobTypes: [] });
   const [drawer, setDrawer] = useState<number>(-1);
   const [busy, setBusy] = useState(false);
   const [palette, setPalette] = useState(false);
-  // Saved/bookmarked jobs — a set of saved URLs (for ★ state) + the total count.
   const [savedUrls, setSavedUrls] = useState<Set<string>>(new Set());
   const [savedCount, setSavedCount] = useState(0);
   const { toasts, push, dismiss } = useToasts();
 
-  // Monotonic sequence so out-of-order /api/board responses can't clobber fresh
-  // data: only the most recently STARTED load is allowed to apply its result.
+  // Step 1: flag set true after FIRST successful board load — gates stagger replay.
+  const [boardEntered, setBoardEntered] = useState(false);
+
   const loadSeq = useRef(0);
 
   const load = useCallback(
     async (f: Filters, opts: { pin?: string } = {}) => {
       const seq = ++loadSeq.current;
       setBusy(true);
-      // Close the drawer first: it's keyed by row INDEX, and a reload re-filters +
-      // re-sorts rows, so the same index could otherwise point at a different job.
       setDrawer(-1);
       const qs = new URLSearchParams();
       if (f.min) qs.set('min', f.min);
       if (f.recent) qs.set('recent', f.recent);
-      // Country / city / type filter the BOARD too (not just the next fetch). These
-      // are multi-select: a comma-separated list matches ANY (empty = all / any).
       if (place.countries.length) qs.set('country', place.countries.join(','));
       if (place.city.trim()) qs.set('city', place.city.trim());
       if (place.jobTypes.length) qs.set('type', place.jobTypes.join(','));
-      // Pin a just-fetched posting to the top so it's findable, not buried by rank.
       if (opts.pin) qs.set('pin', opts.pin);
       const r = await api<BoardResponse>(`/api/board?${qs.toString()}`);
-      if (seq !== loadSeq.current) return; // a newer load started — discard this stale result
+      if (seq !== loadSeq.current) return;
       setBusy(false);
       if (!r.ok) {
         push(r.error || 'could not load board', 'err');
@@ -55,8 +91,8 @@ export default function BoardPage() {
         return;
       }
       setBoard(r);
-      // The pinned posting is forced to row 0 by the engine — surface it: jump the
-      // board to the top and open its detail drawer so the user sees what they fetched.
+      // Step 1: mark entered so stagger doesn't replay on re-filters
+      setBoardEntered(true);
       if (opts.pin && r.rows?.[0] && (r.rows[0].pinned || r.rows[0].url === opts.pin)) {
         setDrawer(0);
         if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -65,7 +101,6 @@ export default function BoardPage() {
     [push, place],
   );
 
-  // ── saved jobs (bookmark shortlist) ──
   const loadSaved = useCallback(async () => {
     if (IS_PUBLIC) return;
     const r = await api<{ ok: boolean; count?: number; saved?: { url?: string }[] }>('/api/save');
@@ -76,7 +111,6 @@ export default function BoardPage() {
   }, []);
   useEffect(() => { loadSaved(); }, [loadSaved]);
 
-  // Toggle save for a board row. Optimistic, then re-syncs from the engine.
   const toggleSave = useCallback(
     async (row: { url?: string; jd_path?: string; company?: string; role?: string; location?: string; posted?: string; band?: string; score?: number }) => {
       if (IS_PUBLIC) { openForkGate(); return; }
@@ -95,9 +129,6 @@ export default function BoardPage() {
     [savedUrls, push, loadSaved],
   );
 
-  // Debounced so changing the country/type dropdowns OR typing a city re-filters the
-  // board without firing a request on every keystroke. `load` closes over `place`,
-  // so it re-runs whenever the filters or the place selection change.
   useEffect(() => {
     const t = setTimeout(() => load(filters), 200);
     return () => clearTimeout(t);
@@ -109,9 +140,6 @@ export default function BoardPage() {
         e.preventDefault();
         setPalette((p) => !p);
       } else if (e.key === 'Escape') {
-        // Layered close: if the command palette is open (it sits ON TOP), Escape
-        // dismisses just the palette; only if it was already closed does Escape
-        // close the detail drawer. A single Escape shouldn't nuke both.
         let paletteWasOpen = false;
         setPalette((p) => { paletteWasOpen = p; return false; });
         if (!paletteWasOpen) setDrawer(-1);
@@ -165,14 +193,10 @@ export default function BoardPage() {
       });
       setBusy(false);
       if (r.ok) {
-        // Pin by the URL that actually lands on the board row (fetch-jd may canonicalize
-        // it), falling back to what the user pasted.
         const savedUrl = r.posting?.url || url;
         push('posting saved — pinned to the top of the board', 'ok');
         load(filters, { pin: savedUrl });
       } else if (r.needs_agent_fetch) {
-        // Bot-protected / JS-rendered page: plain HTTP can't get it, but the agent's
-        // own fetch tools can — queue it instead of dead-ending on an error.
         const q = await api<{ ok: boolean; error?: string }>('/api/queue', {
           method: 'POST',
           body: JSON.stringify({ kind: 'fetch-jd', args: { url } }),
@@ -186,12 +210,6 @@ export default function BoardPage() {
     [filters, load, push],
   );
 
-  // Live multi-board fetch (Indeed/ZipRecruiter/Google) via the jobspy sidecar.
-  // Search terms come from the profile's CV-derived target roles (the sidecar's
-  // default), so everything fetched is matched to the user's CV. `recent` (days)
-  // bounds how far back we pull; '' means no cap (recent + older).
-  // One fetch round-trip for a single country/city. Kept separate so the
-  // "All countries" path can call it per-country without re-rendering between each.
   const postFetch = useCallback(
     (country: string, city: string, recent: string, jobType: string, boards: string) =>
       api<{ ok: boolean; counts?: { added?: number }; received?: number; error?: string }>(
@@ -205,16 +223,10 @@ export default function BoardPage() {
     async (opts: FetchRecentOpts, recent: string) => {
       if (IS_PUBLIC) { openForkGate(); return; }
       setBusy(true);
-      // Country is multi-select: empty = ALL markets, else the ticked subset. A type
-      // fetch can target one JobSpy job_type; with several (or none) ticked we fetch
-      // ANY type and let the board's type filter narrow the view.
       const sweep = opts.countries.length === 0 ? COUNTRIES : opts.countries;
       const jobType = opts.jobTypes.length === 1 ? opts.jobTypes[0] : '';
       const boards = fetchBoards();
 
-      // 2+ countries → ONE server request that fetches each country's boards with
-      // bounded concurrency, dedups, and persists in a SINGLE ingest (no ledger race;
-      // a job seen in several countries is added once). City is ignored for a sweep.
       if (sweep.length > 1) {
         const scope = opts.countries.length === 0 ? `all ${COUNTRIES.length} countries` : `${sweep.length} countries`;
         push(`fetching CV-matched jobs · ${scope} in one sweep (may take a few minutes)…`, 'info');
@@ -259,13 +271,10 @@ export default function BoardPage() {
     [filters, load, push, postFetch],
   );
 
-  // "Fetch recent" honors the board's "posted" window as the fetch cap.
   const fetchRecent = useCallback(
     (opts: FetchRecentOpts) => runFetch(opts, filters.recent),
     [runFetch, filters.recent],
   );
-  // "Refresh" pulls ALL CV-matched jobs (recent + older) for the selected
-  // country/city, then re-ranks — this is what the refresh button now does.
   const refresh = useCallback(() => runFetch(place, ''), [runFetch, place]);
 
   const commands: Command[] = useMemo(
@@ -283,63 +292,109 @@ export default function BoardPage() {
     [filters, load, scan, fetchRecent, refresh, place],
   );
 
+  // Step 3: compute stat bar values
   const strongest = rows.filter((r) => r.band === 'STRONGEST').length;
   const veryStrongPlus = rows.filter((r) => r.band === 'STRONGEST' || r.band === 'Very strong').length;
+  const totalCount = board?.count ?? rows.length;
+
+  // Step 5: count-up animated values
+  const animTotal = useCountUp(totalCount);
+  const animStrongest = useCountUp(strongest);
+  const animVSP = useCountUp(veryStrongPlus);
 
   return (
     <div className="app">
-      <TopBar />
-      <div className="statusline">
-        <span>
-          <b>{board?.count ?? rows.length}</b> openings
-          {board && board.count > rows.length ? <span className="dim"> · top {rows.length} shown</span> : null}
-        </span>
-        <span className="sep">·</span>
-        <span>
-          <b>{strongest}</b> strongest
-        </span>
-        <span className="sep">·</span>
-        <span>
-          <b>{veryStrongPlus}</b> very&nbsp;strong+
-        </span>
-        <div className="statusline__right">
+      {/* Row 1: top bar — pass push so OnboardDialog toasts flow to the single host */}
+      <TopBar onToast={push} />
+
+      {/* Row 2: stat bar */}
+      <div className="statbar">
+        <div className="statbar__stat">
+          <span className="statbar__num">{animTotal}</span>
+          <span className="statbar__label">openings</span>
+        </div>
+        <div className="statbar__sep" />
+        <div className="statbar__stat">
+          <span className="statbar__num">{animStrongest}</span>
+          <span className="statbar__label">strongest</span>
+        </div>
+        <div className="statbar__sep" />
+        <div className="statbar__stat">
+          <span className="statbar__num">{animVSP}</span>
+          <span className="statbar__label">very strong+</span>
+        </div>
+        <div className="statbar__right">
           <span className="live">
-            <span className={`live__dot ${busy ? 'is-stale' : ''}`} /> {busy ? 'working' : 'live'}
+            <span className={`live__dot ${busy ? 'is-stale' : ''}`} />
+            {busy ? 'working' : 'live'}
           </span>
-          <span>{today}</span>
         </div>
       </div>
-      <main className="main">
-        <h1 className="sr-only">CareerOS — CV-ranked job board</h1>
-        <FilterBar
-          filters={filters}
-          onChange={setFilters}
-          place={place}
-          onPlaceChange={setPlace}
-          onRefresh={refresh}
-          onScan={scan}
-          onFetchUrl={fetchUrl}
-          onFetchRecent={fetchRecent}
-          busy={busy}
-        />
-        {!board ? (
-          <div className="placeholder">loading board…</div>
-        ) : rows.length === 0 ? (
-          <div className="placeholder">
-            <b>No openings on the board yet.</b>
-            <div className="hint">
-              New here? Upload your CV &amp; cover letter with <b>⤴ my CV/CL</b> (top right) so the board ranks
-              jobs by your profile. Then auto-fetch roles from the{' '}
-              <a href="/hunt" style={{ color: 'var(--signal)' }}>
-                Hunt
-              </a>{' '}
-              tab, run <b>scan</b> for your tracked companies, or paste a job URL above.
+
+      {/* Row 3: filter bar — direct shell child, no sticky */}
+      <FilterBar
+        filters={filters}
+        onChange={setFilters}
+        place={place}
+        onPlaceChange={setPlace}
+        onRefresh={refresh}
+        onScan={scan}
+        onFetchUrl={fetchUrl}
+        onFetchRecent={fetchRecent}
+        busy={busy}
+      />
+
+      {/* Row 4: workspace — board is full-width until a role is clicked, then the
+          detail pane docks in on the right (desktop) / slides over (mobile). */}
+      <div className={`workspace${drawer >= 0 && rows[drawer] ? ' workspace--detail' : ''}`}>
+        {/* Left: board list */}
+        <div className="board-pane">
+          <h1 className="sr-only">CareerOS — CV-ranked job board</h1>
+          {!board ? (
+            <div className="placeholder">loading board…</div>
+          ) : rows.length === 0 ? (
+            <div className="placeholder">
+              <b>No openings on the board yet.</b>
+              <div className="hint">
+                New here? Upload your CV &amp; cover letter with <b>⤴ my CV/CL</b> (top right) so the board ranks
+                jobs by your profile. Then auto-fetch roles from the{' '}
+                <a href="/hunt" style={{ color: 'var(--signal)' }}>
+                  Hunt
+                </a>{' '}
+                tab, run <b>scan</b> for your tracked companies, or paste a job URL above.
+              </div>
             </div>
+          ) : (
+            <BoardTable
+              rows={rows}
+              today={today}
+              selected={drawer}
+              onSelect={(i) => setDrawer(i)}
+              showCountry={place.countries.length !== 1}
+              entered={boardEntered}
+            />
+          )}
+        </div>
+
+        {/* Right: inline detail pane — only mounted once a role is clicked, so the
+            board uses the full width by default (desktop only; mobile uses .drawer). */}
+        {drawer >= 0 && rows[drawer] && (
+          <div className="detail-pane">
+            <DetailDrawer
+              row={rows[drawer]}
+              today={today}
+              onClose={() => setDrawer(-1)}
+              onEnqueue={enqueue}
+              saved={!!rows[drawer].url && savedUrls.has(rows[drawer].url)}
+              savedCount={savedCount}
+              onToggleSave={() => toggleSave(rows[drawer])}
+              inline
+            />
           </div>
-        ) : (
-          <BoardTable rows={rows} today={today} selected={drawer} onSelect={(i) => setDrawer(i)} showCountry={place.countries.length !== 1} />
         )}
-      </main>
+      </div>
+
+      {/* Mobile slide-over (detail-pane is hidden on mobile, drawer is shown) */}
       {drawer >= 0 && rows[drawer] && (
         <DetailDrawer
           row={rows[drawer]}
@@ -349,8 +404,24 @@ export default function BoardPage() {
           saved={!!rows[drawer].url && savedUrls.has(rows[drawer].url)}
           savedCount={savedCount}
           onToggleSave={() => toggleSave(rows[drawer])}
+          inline={false}
         />
       )}
+
+      {/* Row 5: bottom status line */}
+      <div className="statusline">
+        <span>
+          {board && board.count > rows.length
+            ? <><b>{board.count}</b> openings · <span className="dim">top {rows.length} shown</span></>
+            : null}
+        </span>
+        <span className="sep">·</span>
+        <span>{today}</span>
+        <div className="statusline__right">
+          <span>{busy ? 'working…' : 'idle'}</span>
+        </div>
+      </div>
+
       {palette && <CommandPalette commands={commands} onClose={() => setPalette(false)} />}
       <Toaster toasts={toasts} onDismiss={dismiss} />
     </div>

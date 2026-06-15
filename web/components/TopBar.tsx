@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { QueueIndicator } from './QueueIndicator';
 import { OnboardDialog } from './OnboardDialog';
-import { Toaster, useToasts } from './Toast';
+// Step 9: TopBar no longer hosts its own Toaster — it receives push via prop
+// so that the single toaster in the page/layout can handle all toasts.
 import { IS_PUBLIC, openForkGate } from '@/lib/public';
 
 const TABS = [
@@ -13,15 +14,20 @@ const TABS = [
   { href: '/pipeline', label: 'Pipeline' },
 ];
 
-export function TopBar() {
+export function TopBar({
+  onToast,
+}: {
+  /** Optional: receives a push callback so TopBar can emit toasts to the single host */
+  onToast?: (msg: string, kind?: 'ok' | 'err' | 'info') => void;
+}) {
   const path = usePathname();
   const [onboard, setOnboard] = useState(false);
-  const { toasts, push, dismiss } = useToasts();
   return (
     <header className="topbar">
       <div className="brand">
         <b>CAREER</b>
-        <span className="brand__forge">OS</span>
+        {/* Step 10: renamed brand__forge → brand__os */}
+        <span className="brand__os">OS</span>
         <span className="brand__cursor" />
       </div>
       <nav className="nav">
@@ -49,8 +55,12 @@ export function TopBar() {
       </button>
       <QueueIndicator />
       <span className="kbd">⌘K</span>
-      {onboard && <OnboardDialog onClose={() => setOnboard(false)} onQueued={(m) => push(m, 'ok')} />}
-      <Toaster toasts={toasts} onDismiss={dismiss} />
+      {onboard && (
+        <OnboardDialog
+          onClose={() => setOnboard(false)}
+          onQueued={(m) => onToast ? onToast(m, 'ok') : undefined}
+        />
+      )}
     </header>
   );
 }
