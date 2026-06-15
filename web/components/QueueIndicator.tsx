@@ -5,8 +5,8 @@ import { api } from './util';
 import { IS_PUBLIC } from '@/lib/public';
 import { IconPulse } from './Icons';
 
-// Polls the request queue and shows how many agent tasks are waiting. Clicking
-// opens a popover with the latest requests + the hint to drain them via /cos ui.
+// Step 9: queue popover is now anchored via .queue { position:relative } + .qpop { top:calc(100%+6px); right:0 }
+// All positioning done in globals.css — removed the hardcoded absolute position.
 export function QueueIndicator() {
   const [reqs, setReqs] = useState<QueueRequest[]>([]);
   const [open, setOpen] = useState(false);
@@ -17,8 +17,6 @@ export function QueueIndicator() {
   }, []);
 
   useEffect(() => {
-    // The public demo has no queue (always empty) — don't poll a serverless
-    // function every few seconds for nothing.
     if (IS_PUBLIC) return;
     load();
     const t = setInterval(load, 4000);
@@ -37,8 +35,6 @@ export function QueueIndicator() {
     if (r && r.ok) load();
   }, [load]);
 
-  // Cancel a still-queued request the user added by mistake. The engine refuses
-  // once the agent has claimed it, so this is only offered for `queued` rows.
   const cancelReq = useCallback(
     async (id: string) => {
       const r = await api<{ ok: boolean; reason?: string }>(`/api/queue/${encodeURIComponent(id)}`, {
@@ -50,11 +46,24 @@ export function QueueIndicator() {
   );
 
   return (
+    // Step 9: position:relative so .qpop anchors correctly (in CSS)
     <div className="queue">
-      <button className="queue__btn" onClick={() => setOpen((o) => !o)} title="Agent request queue">
+      {/* Step 6: aria-expanded + aria-label on the toggle button */}
+      <button
+        className="queue__btn"
+        onClick={() => setOpen((o) => !o)}
+        title="Agent request queue"
+        aria-expanded={open}
+        aria-label={`Agent queue — ${active} active`}
+      >
         <IconPulse />
         <span className="upper">queue</span>
-        <span className="qcount" style={{ color: active ? 'var(--signal)' : 'var(--fg-faint)' }}>
+        {/* Step 6: active count in aria-live so screen readers announce changes */}
+        <span
+          className="qcount"
+          style={{ color: active ? 'var(--signal)' : 'var(--fg-faint)' }}
+          aria-live="polite"
+        >
           {active}
         </span>
       </button>
@@ -122,9 +131,7 @@ function summarizeArgs(args: Record<string, unknown>): string {
   return parts.join('  ');
 }
 
-// A completed build/apply request reports its artifacts in `result`. Surface any
-// generated PDFs as links the user can open right here — /api/pdf streams them
-// from data/output/ (sandboxed). The agent stores cv_pdf/cl_pdf (legacy: pdf).
+// Step 9: .qrow__links class now defined in globals.css — removed inline marginLeft styles
 function ResultLinks({ result }: { result: unknown }) {
   if (!result || typeof result !== 'object') return null;
   const r = result as Record<string, unknown>;
@@ -143,7 +150,6 @@ function ResultLinks({ result }: { result: unknown }) {
           target="_blank"
           rel="noopener noreferrer"
           title={l.path}
-          style={{ color: 'var(--signal)', marginLeft: 8, textDecoration: 'underline' }}
         >
           {l.label} ↗
         </a>
