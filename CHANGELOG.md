@@ -6,6 +6,8 @@ All notable changes to CareerOS are recorded here. The format is based on
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-15
+
 ### Added
 
 - **Skill-gap roadmap (`gaps`).** Aggregates the skill gaps across every saved
@@ -44,6 +46,10 @@ All notable changes to CareerOS are recorded here. The format is based on
   job's drawer once you've built something for it — the tailored CV/CL PDF shown
   inline, plus the eval report and raw LaTeX. Sourced from your tracker and the daemon
   manifest, so it works however the doc was generated.
+- **Board search / fetch omnibox.** A search box on the board filters the loaded
+  openings instantly by company, role, skill, location, or band. Paste a job URL into
+  the same box and press Enter (or the ↵ fetch button) to **fetch** that posting onto
+  the board instead.
 - **Optional AI daemon (`npm run daemon`).** A local background worker that can drain
   the web queue *without* a live agent session, using **any** AI you choose —
   `claude-cli` (your Claude Code login, no key), **Ollama** (local), or any
@@ -51,6 +57,14 @@ All notable changes to CareerOS are recorded here. The format is based on
   LM Studio, …). Fully optional and additive — the agent-native model (the in-session
   agent drains the queue) stays the default. Configure with `npm run daemon:setup`;
   `.careeros.config.json` (may hold an API key) is git-ignored.
+
+### Fixed
+
+- **JS-rendered career sites no longer save garbage.** A plain fetch of a
+  JavaScript-rendered posting (e.g. Odoo career pages) used to capture only the nav
+  shell and save it as a bogus "Job Detail" posting. The fetcher now detects thin /
+  nav-only / placeholder-title scrapes and flags `needs_agent_fetch`, so the
+  in-session agent fetches the rendered page properly instead.
 
 ## [0.4.0] - 2026-06-15
 
