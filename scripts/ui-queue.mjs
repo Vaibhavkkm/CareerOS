@@ -34,7 +34,7 @@
 //   node scripts/ui-queue.mjs --self-test
 
 import {
-  existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync, renameSync, rmSync, rmdirSync,
+  existsSync, statSync, mkdirSync, readFileSync, writeFileSync, appendFileSync, renameSync, rmSync, rmdirSync,
 } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join, resolve, sep } from 'node:path';
@@ -177,13 +177,32 @@ export function purgeStagedUploads(record, { root = ROOT, uploadsDir = UPLOADS_D
   const removed = [];
   const args = record && record.args && typeof record.args === 'object' ? record.args : {};
   const dirs = new Set();
-  for (const v of Object.values(args)) {
-    if (typeof v !== 'string' || !v) continue;
+  // Collect every staged path the request referenced. A web onboard with MULTIPLE
+  // CVs passes them as arrays (args.cv / args.files = [path, …]) plus args.dir = the
+  // per-upload folder, so flatten one level of arrays — a string-only scan would
+  // leave the PII behind. Non-string, non-array values (mode, null) are ignored.
+  const paths = Object.values(args).flatMap((v) =>
+    Array.isArray(v) ? v.filter((x) => typeof x === 'string' && x)
+      : (typeof v === 'string' && v ? [v] : []));
+  // Resolve to existing, in-sandbox targets, de-duplicated (args.cv and args.files
+  // often list the same paths). A target is a single file OR the staged folder itself.
+  const seen = new Set();
+  const targets = [];
+  for (const v of paths) {
     const abs = resolve(root, v);
     if (!isInside(uploadsDir, abs)) continue; // outside the staging sandbox → never touch
+    if (seen.has(abs) || !existsSync(abs)) continue;
+    seen.add(abs);
+    try { targets.push({ v, abs, isDir: statSync(abs).isDirectory() }); } catch { /* gone */ }
+  }
+  // Remove files BEFORE directories: otherwise a recursive folder-delete (args.dir)
+  // would pre-delete files we still need to report in `removed`.
+  targets.sort((a, b) => Number(a.isDir) - Number(b.isDir));
+  for (const t of targets) {
     try {
-      if (existsSync(abs)) { rmSync(abs, { force: true }); removed.push(v); }
-      dirs.add(dirname(abs));
+      rmSync(t.abs, { recursive: t.isDir, force: true }); // recursive for the folder; force ignores a vanished path
+      removed.push(t.v);
+      dirs.add(dirname(t.abs));
     } catch { /* best-effort: a failed unlink must not break the status transition */ }
   }
   // Tidy now-empty per-upload folders (but never the uploads root itself).
@@ -489,6 +508,21 @@ export function selfTest() {
     claim(ob2.id, { path });
     const failed = fail(ob2.id, 'pdftotext missing', { path, root: tmp, uploadsDir });
     ok(failed.ok && !existsSync(join(tmp, cv2)), 'staged upload purged on fail too');
+
+    // ── multi-CV web onboard: args.cv/files are ARRAYS + args.dir is the folder ──
+    // (regression: a string-only scan left these behind → purged:[] and PII lingered)
+    const mdir = 'data/ui/uploads/2026-06-11-09-00-00';
+    const absMdir = join(tmp, mdir);
+    mkdirSync(absMdir, { recursive: true });
+    const mcvs = [`${mdir}/cv1.pdf`, `${mdir}/cv2.pdf`, `${mdir}/cv3.pdf`];
+    mcvs.forEach((p) => writeFileSync(join(tmp, p), '%PDF'));
+    const obm = enqueue({ kind: 'onboard', args: { dir: mdir, files: mcvs, cv: mcvs, cl: null, mode: 'merge' } }, { path });
+    claim(obm.id, { path });
+    const donem = complete(obm.id, { notes: 'merged' }, { path, root: tmp, uploadsDir });
+    ok(donem.ok, 'multi-CV onboard completes');
+    ok(mcvs.every((p) => !existsSync(join(tmp, p))), 'all array-form staged CVs PURGED');
+    ok(!existsSync(absMdir), 'staged dir (args.dir) removed recursively');
+    ok(mcvs.every((p) => donem.purged.includes(p)), 'purged list reports every array path');
 
     // ── clear completed: archive done/failed, keep active, preserve history ──
     const cpath = join(tmp, 'data', 'ui', 'clear-q.jsonl');
