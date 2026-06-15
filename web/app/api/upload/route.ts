@@ -8,15 +8,16 @@ import { gateMutation } from '@/lib/gate';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// POST /api/upload — multipart form with a `cv` and/or `cl` file. Saves them under
-// data/ui/uploads/ (the ONLY data/ area the web app may write — see DATA_CONTRACT)
-// and enqueues an `onboard` request so the /cos agent learns the user's facts +
-// voice from them (modes/onboard.md), after which the board ranks jobs by THIS CV.
+// POST /api/upload — multipart form with one or more `cv` files and/or a `cl` file.
+// Saves them under data/ui/uploads/ (the ONLY data/ area the web app may write — see
+// DATA_CONTRACT) and enqueues an `onboard` request so the /cos agent (or the optional
+// daemon) learns the user's facts + voice from them (modes/onboard.md). Multiple CVs
+// are merged into one richer master by the agent. The route writes NO user facts and
+// NEVER flips a tracker record.
 
-// What the onboarding agent can actually read.
 const EXT_ALLOW = new Set(['.pdf', '.docx', '.doc', '.txt', '.md', '.tex', '.rtf']);
 const MAX_BYTES = 15 * 1024 * 1024;
-const SLOTS = ['cv', 'cl'] as const;
+const MAX_CVS = 8; // a reasonable batch cap
 
 // Keep only filename-safe characters; never trust a client-supplied path.
 function safeName(original: string, fallback: string): string {
@@ -33,39 +34,66 @@ export async function POST(request: Request) {
   try {
     form = await request.formData();
   } catch {
-    return bad('multipart form-data with a `cv` and/or `cl` file expected');
+    return bad('multipart form-data with one or more `cv` files and/or a `cl` file expected');
   }
 
-  // Validate everything BEFORE writing anything, so a bad CL never leaves a
+  // Gather all CV files (repeated `cv` field) + an optional single cover letter.
+  const cvFiles = form.getAll('cv').filter((f): f is File => f instanceof File && f.size > 0);
+  const clRaw = form.get('cl');
+  const clFile = clRaw instanceof File && clRaw.size > 0 ? clRaw : null;
+
+  if (cvFiles.length === 0 && !clFile) return bad('attach at least one CV and/or a cover letter');
+  if (cvFiles.length > MAX_CVS) return bad(`too many CVs (max ${MAX_CVS} at once)`);
+
+  // Validate EVERYTHING before writing anything, so a bad file never leaves a
   // half-saved upload behind.
-  const picked: { slot: (typeof SLOTS)[number]; file: File; ext: string }[] = [];
-  for (const slot of SLOTS) {
-    const f = form.get(slot);
-    if (!(f instanceof File) || f.size === 0) continue;
+  const validate = (f: File, slot: string) => {
     const ext = path.extname(f.name || '').toLowerCase();
-    if (!EXT_ALLOW.has(ext)) {
-      return bad(`${slot}: unsupported file type "${ext || '(none)'}" — use pdf, docx, txt, md or tex`);
-    }
-    if (f.size > MAX_BYTES) return bad(`${slot}: file too large (max 15 MB)`);
-    picked.push({ slot, file: f, ext });
-  }
-  if (picked.length === 0) return bad('attach a CV and/or a cover letter');
+    if (!EXT_ALLOW.has(ext)) return `${slot}: unsupported file type "${ext || '(none)'}" — use pdf, docx, txt, md or tex`;
+    if (f.size > MAX_BYTES) return `${slot}: "${f.name}" is too large (max 15 MB)`;
+    return null;
+  };
+  for (const f of cvFiles) { const e = validate(f, 'cv'); if (e) return bad(e); }
+  if (clFile) { const e = validate(clFile, 'cl'); if (e) return bad(e); }
 
   const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
   const relDir = `data/ui/uploads/${stamp}`;
   const absDir = path.join(repoRoot(), relDir);
   mkdirSync(absDir, { recursive: true });
 
-  const saved: Record<string, string> = {};
-  for (const { slot, file, ext } of picked) {
-    const name = `${slot}-${safeName(file.name, `${slot}${ext}`)}`;
+  // Save each file with a slot-prefixed name so a human/agent can tell a CV from a
+  // cover letter; multiple CVs get a numeric suffix to avoid name collisions.
+  const cvRel: string[] = [];
+  for (let i = 0; i < cvFiles.length; i++) {
+    const file = cvFiles[i];
+    const ext = path.extname(file.name || '').toLowerCase();
+    const prefix = cvFiles.length > 1 ? `cv${i + 1}` : 'cv';
+    const name = `${prefix}-${safeName(file.name, `${prefix}${ext}`)}`;
     writeFileSync(path.join(absDir, name), Buffer.from(await file.arrayBuffer()));
-    saved[slot] = `${relDir}/${name}`;
+    cvRel.push(`${relDir}/${name}`);
   }
+  let clRel: string | null = null;
+  if (clFile) {
+    const ext = path.extname(clFile.name || '').toLowerCase();
+    const name = `cl-${safeName(clFile.name, `cl${ext}`)}`;
+    writeFileSync(path.join(absDir, name), Buffer.from(await clFile.arrayBuffer()));
+    clRel = `${relDir}/${name}`;
+  }
+
+  // Enqueue an onboard request. `dir` drives the deterministic parse
+  // (`parse-cv --dir <dir>`) used by both modes/onboard.md and the optional daemon;
+  // `cv`/`cl` keep the explicit mapping for the agent.
+  const args = {
+    dir: relDir,
+    files: [...cvRel, ...(clRel ? [clRel] : [])],
+    cv: cvRel,
+    cl: clRel,
+    mode: 'merge',
+  };
 
   const r = await runScript(
     'ui-queue.mjs',
-    ['enqueue', '--kind', 'onboard', '--args', JSON.stringify(saved), '--origin', 'web'],
+    ['enqueue', '--kind', 'onboard', '--args', JSON.stringify(args), '--origin', 'web'],
     { timeoutMs: 10_000 },
   );
   return fromRun(r, 'files saved but the onboard request could not be queued');
