@@ -51,13 +51,13 @@ function extractExpectations(body: string): { wants: string[]; other: string[] }
 function extractSalary(body: string): string {
   const text = body || '';
   const MONEY =
-    /([€£$]\s?\d[\d.,]*\s?[kK]?(?:\s?(?:–|-|to)\s?[€£$]?\s?\d[\d.,]*\s?[kK]?)?(?:\s?(?:per|\/|a)\s?(?:year|yr|annum|month|mo|hour|hr|day))?|\b(?:EUR|USD|GBP|CHF)\s?\d[\d.,]*\s?[kK]?)/g;
+    /([€£$]\s?\d[\d.,]*\s?[kK]?(?:\s?(?:–|-|to)\s?[€£$]?\s?\d[\d.,]*\s?[kK]?)?(?:\s?(?:per|\/|an?)\s?(?:year|yr|annum|month|mo|hour|hr|day))?|\b(?:EUR|USD|GBP|CHF)\s?\d[\d.,]*\s?[kK]?)/g;
   const SCALE = /^\s*(?:bn|billion|million|mn|trillion|m\b)/i;
   const REVENUE =
     /\b(?:in sales|sales|revenue|turnover|valuation|funding|raised|market\s*cap|customers|users|employees|arr|mrr|profit|assets under management|aum|budget|contract worth|deal)\b/i;
   const SALARY_CTX =
     /\b(?:salary|salaries|compensation|remuneration|package|base pay|gross|net|RAL|per\s*(?:year|annum|month|hour)|\/\s*(?:yr|year|hr|hour|month)|annual\s*(?:salary|pay)|stipend|wage)\b/i;
-  const SELF_PAY = /[kK]\b|(?:per|\/|a)\s?(?:year|yr|annum|month|mo|hour|hr|day)/i;
+  const SELF_PAY = /[kK]\b|(?:per|\/|an?)\s?(?:year|yr|annum|month|mo|hour|hr|day)/i;
   let m: RegExpExecArray | null;
   while ((m = MONEY.exec(text))) {
     const match = m[0];
@@ -267,7 +267,9 @@ function DrawerContent({
 
   const args = { url: row.url, jd_path: row.jd_path, company: row.company, role: row.role };
   const { wants, other } = extractExpectations(jd?.body || '');
-  const salary = extractSalary(jd?.body || '');
+  // Prefer the engine's parsed band (scripts/salary.mjs, on the board row); fall back
+  // to a local scan of the JD body only if the row has none.
+  const salary = row.salary || extractSalary(jd?.body || '');
 
   const fit = Number.isFinite(row.fit) ? row.fit : 0;
   const pct = snapPct(fit);
