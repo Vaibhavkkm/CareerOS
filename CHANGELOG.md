@@ -36,6 +36,14 @@ All notable changes to CareerOS are recorded here. The format is based on
 - **"Send to CareerOS" browser extension + bookmarklet.** Capture a job page from any
   site straight onto your board via a local-only `POST /api/inbox` (routes through
   `hunt-ingest`; never auto-applies; 127.0.0.1-bound, off in public mode).
+- **Multi-CV drag-drop upload.** The existing "⤴ my CV/CL" dialog now takes several
+  CVs at once (drag-drop or multi-pick) plus the optional cover letter — in your
+  theme, still safely queuing for the agent (writes only `data/ui/`). The agent merges
+  them into one richer master.
+- **View generated docs inside the job drawer.** A "Documents" section appears in a
+  job's drawer once you've built something for it — the tailored CV/CL PDF shown
+  inline, plus the eval report and raw LaTeX. Sourced from your tracker and the daemon
+  manifest, so it works however the doc was generated.
 - **Optional AI daemon (`npm run daemon`).** A local background worker that can drain
   the web queue *without* a live agent session, using **any** AI you choose —
   `claude-cli` (your Claude Code login, no key), **Ollama** (local), or any
