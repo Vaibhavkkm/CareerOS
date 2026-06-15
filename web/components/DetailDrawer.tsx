@@ -131,11 +131,12 @@ function DocumentsSection({ jdPath, url }: { jdPath?: string; url?: string }) {
   const [text, setText] = useState('');
   const [loadingText, setLoadingText] = useState(false);
 
-  const query = jdPath
-    ? `jd_path=${encodeURIComponent(jdPath)}`
-    : url
-      ? `url=${encodeURIComponent(url)}`
-      : '';
+  // Send BOTH jd_path and url — a built job is often tracked by url with no jd_path
+  // (or vice-versa), so /api/docs must be free to match on either.
+  const query = [
+    jdPath ? `jd_path=${encodeURIComponent(jdPath)}` : '',
+    url ? `url=${encodeURIComponent(url)}` : '',
+  ].filter(Boolean).join('&');
 
   useEffect(() => {
     let live = true;
