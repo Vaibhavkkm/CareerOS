@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { BoardResponse, BoardRow } from '@/lib/types';
 import { TopBar } from '@/components/TopBar';
-import { FilterBar, type Filters, type FetchRecentOpts, COUNTRIES, fetchBoards } from '@/components/FilterBar';
+import { FilterBar, extractUrl, type Filters, type FetchRecentOpts, COUNTRIES, fetchBoards } from '@/components/FilterBar';
 import { BoardTable } from '@/components/BoardTable';
 import { DetailDrawer } from '@/components/DetailDrawer';
 import { CommandPalette, type Command } from '@/components/CommandPalette';
@@ -166,9 +166,12 @@ export default function BoardPage() {
   const rows = board?.rows || [];
   const today = board?.today || new Date().toISOString().slice(0, 10);
 
-  // Client-side free-text search over the loaded board. The drawer indexes into the
-  // VISIBLE rows, so changing the search resets the open drawer (handled in onSearch).
-  const q = search.trim();
+  // Client-side free-text search over the loaded board. If the text is actually a job
+  // URL we DON'T filter (it can't match a row) — the box doubles as a fetch omnibox
+  // (FilterBar fetches it on Enter). The drawer indexes into the VISIBLE rows, so
+  // changing the search resets the open drawer (handled in onSearch).
+  const urlInSearch = extractUrl(search);
+  const q = urlInSearch ? '' : search.trim();
   const visibleRows = useMemo(() => (q ? rows.filter((r) => rowMatches(r, q)) : rows), [rows, q]);
   const onSearch = useCallback((s: string) => { setSearch(s); setDrawer(-1); }, []);
 

@@ -118,18 +118,36 @@ export function FilterBar({
   const [moreOpen, setMoreOpen] = useState(false);
   return (
     <div className="toolbar">
-      {/* Free-text search — filters the loaded board by company / role / skill / location */}
-      <form className="field" onSubmit={(e) => e.preventDefault()}>
+      {/* Omnibox: free-text filters the loaded board (company / role / skill / location);
+          paste a job URL + Enter to FETCH that posting onto the board instead. */}
+      <form
+        className="field"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const u = extractUrl(search);
+          if (u) { onFetchUrl(u); onSearchChange(''); }
+        }}
+      >
         <span className="field__label">search</span>
         <input
           className="input"
           type="search"
-          aria-label="Search the board by company, role, skill or location"
-          placeholder="company, role, skill…"
+          aria-label="Search the board, or paste a job URL to fetch it"
+          placeholder="company, role, skill — or paste a job URL…"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          style={{ width: 190 }}
+          style={{ width: 230 }}
         />
+        {extractUrl(search) && (
+          <button
+            type="submit"
+            className="btn"
+            disabled={busy}
+            title="Fetch this job posting onto the board"
+          >
+            ↵ fetch
+          </button>
+        )}
       </form>
       <div className="field">
         <span className="field__label">match</span>
