@@ -317,8 +317,25 @@ export function normalizeSmartRecruiters(json, url = '') {
   };
 }
 
-// Generic HTML page → Posting (best effort). Pulls <title> for the role and the
-// full page text as content. Used for unknown hosts and as the ATS fallback.
+// Isolate the main content of a page: drop nav/header/footer/aside/form chrome
+// (the menus that otherwise dominate a generic scrape), and prefer an explicit
+// <main>/<article> region when present. Best effort — never throws.
+export function extractMainHtml(html) {
+  let s = String(html || '');
+  s = s.replace(/<\s*(nav|header|footer|aside|form)\b[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, ' ');
+  const m = s.match(/<main[^>]*>([\s\S]*?)<\/main>/i) || s.match(/<article[^>]*>([\s\S]*?)<\/article>/i);
+  return m ? m[1] : s;
+}
+
+// First <h1> text in some HTML, '' if none. Career pages put the real job title in an
+// <h1> even when the <title> tag is a generic placeholder (e.g. Odoo's "Job Detail").
+export function firstH1(html) {
+  const m = String(html || '').match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+  return m ? htmlToText(m[1]) : '';
+}
+
+// Generic HTML page → Posting (best effort). Pulls <title>/<h1> for the role and the
+// main content text. Used for unknown hosts and as the ATS fallback.
 export function normalizeGenericHtml(html, url = '') {
   // Prefer schema.org JobPosting JSON-LD when the page embeds it — far richer and
   // cleaner than scraping the DOM.
@@ -339,19 +356,33 @@ export function normalizeGenericHtml(html, url = '') {
       questions: [],
     };
   }
+  // Isolate the job body so menus/footers don't dominate (or worse, become the whole
+  // "posting" on JS-light career sites like Odoo, which render the job server-side but
+  // wrap it in heavy nav chrome).
+  const mainHtml = extractMainHtml(html);
+
   const titleMatch = String(html || '').match(/<title[^>]*>([\s\S]*?)<\/title>/i);
   const rawTitle = titleMatch ? htmlToText(titleMatch[1]) : '';
   // Page titles commonly end with the employer ("Role - Company" / "Role | Company").
   // Split on the LAST plain separator so the board gets a company to group/dedup by
   // (an en/em dash inside the role itself is left alone). Best effort: no separator
   // → the whole title stays the role, company stays unknown.
-  let role = rawTitle;
-  let company = '';
-  const sep = Math.max(rawTitle.lastIndexOf(' - '), rawTitle.lastIndexOf(' | '));
-  if (sep > 0) {
-    const head = rawTitle.slice(0, sep).trim();
-    const tail = rawTitle.slice(sep + 3).trim();
-    if (head && tail) { role = head; company = tail; }
+  const splitTitle = (t) => {
+    const sep = Math.max(t.lastIndexOf(' - '), t.lastIndexOf(' | '));
+    if (sep > 0) {
+      const head = t.slice(0, sep).trim();
+      const tail = t.slice(sep + 3).trim();
+      if (head && tail) return { role: head, company: tail };
+    }
+    return { role: t, company: '' };
+  };
+  let { role, company } = splitTitle(rawTitle);
+  // When the <title> is empty or a generic placeholder (e.g. "Job Detail"), prefer the
+  // real job title from the page's main <h1>. An <h1> is the whole job title, so it is
+  // NOT split into role/company the way a "Role - Company" <title> is.
+  if (!role || GENERIC_ROLE.test(role)) {
+    const h1 = firstH1(mainHtml) || firstH1(html);
+    if (h1) role = h1;
   }
   return {
     source: 'generic-html',
@@ -360,7 +391,7 @@ export function normalizeGenericHtml(html, url = '') {
     location: '',
     url,
     departments: [],
-    content: htmlToText(html),
+    content: htmlToText(mainHtml),
     posted: '',
     questions: [],
   };
@@ -650,6 +681,14 @@ export async function selfTest() {
   const navJunk = `<html><head><title>Job Detail</title></head><body>${'<a>Approach</a><a>Expertise</a><a>Career</a> '.repeat(20)}</body></html>`;
   r = await fetchPosting('https://odoo.example.com/jobs/x-389', { fetchText: async () => navJunk });
   ok(!r.ok && r.needs_agent_fetch, 'fetchPosting: JS-rendered nav-only page (generic title) → needs_agent_fetch');
+  // Odoo-style: generic <title>, the real job in an <h1> inside the body, nav in
+  // <header>/<footer>. Must scrape DIRECTLY (no agent): main content kept, chrome dropped.
+  const odooHtml = `<html><head><title>Job Detail</title></head><body><header><nav><a>Approach</a><a>Expertise</a><a>Career</a></nav></header><div id="wrap"><h1>Senior Consultant - Data &amp; AI (LU)</h1><p>We are looking for a senior consultant. Responsibilities: build dashboards in Power BI and write SQL. Requirements: a Master's degree and ${'strong data experience '.repeat(30)}</p></div><footer><nav><a>Privacy</a><a>Contact</a></nav></footer></body></html>`;
+  const odooP = normalizeGenericHtml(odooHtml, 'https://odoo.example.lu/jobs/x');
+  ok(odooP.role === 'Senior Consultant - Data & AI (LU)', `generic <title> falls back to main <h1> (got "${odooP.role}")`);
+  ok(/Power BI/.test(odooP.content) && !/Approach|Privacy/.test(odooP.content), 'main content kept, nav/header/footer stripped');
+  r = await fetchPosting('https://odoo.example.lu/jobs/x', { fetchText: async () => odooHtml });
+  ok(r.ok && !r.needs_agent_fetch && r.posting.role === 'Senior Consultant - Data & AI (LU)', 'fetchPosting: Odoo-style page scrapes DIRECTLY (no agent needed)');
   r = await fetchPosting('http://127.0.0.1/admin', { fetchText: async () => 'SHOULD NOT BE FETCHED' });
   ok(!r.ok && r.needs_agent_fetch && /private|loopback|blocked/i.test(r.error || ''), 'fetchPosting: SSRF guard blocks a private host');
 
