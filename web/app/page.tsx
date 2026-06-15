@@ -71,6 +71,8 @@ export default function BoardPage() {
   const [board, setBoard] = useState<BoardResponse | null>(null);
   const [filters, setFilters] = useState<Filters>({ min: '', recent: '' });
   const [search, setSearch] = useState('');
+  const [drawerW, setDrawerW] = useState<number | null>(null); // px; null = CSS default (resizable)
+  const [chromeOpen, setChromeOpen] = useState(true); // show/hide the stat bar + filter bar
   const [place, setPlace] = useState<FetchRecentOpts>({ countries: ['Luxembourg'], city: '', jobTypes: [] });
   const [drawer, setDrawer] = useState<number>(-1);
   const [busy, setBusy] = useState(false);
@@ -148,6 +150,14 @@ export default function BoardPage() {
     return () => clearTimeout(t);
   }, [filters, load]);
 
+  // Give the drawer a concrete starting width when it opens (so the resize handle
+  // has a position). Double-clicking the handle resets to null → this re-seeds it.
+  useEffect(() => {
+    if (drawer >= 0 && drawerW == null && typeof window !== 'undefined') {
+      setDrawerW(Math.min(460, Math.round(window.innerWidth * 0.38)));
+    }
+  }, [drawer, drawerW]);
+
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -174,6 +184,27 @@ export default function BoardPage() {
   const q = urlInSearch ? '' : search.trim();
   const visibleRows = useMemo(() => (q ? rows.filter((r) => rowMatches(r, q)) : rows), [rows, q]);
   const onSearch = useCallback((s: string) => { setSearch(s); setDrawer(-1); }, []);
+
+  // Drag the detail pane's left edge to resize its width (desktop inline pane).
+  const startResize = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = drawerW ?? Math.min(460, window.innerWidth * 0.38);
+    const onMove = (ev: PointerEvent) => {
+      const max = Math.min(window.innerWidth - 360, 980); // keep the board at least 360px
+      setDrawerW(Math.min(max, Math.max(340, startW + (startX - ev.clientX))));
+    };
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }, [drawerW]);
 
   const enqueue = useCallback(
     async (kind: string, args: Record<string, unknown>) => {
@@ -330,48 +361,83 @@ export default function BoardPage() {
       {/* Row 1: top bar — pass push so OnboardDialog toasts flow to the single host */}
       <TopBar onToast={push} />
 
-      {/* Row 2: stat bar */}
+      {/* Row 2: stat bar (collapsible — the toggle also hides the filter bar) */}
       <div className="statbar">
-        <div className="statbar__stat">
-          <span className="statbar__num">{animTotal}</span>
-          <span className="statbar__label">openings</span>
-        </div>
-        <div className="statbar__sep" />
-        <div className="statbar__stat">
-          <span className="statbar__num">{animStrongest}</span>
-          <span className="statbar__label">strongest</span>
-        </div>
-        <div className="statbar__sep" />
-        <div className="statbar__stat">
-          <span className="statbar__num">{animVSP}</span>
-          <span className="statbar__label">very strong+</span>
-        </div>
-        <div className="statbar__right">
+        {chromeOpen ? (
+          <>
+            <div className="statbar__stat">
+              <span className="statbar__num">{animTotal}</span>
+              <span className="statbar__label">openings</span>
+            </div>
+            <div className="statbar__sep" />
+            <div className="statbar__stat">
+              <span className="statbar__num">{animStrongest}</span>
+              <span className="statbar__label">strongest</span>
+            </div>
+            <div className="statbar__sep" />
+            <div className="statbar__stat">
+              <span className="statbar__num">{animVSP}</span>
+              <span className="statbar__label">very strong+</span>
+            </div>
+          </>
+        ) : (
+          <div className="statbar__stat">
+            <span className="statbar__label">
+              {totalCount} openings · {strongest} strongest · {veryStrongPlus} very strong+ · filters hidden
+            </span>
+          </div>
+        )}
+        <div className="statbar__right" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span className="live">
             <span className={`live__dot ${busy ? 'is-stale' : ''}`} />
             {busy ? 'working' : 'live'}
           </span>
+          <button
+            onClick={() => setChromeOpen((o) => !o)}
+            title={chromeOpen ? 'Hide the stats + filter bar' : 'Show the stats + filter bar'}
+            aria-expanded={chromeOpen}
+            style={{
+              background: 'none', border: '1px solid var(--hairline)', borderRadius: 'var(--r-control, 6px)',
+              color: 'var(--fg-dim)', cursor: 'pointer', fontSize: 11, padding: '2px 8px',
+              textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap',
+            }}
+          >
+            {chromeOpen ? '⌃ hide' : '⌄ filters'}
+          </button>
         </div>
       </div>
 
-      {/* Row 3: filter bar — direct shell child, no sticky */}
-      <FilterBar
-        filters={filters}
-        onChange={setFilters}
-        search={search}
-        onSearchChange={onSearch}
-        place={place}
-        onPlaceChange={setPlace}
-        onRefresh={refresh}
-        onScan={scan}
-        onFetchUrl={fetchUrl}
-        onFetchRecent={fetchRecent}
-        busy={busy}
-      />
+      {/* Row 3: filter bar. Kept as a (possibly empty) grid child even when collapsed
+          so hiding it doesn't shift the board out of its 1fr row. */}
+      <div>
+        {chromeOpen && (
+          <FilterBar
+            filters={filters}
+            onChange={setFilters}
+            search={search}
+            onSearchChange={onSearch}
+            place={place}
+            onPlaceChange={setPlace}
+            onRefresh={refresh}
+            onScan={scan}
+            onFetchUrl={fetchUrl}
+            onFetchRecent={fetchRecent}
+            busy={busy}
+          />
+        )}
+      </div>
 
       {/* Row 4: workspace — board is full-width until a role is clicked, then the
           detail pane docks in on the right (desktop) / slides over (mobile). */}
-      <div className={`workspace${drawer >= 0 && visibleRows[drawer] ? ' workspace--detail' : ''}`}>
+      <div
+        className={`workspace${drawer >= 0 && visibleRows[drawer] ? ' workspace--detail' : ''}`}
+        style={{
+          gridRow: '4 / -1', // absorb the removed status-line row so there's no empty strip
+          ...(drawer >= 0 && visibleRows[drawer]
+            ? { position: 'relative', ...(drawerW ? { gridTemplateColumns: `1fr ${drawerW}px` } : {}) }
+            : {}),
+        }}
+      >
         {/* Left: board list */}
         <div className="board-pane">
           <h1 className="sr-only">CareerOS — CV-ranked job board</h1>
@@ -411,6 +477,20 @@ export default function BoardPage() {
 
         {/* Right: inline detail pane — only mounted once a role is clicked, so the
             board uses the full width by default (desktop only; mobile uses .drawer). */}
+        {/* Drag this edge to resize the drawer; double-click to reset to default */}
+        {drawer >= 0 && visibleRows[drawer] && drawerW != null && (
+          <div
+            onPointerDown={startResize}
+            onDoubleClick={() => setDrawerW(null)}
+            title="Drag to resize · double-click to reset"
+            aria-label="Resize panel"
+            role="separator"
+            style={{
+              position: 'absolute', top: 0, bottom: 0, right: drawerW - 3, width: 7,
+              cursor: 'col-resize', zIndex: 20, borderLeft: '2px solid var(--hairline)',
+            }}
+          />
+        )}
         {drawer >= 0 && visibleRows[drawer] && (
           <div className="detail-pane">
             <DetailDrawer
@@ -440,22 +520,6 @@ export default function BoardPage() {
           inline={false}
         />
       )}
-
-      {/* Row 5: bottom status line */}
-      <div className="statusline">
-        <span>
-          {q ? (
-            <><b>{visibleRows.length}</b> match{visibleRows.length === 1 ? '' : 'es'} · <span className="dim">of {rows.length} loaded · “{q}”</span></>
-          ) : board && board.count > rows.length ? (
-            <><b>{board.count}</b> openings · <span className="dim">top {rows.length} shown</span></>
-          ) : null}
-        </span>
-        <span className="sep">·</span>
-        <span>{today}</span>
-        <div className="statusline__right">
-          <span>{busy ? 'working…' : 'idle'}</span>
-        </div>
-      </div>
 
       {palette && <CommandPalette commands={commands} onClose={() => setPalette(false)} />}
       <Toaster toasts={toasts} onDismiss={dismiss} />
