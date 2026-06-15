@@ -6,6 +6,24 @@ All notable changes to CareerOS are recorded here. The format is based on
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-06-15
+
+### Added
+
+- **Board search / fetch omnibox.** A search box filters the loaded board by company,
+  role, skill, or location; paste a job URL into the same box and press Enter to fetch
+  that posting onto the board instead.
+- **Resizable detail drawer.** Drag the drawer's left edge to resize it (double-click
+  resets); a toggle in the stat bar collapses the stats + filter bar for a focused board.
+- **View generated docs in the drawer.** A job's drawer shows the tailored CV/CL PDF,
+  eval report, and raw LaTeX inline; clicking a document also opens it in a new tab.
+- **Saved tab.** A `/saved` page listing your ★-bookmarked jobs with open / build CV /
+  build CL / remove per row.
+
+### Changed
+
+- Removed the redundant bottom status line on the board (its counts live in the stat bar).
+
 ### Fixed
 
 - **Generic job-page fetch now extracts the real job, not the nav.** Pages that render
@@ -13,7 +31,9 @@ All notable changes to CareerOS are recorded here. The format is based on
   scrape as nav-junk (a bogus "Job Detail" posting) or get punted to an agent. The
   scraper now strips nav/header/footer, reads the body from the main content region,
   and falls back to the page `<h1>` when the `<title>` is a placeholder — so these URLs
-  fetch **directly** onto the board (paste one into the board search/omnibox).
+  fetch **directly** onto the board.
+- **Full salary range.** A stated range worded as "$36 – $50 an hour" now shows whole,
+  not just the first figure.
 
 ## [0.5.0] - 2026-06-15
 
@@ -108,6 +128,32 @@ All notable changes to CareerOS are recorded here. The format is based on
   sales") as a salary; it requires real pay context.
 - Drawer action buttons are correctly wired and labeled (the primary CTA now actually
   builds the CV; the duplicate/mislabeled buttons are fixed).
+
+## [0.3.2] - 2026-06-14
+
+### Added
+
+- Country column on the board (shown when browsing more than one country), a
+  cancel button for queued requests, and the elegant CV format as the default.
+
+## [0.3.1] - 2026-06-13
+
+### Added
+
+- ★ Saved-jobs shortlist; multi-select country and job-type filters.
+
+### Fixed
+
+- Match accuracy: experience/seniority now actually count, stopping a class of
+  wrongly "strong" matches.
+
+## [0.3.0] - 2026-06-13
+
+### Added
+
+- **Skill- and experience-aware match scoring** — the job-match score no longer
+  relies on raw keyword overlap (which let off-stack roles rank as strong fits);
+  broader job sourcing and clearer parsed postings.
 
 ## [0.2.0] - 2026-06-12
 

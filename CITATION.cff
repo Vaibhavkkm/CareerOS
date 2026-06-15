@@ -5,12 +5,13 @@ abstract: >-
   An agent-native, LaTeX-first CV and cover-letter builder fused with a
   job-application pipeline that learns from a user's own CV and cover letter to
   produce tailored, ATS-safe documents. Runs locally inside any AI coding agent
-  (Claude Code, Cursor, Codex CLI, Gemini CLI, ...) with no server and no API key.
+  (Claude Code, Cursor, Codex CLI, Gemini CLI, ...); no server or API key required
+  by default, with an optional background AI daemon if a user opts in.
 type: software
 authors:
   - name: "VaibhavKKM"
-version: "0.1.0"
-date-released: "2026-06-08"
+version: "0.6.0"
+date-released: "2026-06-15"
 license: AGPL-3.0-or-later
 repository-code: "https://github.com/Vaibhavkkm/CareerOS"
 url: "https://www.vaibhavkkm.com"
