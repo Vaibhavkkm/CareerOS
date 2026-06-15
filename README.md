@@ -6,18 +6,11 @@ ATS-safe PDFs.**
 
 CareerOS runs *inside* the AI coding agent you already use —
 [Claude Code](https://claude.com/claude-code), [Cursor](https://cursor.com),
-[Codex CLI](https://github.com/openai/codex),
-[Gemini CLI](https://github.com/google-gemini/gemini-cli), or any other tool that
-can read files and run commands (it picks up its instructions from the standard
-[`AGENTS.md`](AGENTS.md)). There's no website, no sign-up, and no API key — the
-"AI" is the agent you're already running, whichever model powers it. The boring,
-mechanical work is done by small Node scripts (which cost nothing to run), and
-every document is a LaTeX file turned into a PDF by
-[`tectonic`](https://tectonic-typesetting.github.io/).
-
-> ⚠️ **This project is still being built.** The core engine works and is tested,
-> but the "anyone can use it" onboarding is new and still being polished. See
-> **[Project status](#project-status)** below for an honest done / in-progress list.
+Codex CLI, Gemini CLI, Windsurf, and others. There's **no separate AI service, no
+API key, and no server**: the "AI" is your agent, the mechanical work is done by
+small Node scripts (which cost nothing to run), and every document is a LaTeX file
+turned into a PDF by [`tectonic`](https://tectonic-typesetting.github.io/). It also
+ships a **local web app** so you can do most of it by clicking, not typing commands.
 
 ---
 
@@ -27,42 +20,72 @@ every document is a LaTeX file turned into a PDF by
    URL* — it scrapes the whole posting for you), your own CV, and a cover letter
    you've written before.
 2. **It learns from you.** It reads your CV for the *facts* (where you worked, what
-   you did, your real numbers) and reads your cover letter for your *voice* (how you
-   actually write — your tone, your phrasing, the words you'd never use).
-3. **It tailors for the job.** For a specific posting, it writes a new CV and cover
-   letter that highlight the parts of *your real experience* that match the job, and
-   slot in the keywords an applicant-tracking system (ATS) screens for — without
-   ever making up experience you don't have. It then **proofreads its own draft**
-   against your voice and the job's must-haves and revises before showing you.
+   you did, your real numbers) and your cover letter for your *voice* (your tone,
+   your phrasing, the words you'd never use).
+3. **It tailors for the job.** It writes a new CV and cover letter that highlight the
+   parts of *your real experience* that match the role and slot in the keywords an
+   applicant-tracking system (ATS) screens for — **without ever inventing experience
+   you don't have**. Then it proofreads its own draft and revises before you see it.
 4. **It gets better the more you use it.** Every time you edit a draft, it notices
-   what you changed and remembers your preferences for next time (see
-   [how the learning works](#how-the-learning-works-its-not-a-black-box) below).
-5. **It helps with the whole hunt, not just documents:** score a job before you
-   apply, scan job boards, track your applications, schedule follow-ups, and prep
-   for interviews.
+   what you changed and remembers your preferences for next time.
+5. **It helps with the whole hunt:** find and rank jobs, score a role before you
+   apply, track your applications, schedule follow-ups, and prep for interviews.
 
-**You are always in control.** CareerOS writes and recommends — it never submits
-an application for you, and it never invents facts.
+**You are always in control.** CareerOS writes and recommends — it never submits an
+application for you, and it never makes up facts.
+
+---
+
+## Features
+
+**Find & rank jobs**
+- **Job-match board** — every open role scored against *your* CV (STRONGEST → Weak),
+  with how recently it was posted, the skills you have vs. the gaps, and any language
+  requirement the posting states.
+- **Multi-board fetch** — pull fresh openings from **Indeed, ZipRecruiter, Glassdoor,
+  Google Jobs, and LinkedIn** (anonymously, no login), filtered by **country**
+  (~30 markets, or *all countries* in one sweep), **city**, and **job type**
+  (full-time, internship, PhD, post-doc, contract, temp). A **Country column** appears
+  when you browse more than one country.
+- **Share a URL → it scrapes the whole posting** from the ATS's own API (Greenhouse,
+  Lever, Recruitee, SmartRecruiters) or the page HTML (Ashby, Workable, and more).
+- **Saved shortlist** — ★ bookmark jobs and build a CV + cover letter for every one at once.
+
+**Tailor your documents**
+- **Tailored CV + cover letter** in your real voice, matched to the job, ATS-safe,
+  compiled to PDF through `tectonic` and checked automatically (selectable text,
+  keywords extractable, sane section order).
+- **Self-correcting drafts** — graded against your voice, the job's must-have keywords,
+  and a no-fabrication/no-filler rule, then revised before you ever see them.
+- **It learns your style** — edit a draft and it remembers your wording for next time.
+  Plain, inspectable local files; no trained model, no black box. (See below.)
+
+**Run the whole hunt**
+- Score a job, compare several, scan companies you're watching, track applications,
+  follow-up reminders, a daily "what's new" digest, interview prep, and live mock interviews.
+
+**The local web app**
+- A fast **"Signal Console"** dashboard — see the board section below.
+
+**Private & safe by design**
+- Everything you feed it stays **on your machine** (`data/` is git-ignored); no API
+  key, no server-side AI, uploaded files auto-deleted after onboarding. It **never
+  auto-submits** an application or marks one "applied" without your confirmation.
 
 ---
 
 ## Your privacy
 
 This is a **public** repository, so it ships with **no personal data**. Everything
-CareerOS learns about you — your profile, your master CV, your generated
-documents, your application tracker — lives in a local `data/` folder that is
-**git-ignored**. It stays on your computer and is never part of this repo. Back it
-up with your *own* private git — one command keeps a nested snapshot repo inside
-`data/` (and only pushes when you say so):
-```bash
-node scripts/backup.mjs --summary                                  # local snapshot
-node scripts/backup.mjs --remote git@github.com:you/my-careeros-data.git --push
-```
+CareerOS learns about you — your profile, master CV, generated documents, your
+application tracker — lives in a local `data/` folder that is **git-ignored**. It
+stays on your computer and is never part of this repo.
 
 There's **no API key and no server-side AI** to leak data to — the model is whichever
-AI agent you already run. A CV/cover letter you upload through the web panel is staged
-under `data/ui/uploads/` and **deleted automatically** once the agent has onboarded from
-it, so raw documents don't linger.
+AI agent you already run. A CV/cover letter you upload through the web app is staged
+under `data/ui/uploads/` and **deleted automatically** once onboarding finishes, so
+raw documents don't linger. Back up your `data/` to your own private git anytime
+(see [`COMMANDS.md`](COMMANDS.md)).
 
 ---
 
@@ -70,13 +93,10 @@ it, so raw documents don't linger.
 
 **You need:**
 - **An agentic AI coding tool** — Claude Code, Cursor, Codex CLI, Gemini CLI,
-  Google Antigravity, Windsurf, … anything that reads the repo's `AGENTS.md`
-  (or can be told to read it).
-- **Node.js 20 or newer.** The only dependency is `js-yaml`.
-- **tectonic** (the LaTeX engine): `brew install tectonic`. The first build
-  downloads fonts/packages (~1–2 min, online once); after that it's offline and fast.
-- **poppler** (`brew install poppler`) — gives `pdftotext`, used for the ATS check
-  and for reading an uploaded PDF CV.
+  Windsurf, … anything that reads the repo's [`AGENTS.md`](AGENTS.md).
+- **Node.js 20+** (the only dependency is `js-yaml`).
+- **tectonic** (the LaTeX engine): `brew install tectonic`.
+- **poppler** (`brew install poppler`) — for the ATS check and reading PDF CVs.
 
 **Set up:**
 ```bash
@@ -85,141 +105,49 @@ node scripts/doctor.mjs --fix  # checks your tools and creates the data/ folders
 ```
 
 > **Zero-install option:** open the repo in a **devcontainer / GitHub Codespaces**
-> (`.devcontainer/`) — Node, tectonic, poppler, and the optional Python sidecar are
-> set up for you, and the web panel's port (4317) is forwarded automatically.
+> (`.devcontainer/`) — Node, tectonic, poppler, and the optional Python job-fetch
+> sidecar are set up for you, and the web app's port (4317) is forwarded automatically.
 
-**Optional — multi-board fetch (Indeed / ZipRecruiter / Google Jobs):** the one
-non-Node piece is a small Python sidecar ([python-jobspy](https://github.com/speedyapply/JobSpy)).
-Install it once to enable the **"fetch recent"** button and `npm run fetch`:
-```bash
-npm run jobspy:install         # creates ./.venv and installs python-jobspy (needs Python 3.10+)
-```
-Skip this and everything else still works; `node scripts/doctor.mjs` tells you if it's missing.
+**Then get set up by uploading your CV + cover letter** — either tell your agent
+`/cos onboard`, or start the web app and click **⤴ my CV/CL**. It pulls your facts
+and your voice out of them and gets you ready to build your first tailored application.
 
-**Then tell your agent:**
-```
-/cos onboard
-```
-…and follow along. It'll ask for your CV (PDF, Word, or text) and a cover letter,
-pull your facts and your voice out of them, and get you ready to build your first
-tailored application. (`/cos` is short for `/careeros`. In Claude Code it's a
-native slash command; in any other tool just type `cos onboard` — the agent picks
-up the routing from `AGENTS.md`.)
+> Optional: to enable live job fetching, install the small Python sidecar once with
+> `npm run jobspy:install` (needs Python 3.10+). Everything else works without it.
 
 ---
 
-## How to use it (from your AI agent)
-
-Run the tool with `/careeros` (or the short alias `/cos`; in tools other than
-Claude Code, type the same command without the slash):
-
-| Command | What it does |
-|---|---|
-| `/cos onboard` | **Start here.** Turn your uploaded CV + cover letter into a profile, a master CV, and a learned writing voice (or upload them from the web panel's **⤴ my CV/CL** button) |
-| `/cos hunt [role] [location]` | **Auto-fetch jobs from multiple portals** matched to *your* profile — searches Indeed + Dice (and your tracked ATS companies), dedups, and drops the matches on your board |
-| `/cos board [--min strong] [--recent 14]` | Rank open roles by how well they match *your* CV (STRONGEST → Weak), with how recently each was posted and your has/gap skills — then tailor any one in a click |
-| `/cos ui` | Launch the **local web control panel** (a dark trading-desk dashboard) and process anything you queued from the browser |
-| `/cos` *(paste a job post or URL)* | Auto-pilot: read the job → score it → build a tailored CV (if it's a good fit) → draft answers → track it |
-| `/cos evaluate <job/url/file>` | Score one job out of 5 across 6 things that matter, with a written report |
-| `/cos compare <2+ jobs>` | Rank several postings and recommend which to chase |
-| `/cos build-cv <job/company>` | Build a tailored, ATS-safe CV → PDF (saved to a per-job folder `data/output/<company>--<role>/`) |
-| `/cos build-cl <job/company>` | Build a tailored cover letter → PDF (alongside the CV in the same per-job folder) |
-| `/cos` *"learn from my edits"* | Look at how you edited a draft and remember your style |
-| `/cos apply <job/company>` | Draft answers for an application form (never auto-submits) |
-| `/cos scan` | Find new postings from the companies you're watching |
-| `/cos tracker` | See and update where each application stands |
-| `/cos followup` | Who to follow up with (applications *and* people), and a draft message |
-| `/cos digest` | What's new since you last looked — fresh matches + band upgrades only |
-| `/cos mock <company>` | Live mock interview: one question at a time, graded, with a debrief |
-| `/cos backup` | Snapshot your private `data/` into its own git (push only when you say) |
-| `/cos patterns` | What's working in your search, and retune the scoring |
-| `/cos interview-prep <co> <role>` | Interview prep tailored to the company and role |
-| `/cos research <company> <role>` | Deep-dive research on a company and role |
-
----
-
-## Auto-fetch jobs from multiple portals (`/cos hunt`)
-
-`/cos hunt` reads your **profile** (target roles, locations, seniority) and pulls fresh
-openings from **Indeed + Dice** and your tracked **ATS** companies, dedups them against
-everything you've already seen, and drops the matches straight onto your board — ranked
-by how well they fit your CV. You can also target a specific search: `/cos hunt "ML engineer" remote`.
-Nothing is ever applied for you; you review the matches and tailor with one command.
-
-> The job-board connectors run inside the agent (Claude Code ships Indeed/Dice MCP
-> connectors), so `/cos hunt` does the search; a zero-token script
-> (`scripts/hunt-ingest.mjs`) does the dedup + saving. No connectors in your tool?
-> It degrades gracefully to the jobspy fetch below, the ATS scanner, and pasted URLs.
-
-**No-agent option — the "fetch recent" button (and `npm run fetch`).** Once the Python
-sidecar is installed (see Getting started), the board's **fetch recent** control pulls live
-openings from **Indeed + ZipRecruiter + Google Jobs** straight from the browser — no agent,
-no MCP — filtered by **country** (Luxembourg, the US, Canada, the UK, and ~25 other major
-markets — Germany, France, Italy, Spain, Australia, Japan, Singapore, the UAE, India, … — or
-**all countries** in one sweep),
-**city**, and **job type**, deduped and ranked onto your board in one click. Same from the CLI:
-```bash
-node scripts/jobspy.mjs --country Germany --city Berlin --recent 7 --summary
-```
-Because it's a plain script, it can also run from a **cron** — pair it with the
-**digest** for a daily "what's new" report (new matches + band upgrades only):
-```bash
-node scripts/jobspy.mjs --country Luxembourg --recent 3 && node scripts/digest.mjs --write --summary
-```
-(`cos digest` from your agent does the same check on demand; the markdown lands in
-`data/digest-latest.md`.) **LinkedIn is deferred**
-(it rate-limits scrapers); enable it explicitly with `--boards indeed,zip_recruiter,google,linkedin`
-and expect partial results, or paste a LinkedIn job URL for a one-off.
-
-## The web control panel (`/cos ui`)
-
-A local, **dark "trading-desk" dashboard** for everything above — a filterable match
-board, application pipeline funnel, a one-page hunt form, and a **Style** tab where you
-accept or retire the rules it learned from your edits. It runs on `127.0.0.1`
-(never exposed to the network), has **no database** (it reads your real files live), and
-lives in its own `web/` folder so the core engine stays zero-dependency.
+## The web app — a "Signal Console" you can click
 
 ```bash
 cd web && npm install      # first run only
 npm run dev                # → http://127.0.0.1:4317   (or: /cos ui)
 ```
 
-Because a browser has no LLM, the panel runs the zero-token scripts itself (scan, board,
-fetch, paste-a-URL, tracker, PDF preview) and **queues** the judgment work — Evaluate,
-Build CV/CL, Apply, Hunt, and **onboarding** — for the `/cos` agent to run. Click a button
-in the browser, then run `/cos ui` in your agent to process the queue; status updates live.
-It can never auto-submit an application or mark a role "applied" without your explicit confirmation.
+An amber-on-black **dashboard** for everything above — fast, keyboard-friendly, and
+designed so you rarely need to type a command:
 
-**From the browser you can also:**
-- **Upload your CV + cover letter** — the **⤴ my CV/CL** button saves them locally and queues
-  an onboarding job; the agent learns your facts + voice, then fills the board with CV-matched
-  jobs. Uploaded files are **deleted automatically** the moment onboarding finishes (PII hygiene).
-- **Drop a job URL** in the paste box → **fetch URL** scrapes the whole posting onto the board.
-  If the site blocks robots (Cloudflare challenge) or needs JavaScript, the URL is
-  **auto-queued for the agent** (`fetch-jd` request) — run `/cos ui` and the agent fetches it
-  with its own tools and ingests it for you.
-- **Open each application's CV & cover letter** as one-click links on the **Pipeline** tab — each
-  job gets its **own output folder** (`data/output/<company>--<role>/`) holding both PDFs.
-- **Auto-drain (optional):** in Claude Code, leave `/loop 30s /cos ui drain` running and clicks
-  execute within seconds — no manual `/cos ui` each time (in other tools, use their recurring-task
-  feature or just re-run `cos ui drain`). A **clear completed** button tidies the
-  queue (finished requests are archived, never hard-deleted).
+- **A match board** where every fit score is a segmented **signal meter**, with match
+  bands, recency, and a **Country column** when you browse multiple countries.
+- **Click a role** and a detail pane docks in on the right: the score breakdown,
+  the skills you have vs. the gaps, and one-click **Tailor my CV / Cover letter /
+  Evaluate fit / Draft answers**.
+- **Fetch recent** openings, **scan** the companies you watch, or **paste a job URL**
+  — all from the browser.
+- **Upload your CV + cover letter** (**⤴ my CV/CL**) to onboard; staged files are
+  auto-purged afterward.
+- A live **queue** of agent work you can **cancel** if you queued something by mistake,
+  and a **Pipeline** tab that links each application's CV + cover letter PDFs.
 
-### Hosting a public demo (`NEXT_PUBLIC_CAREEROS_PUBLIC=1`)
+It runs only on `127.0.0.1` (never exposed to the network), has **no database** (it
+reads your real files live), and is accessible (WCAG-AA contrast, respects reduced
+motion). Because a browser has no AI, the heavier judgment work (Evaluate, Build CV/CL,
+Apply, Hunt, onboarding) is **queued** for your `/cos` agent to run — click in the
+browser, then run `/cos ui` in your agent to process it. It can **never** auto-submit
+an application or mark a role "applied" without your explicit confirmation.
 
-You can host the board as a **read-only showcase** (e.g. `careeros.example.com`). Because
-CareerOS is agent-native — the AI is the agent in _your_ editor, not a server — a
-public instance can't run a visitor's generation. Set the flag at build/deploy time:
-
-```bash
-NEXT_PUBLIC_CAREEROS_PUBLIC=1 npm run build   # demo mode
-```
-
-In demo mode the board stays browsable, but every **mutating** action (generate, fetch,
-scan, enqueue) is **gated server-side** (HTTP 403) and a **fork-gate** modal invites the
-visitor to fork the repo, ⭐ it, and run it with their own AI agent. Enforcement lives in
-`web/lib/gate.ts` (not just hidden buttons). Locally, with the flag unset, you get the full
-tool. See `web/.env.example`.
+> Prefer the keyboard? Everything is also driveable from your AI agent or the CLI —
+> see **[`COMMANDS.md`](COMMANDS.md)** for the full command reference.
 
 ---
 
@@ -238,153 +166,29 @@ you edit the draft  ──────────┘
 "learn from my edits"  ──► it remembers your preference for next time
 ```
 
-- **Facts always win.** Your real CV and profile are loaded first and override
-  anything the tool learned about style — so it changes *wording*, never *facts*.
-- **It needs to see a preference twice** before acting on it, so one stray edit
-  doesn't throw off your style.
-- **Warm start.** During onboarding it banks your *existing* CV bullets and
-  cover-letter paragraphs as examples, so the very first draft is already in your
-  voice — no cold start, no "train it a few times first."
-- **Self-correcting.** Before you ever see a draft, CareerOS grades it against
-  your voice + the job's must-have keywords + the no-fabrication/no-filler rules,
-  and revises until it passes.
-- **Nothing is lost.** Style preferences are versioned and logged, and the whole
-  learned profile can be rebuilt from scratch from your saved drafts.
-- **You can steer it.** The web panel's **Style** tab shows every learned rule;
-  accept a provisional rule early, or retire one you disagree with — flips are
-  applied by the agent, logged, and reversible (rules are never deleted).
-
-### How the learning works (it's not a black box)
-
-There's **no trained ML model and no neural network of its own**, and it is **not**
-some hidden "memory." Two simple, inspectable parts:
-
-1. **A frontier AI model does the writing and the judgement** — whichever one
-   powers your agent (Claude, GPT, Gemini, …) — reading your edits and phrasing
-   a rule like *"prefer 'built' over 'worked on'."*
-2. **Plain local files remember it.** Your preferences live as readable JSON in
-   `data/style/` (rules + your banked example bullets). Picking which of your past
-   examples to reuse is done with **TF-IDF** — classic keyword-matching arithmetic,
-   run on your machine. No training, no API, no cloud, no vendor lock-in. You can
-   open the files and read exactly what it learned, and rebuild it any time.
-
-> Why not "train a custom model"? For one person's handful of documents that would
-> overfit and actually write *worse* than a frontier model guided by your real
-> examples. Showing your examples in-context is the stronger, state-of-the-art
-> approach here.
+- **Facts always win.** Your real CV and profile override anything it learned about
+  style — so it changes *wording*, never *facts*.
+- **Warm start.** During onboarding it banks your existing CV bullets and cover-letter
+  paragraphs as examples, so the very first draft already sounds like you.
+- **Not a black box.** There's no trained model and no hidden memory. A frontier AI
+  (whichever powers your agent) phrases the rules; plain readable JSON in `data/style/`
+  remembers them, and example reuse is classic **TF-IDF** keyword math on your machine.
+  You can open the files and read exactly what it learned, and rebuild it anytime.
 
 ---
 
 ## Project status
 
-CareerOS is in **active development**. Here's the honest picture:
+CareerOS is **usable today** and under active development. The core engine is mature
+and tested — `npm test` runs **600+ self-test checks** (green, in CI on every push):
+the match board, multi-board fetch, URL scraping, CV/cover-letter tailoring with the
+ATS check, the learning loop, the job-pipeline tools, and the web app all work
+end-to-end. Personal data is git-ignored, so the repo ships clean.
 
-### ✅ Working and tested
-- **The engine.** 24 "mode" playbooks (onboard, board, hunt, ui, evaluate, build-cv,
-  build-cl, scan, track, follow-up, interview-prep, mock-interview, compare, negotiate,
-  and more), 26 helper scripts, and shared libraries. Automated self-tests pass
-  (`npm test` → **600+ checks green**), and CI runs them on every push/PR.
-- **Reproducible CV reading.** A deterministic parser (`parse-cv`) turns your uploaded
-  CV (PDF/DOCX/text/LaTeX) — or an unzipped **LinkedIn data export** — into structured
-  data the agent reviews, so onboarding doesn't depend on which AI tool reads the file.
-- **Daily digest, contacts, backup.** `cos digest` reports only what's new since last
-  look (cron-pairable); a contacts ledger tracks recruiters/referrers with due
-  follow-ups; `cos backup` snapshots your private `data/` into its own git.
-- **Share a URL → it scrapes the whole posting.** `fetch-jd` pulls the *complete*
-  job from the ATS's own API (Greenhouse, Lever, Recruitee, SmartRecruiters) or the
-  page HTML (Ashby, Workable, and any other site), saves it locally, and falls back
-  to an in-session fetch for JS-heavy pages. Verified live against a real posting.
-- **In-voice from draft #1.** Onboarding warm-starts the example bank from *your*
-  existing CV bullets + cover-letter paragraphs (`seed-examples`), so the first
-  draft already sounds like you.
-- **Job-match board.** `/cos board` ranks open roles by how well they fit *your*
-  CV — STRONGEST / Very strong / Strong / Moderate / Weak — with how recently each
-  was posted, the skills you have vs. the gaps, any **language requirement** the
-  posting states (e.g. *English (req), French (plus)*), and one-command tailoring
-  for any pick. Filter by match band (`--min`), recency (`--recent`), country/city,
-  and **job type** — full-time, internship, **PhD**, **post-doc**, contract or temp.
-  Job type is read from the role title (not loose prose), so a "Senior Engineer"
-  whose blurb merely mentions interns won't show under *Internship*; a genuine
-  "PhD Internship" correctly shows under **both** the PhD and Internship filters.
-- **Self-correcting drafts.** Every CV/cover letter is graded against your voice,
-  the job's must-have keywords, and the no-fabrication/no-filler rules, then revised
-  before you see it.
-- **Clean LaTeX → PDF output, in your choice of theme.** CVs and cover letters
-  compile through `tectonic` and pass an automated ATS check (real selectable
-  text, keywords extractable, no broken characters, sensible section order).
-  Two matched CV+CL themes ship today — **classic** (serif) and **modern**
-  (sans, slate accent) — selected via `profile.yml cv.theme` or by asking
-  ("build it with the modern theme"); every theme shares the same placeholder
-  contract, so tailoring works identically.
-- **The learning loop.** Edit a draft → it diffs your changes → distills your style
-  → banks your wording → uses it in the next draft. Verified end-to-end.
-- **Job-pipeline tools.** Scoring, multi-job comparison, portal scanning (7
-  sources — Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, plus a
-  generic parser), a JSON application tracker, follow-up cadence, and analytics.
-- **Auto-fetch from multiple portals.** `/cos hunt` pulls live openings from Indeed +
-  Dice (and your ATS companies) based on your profile, dedups them through the same
-  ledger as the scanner (`hunt-ingest`), and ranks them on your board.
-- **Local web control panel.** A dark "trading-desk" dashboard (`web/`, `/cos ui`) over
-  the engine: filterable match board, pipeline funnel, hunt form, Style tab. Zero-token scripts run
-  in the browser; judgment work queues for the agent. **Upload your CV/cover letter** from
-  the browser (queues onboarding; staged files auto-purged after), **fetch** any job URL onto
-  the board, **open each application's CV/CL** from the Pipeline tab (per-job folders), and
-  **clear completed** queue items (archived, not deleted). Optional `/loop`-based **auto-drain**
-  runs queued clicks without a manual `/cos ui`. Next.js 15 + React 19, builds clean, `npm audit`
-  clean; guardrails (no auto-submit, no silent "applied", sandboxed file reads) verified.
-- **Public-ready.** Rebranded to CareerOS, and all personal data is git-ignored
-  so the repo ships clean.
-
-### 🚧 In progress
-- **Onboarding for anyone.** The `/cos onboard` flow (upload your CV + cover letter,
-  from the CLI **or the web panel's ⤴ my CV/CL button** → it sets you up) is built and
-  wired end-to-end; it still needs testing against many real CV formats and layouts.
-- **CV quality checks.** Flagging vague, un-quantified bullets is partly manual
-  right now.
-
-### ⏳ Planned / nice-to-have
-- Optional semantic (embedding) example search, for when an example bank grows large.
-- More hunt sources (beyond Indeed + Dice) and more document themes (classic +
-  modern ship today).
-- A *hosted*, multi-user version of the web panel (auth + a database). v1 is
-  deliberately local-only and file-backed — it runs on your machine over your own data.
-
----
-
-## For developers
-
-```bash
-npm test                       # run all script + library self-tests (600+ checks)
-node scripts/doctor.mjs        # check your environment and setup
-node scripts/fetch-jd.mjs "https://boards.greenhouse.io/acme/jobs/123" --summary   # scrape a posting
-node scripts/compile-latex.mjs data/output/cv-*.tex --kind cv --keywords "Python,SQL" --json
-echo '[{"title":"Data Engineer","company":"Acme","url":"https://x/1"}]' | node scripts/hunt-ingest.mjs --dry-run --summary
-npm run web:dev                # the local web control panel → http://127.0.0.1:4317
-```
-
-A generated document is only considered "good" if `compile-latex.mjs` reports
-`ok: true` — meaning it compiled, has no leftover placeholders, no broken
-characters, the requested keywords come out as plain text, and the sections read
-in a sensible order.
-
-### Layout
-```
-AGENTS.md                             the agent brief — works with ANY AI coding tool
-CLAUDE.md  GEMINI.md  .github/copilot-instructions.md    per-tool shims pointing at AGENTS.md
-modes/_router.md                      the /cos command router (agent-neutral)
-.claude/skills/                       Claude Code's /careeros + /cos skills (defer to the router)
-DATA_CONTRACT.md                      the data rules
-modes/                                the playbooks the agent follows (incl. onboard.md, hunt.md, ui.md)
-templates/                            CV/cover-letter LaTeX templates, schemas, example configs
-lib/                                  shared helper code
-scripts/                              the zero-cost tools (fetch-jd, hunt-ingest, ui-queue, compile, scan, track, learn, …)
-web/                                  the local web control panel (own package.json; Next.js; not part of the core engine)
-scripts/providers/                    job-board sources (greenhouse, ashby, lever, …)
-data/                                 YOUR private layer — git-ignored, never committed
-```
-
-See [`DATA_CONTRACT.md`](DATA_CONTRACT.md) for exactly which files are yours vs. the
-system's, and [`AGENTS.md`](AGENTS.md) for how the agent is expected to behave.
+**Still being polished:** onboarding against the full variety of real-world CV
+formats, and richer automatic "is this bullet vague?" quality checks. A *hosted*
+multi-user version is intentionally **not** a goal — v1 is local-first and file-backed,
+running on your machine over your own data.
 
 ---
 
@@ -392,12 +196,12 @@ system's, and [`AGENTS.md`](AGENTS.md) for how the agent is expected to behave.
 
 - **License:** [GNU AGPL-3.0-or-later](LICENSE) — © 2026 Vaibhav Mangroliya
   (VaibhavKKM). CareerOS is free software: use it, study it, and build on it. The
-  AGPL keeps it **open** — any modified version you distribute **or run as a
-  network service** must also be released under the AGPL with its source
-  available, and must keep this attribution. In short: contribute back; don't
-  fork it closed or pass it off as your own.
-- **Contributing:** see [`CONTRIBUTING.md`](CONTRIBUTING.md).
-- **Code of Conduct:** [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
+  AGPL keeps it **open** — any modified version you distribute **or run as a network
+  service** must also be released under the AGPL with its source available, and must
+  keep this attribution. In short: contribute back; don't fork it closed or pass it
+  off as your own.
+- **Commands & CLI:** [`COMMANDS.md`](COMMANDS.md).
+- **Contributing:** [`CONTRIBUTING.md`](CONTRIBUTING.md) · **Conduct:** [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 - **Security:** report privately per [`SECURITY.md`](SECURITY.md).
-- **Changelog:** [`CHANGELOG.md`](CHANGELOG.md).
-- **Cite it:** [`CITATION.cff`](CITATION.cff).
+- **Changelog:** [`CHANGELOG.md`](CHANGELOG.md) · **Cite it:** [`CITATION.cff`](CITATION.cff).
+- **How it's built:** [`AGENTS.md`](AGENTS.md) (agent brief) · [`DATA_CONTRACT.md`](DATA_CONTRACT.md) (data rules).
