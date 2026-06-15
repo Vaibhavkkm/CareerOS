@@ -90,6 +90,8 @@ export function extractUrl(text: string): string {
 export function FilterBar({
   filters,
   onChange,
+  search,
+  onSearchChange,
   place,
   onPlaceChange,
   onRefresh,
@@ -100,6 +102,8 @@ export function FilterBar({
 }: {
   filters: Filters;
   onChange: (f: Filters) => void;
+  search: string;
+  onSearchChange: (s: string) => void;
   place: FetchRecentOpts;
   onPlaceChange: (p: FetchRecentOpts) => void;
   onRefresh: () => void;
@@ -114,6 +118,19 @@ export function FilterBar({
   const [moreOpen, setMoreOpen] = useState(false);
   return (
     <div className="toolbar">
+      {/* Free-text search — filters the loaded board by company / role / skill / location */}
+      <form className="field" onSubmit={(e) => e.preventDefault()}>
+        <span className="field__label">search</span>
+        <input
+          className="input"
+          type="search"
+          aria-label="Search the board by company, role, skill or location"
+          placeholder="company, role, skill…"
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          style={{ width: 190 }}
+        />
+      </form>
       <div className="field">
         <span className="field__label">match</span>
         <div className="seg">

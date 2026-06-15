@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { BoardResponse } from '@/lib/types';
+import type { BoardResponse, BoardRow } from '@/lib/types';
 import { TopBar } from '@/components/TopBar';
 import { FilterBar, type Filters, type FetchRecentOpts, COUNTRIES, fetchBoards } from '@/components/FilterBar';
 import { BoardTable } from '@/components/BoardTable';
@@ -54,9 +54,23 @@ function useCountUp(target: number, ms = 550): number {
   return value;
 }
 
+// Free-text board search: every space-separated term must appear somewhere in the
+// row (company, role, skills you have/lack, location, source, language, band).
+function rowMatches(r: BoardRow, q: string): boolean {
+  const hay = [
+    r.company, r.role, r.location, r.source, r.url, r.languages, r.experience, r.band,
+    ...(r.have || []), ...(r.gap || []),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  return q.toLowerCase().split(/\s+/).filter(Boolean).every((term) => hay.includes(term));
+}
+
 export default function BoardPage() {
   const [board, setBoard] = useState<BoardResponse | null>(null);
   const [filters, setFilters] = useState<Filters>({ min: '', recent: '' });
+  const [search, setSearch] = useState('');
   const [place, setPlace] = useState<FetchRecentOpts>({ countries: ['Luxembourg'], city: '', jobTypes: [] });
   const [drawer, setDrawer] = useState<number>(-1);
   const [busy, setBusy] = useState(false);
@@ -151,6 +165,12 @@ export default function BoardPage() {
 
   const rows = board?.rows || [];
   const today = board?.today || new Date().toISOString().slice(0, 10);
+
+  // Client-side free-text search over the loaded board. The drawer indexes into the
+  // VISIBLE rows, so changing the search resets the open drawer (handled in onSearch).
+  const q = search.trim();
+  const visibleRows = useMemo(() => (q ? rows.filter((r) => rowMatches(r, q)) : rows), [rows, q]);
+  const onSearch = useCallback((s: string) => { setSearch(s); setDrawer(-1); }, []);
 
   const enqueue = useCallback(
     async (kind: string, args: Record<string, unknown>) => {
@@ -335,6 +355,8 @@ export default function BoardPage() {
       <FilterBar
         filters={filters}
         onChange={setFilters}
+        search={search}
+        onSearchChange={onSearch}
         place={place}
         onPlaceChange={setPlace}
         onRefresh={refresh}
@@ -346,7 +368,7 @@ export default function BoardPage() {
 
       {/* Row 4: workspace — board is full-width until a role is clicked, then the
           detail pane docks in on the right (desktop) / slides over (mobile). */}
-      <div className={`workspace${drawer >= 0 && rows[drawer] ? ' workspace--detail' : ''}`}>
+      <div className={`workspace${drawer >= 0 && visibleRows[drawer] ? ' workspace--detail' : ''}`}>
         {/* Left: board list */}
         <div className="board-pane">
           <h1 className="sr-only">CareerOS — CV-ranked job board</h1>
@@ -364,9 +386,17 @@ export default function BoardPage() {
                 tab, run <b>scan</b> for your tracked companies, or paste a job URL above.
               </div>
             </div>
+          ) : visibleRows.length === 0 ? (
+            <div className="placeholder">
+              <b>No jobs match “{q}”.</b>
+              <div className="hint">
+                Searching {rows.length} loaded opening{rows.length === 1 ? '' : 's'} by company, role, skill or
+                location. <button className="btn btn--ghost" onClick={() => onSearch('')}>clear search</button>
+              </div>
+            </div>
           ) : (
             <BoardTable
-              rows={rows}
+              rows={visibleRows}
               today={today}
               selected={drawer}
               onSelect={(i) => setDrawer(i)}
@@ -378,16 +408,16 @@ export default function BoardPage() {
 
         {/* Right: inline detail pane — only mounted once a role is clicked, so the
             board uses the full width by default (desktop only; mobile uses .drawer). */}
-        {drawer >= 0 && rows[drawer] && (
+        {drawer >= 0 && visibleRows[drawer] && (
           <div className="detail-pane">
             <DetailDrawer
-              row={rows[drawer]}
+              row={visibleRows[drawer]}
               today={today}
               onClose={() => setDrawer(-1)}
               onEnqueue={enqueue}
-              saved={!!rows[drawer].url && savedUrls.has(rows[drawer].url)}
+              saved={!!visibleRows[drawer].url && savedUrls.has(visibleRows[drawer].url!)}
               savedCount={savedCount}
-              onToggleSave={() => toggleSave(rows[drawer])}
+              onToggleSave={() => toggleSave(visibleRows[drawer])}
               inline
             />
           </div>
@@ -395,15 +425,15 @@ export default function BoardPage() {
       </div>
 
       {/* Mobile slide-over (detail-pane is hidden on mobile, drawer is shown) */}
-      {drawer >= 0 && rows[drawer] && (
+      {drawer >= 0 && visibleRows[drawer] && (
         <DetailDrawer
-          row={rows[drawer]}
+          row={visibleRows[drawer]}
           today={today}
           onClose={() => setDrawer(-1)}
           onEnqueue={enqueue}
-          saved={!!rows[drawer].url && savedUrls.has(rows[drawer].url)}
+          saved={!!visibleRows[drawer].url && savedUrls.has(visibleRows[drawer].url!)}
           savedCount={savedCount}
-          onToggleSave={() => toggleSave(rows[drawer])}
+          onToggleSave={() => toggleSave(visibleRows[drawer])}
           inline={false}
         />
       )}
@@ -411,9 +441,11 @@ export default function BoardPage() {
       {/* Row 5: bottom status line */}
       <div className="statusline">
         <span>
-          {board && board.count > rows.length
-            ? <><b>{board.count}</b> openings · <span className="dim">top {rows.length} shown</span></>
-            : null}
+          {q ? (
+            <><b>{visibleRows.length}</b> match{visibleRows.length === 1 ? '' : 'es'} · <span className="dim">of {rows.length} loaded · “{q}”</span></>
+          ) : board && board.count > rows.length ? (
+            <><b>{board.count}</b> openings · <span className="dim">top {rows.length} shown</span></>
+          ) : null}
         </span>
         <span className="sep">·</span>
         <span>{today}</span>
