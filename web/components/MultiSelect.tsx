@@ -1,9 +1,23 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 
-// A compact multi-select: a button showing the current selection that opens a
-// checkbox panel. Empty selection means "all / any" (no filter). Used for the
-// Country and Type board filters so several can be ticked at once.
+// Step 10: inline SVG check icon — matches Icons.tsx style (16×16 viewBox, stroke only)
+const CheckIcon = () => (
+  <svg
+    width={10}
+    height={10}
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={1.5}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    <path d="M3 8l3 3 7-7" />
+  </svg>
+);
+
 export function MultiSelect({
   options,
   selected,
@@ -84,8 +98,9 @@ export function MultiSelect({
             return (
               <label key={val || '_'} className={`ms__opt ${on ? 'is-on' : ''}`}>
                 <input type="checkbox" checked={on} onChange={() => toggle(val)} />
+                {/* Step 10: SVG check icon instead of ✓ text; ms__lab gets min-width:0 + ellipsis in CSS */}
                 <span className="ms__box" aria-hidden>
-                  {on ? '✓' : ''}
+                  <CheckIcon />
                 </span>
                 <span className="ms__lab">{lab}</span>
               </label>

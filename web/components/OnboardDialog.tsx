@@ -81,7 +81,7 @@ export function OnboardDialog({
           {fileRow('a cover letter you wrote (optional)', 'any past one works — it teaches your prose voice', cl, setCl)}
         </div>
         {error && (
-          <div className="modal__p" style={{ color: 'var(--err, #ff6b6b)' }}>
+          <div className="modal__p" style={{ color: 'var(--negative)' }}>
             {error}
           </div>
         )}
