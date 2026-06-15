@@ -6,6 +6,40 @@ All notable changes to CareerOS are recorded here. The format is based on
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-15
+
+### Added
+
+- **Amber "Signal Console" web app.** A full redesign of the local web panel:
+  segmented amber **signal meters** for every fit score, a stat bar with count-up
+  totals, and a board that stays full-width until you click a role — then a detail
+  pane docks in with the score breakdown and one-click Tailor CV / Cover letter /
+  Evaluate / Draft answers. WCAG-AA contrast and `prefers-reduced-motion` throughout.
+- **LinkedIn in the default fetch set.** Multi-board fetch now pulls Indeed,
+  ZipRecruiter, Glassdoor, Google Jobs, and **LinkedIn** (anonymously, no login) by
+  default; LinkedIn degrades gracefully when it throttles.
+- **Country column** on the board, shown automatically when you browse more than one
+  country (derived from each posting's location).
+- **Cancel a queued request** from the web app's queue popover (only while still
+  queued; archived for audit, staged uploads purged).
+- **`COMMANDS.md`** — a dedicated command/CLI reference, so the README can stay simple.
+
+### Changed
+
+- **Relicensed from MIT to GNU AGPL-3.0-or-later** — modified versions that are
+  distributed *or run as a network service* must stay open and keep attribution.
+- **README simplified** and UI-first; the "still being built" banner removed; the
+  full command reference moved to `COMMANDS.md`.
+
+### Fixed
+
+- Board postings now show their **real source** (indeed/greenhouse/lever/…) instead
+  of being mislabeled "saved" for every row.
+- Salary detection no longer reads company revenue figures (e.g. "$6.9 billion in
+  sales") as a salary; it requires real pay context.
+- Drawer action buttons are correctly wired and labeled (the primary CTA now actually
+  builds the CV; the duplicate/mislabeled buttons are fixed).
+
 ## [0.2.0] - 2026-06-12
 
 ### Added
