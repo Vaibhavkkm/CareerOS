@@ -18,10 +18,16 @@ location_filter:
 #   provider: greenhouse | ashby | lever | workable | smartrecruiters | recruitee | local-parser
 #   api:      the org/board token the provider needs (see each provider file)
 #   parser:   only for local-parser — { command, script } shelled out to produce Job[] JSON
+# Site-specific HTML providers also exist for custom career pages with no ATS API
+# (e.g. provider: lih for the Luxembourg Institute of Health board). Copy one as a
+# template when you contribute a fetcher for a new custom site — see CONTRIBUTING.md.
 tracked_companies:
   - { name: "Anthropic",  provider: greenhouse, api: "anthropic",  enabled: true }
   - { name: "ExampleCo",  provider: ashby,      api: "exampleco",  enabled: true }
   - { name: "Lever Demo", provider: lever,      api: "leverdemo",  enabled: false }
+  # Custom self-hosted careers page (no ATS API) → site-specific HTML provider
+  # (scripts/providers/lih.mjs). No `api` token needed; flip `enabled` to suit you:
+  - { name: "Luxembourg Institute of Health", provider: lih, enabled: true }
   # Escape hatch for JS-heavy career pages (no Playwright dependency shipped):
   # - name: "Custom Inc"
   #   provider: local-parser
