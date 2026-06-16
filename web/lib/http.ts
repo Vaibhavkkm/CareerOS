@@ -15,7 +15,16 @@ export async function readJson(request: Request): Promise<Record<string, unknown
 // as HTTP 200 with `{ok:false,error}` so the UI can surface them inline; only a
 // genuine bridge crash should be a 5xx.
 export function fromRun(r: RunResult, fallbackError = 'engine error', status = 200) {
-  if (r.ok) return NextResponse.json(r.data);
+  if (r.ok) {
+    const d = r.data;
+    // Stable {ok:true,...} envelope so clients can reliably check `ok`. Engine
+    // scripts that print a bare object (e.g. {action,record}) get ok:true merged
+    // in; arrays and objects that already carry `ok` pass through unchanged.
+    if (d && typeof d === 'object' && !Array.isArray(d) && !('ok' in (d as object))) {
+      return NextResponse.json({ ok: true, ...(d as Record<string, unknown>) });
+    }
+    return NextResponse.json(d);
+  }
   const dataErr =
     r.data && typeof r.data === 'object' && 'error' in r.data
       ? (r.data as { error?: string }).error

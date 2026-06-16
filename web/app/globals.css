@@ -1697,8 +1697,8 @@ select {
   height: 100%;
 }
 .page {
-  padding: var(--s5) var(--s4);
-  max-width: 980px;
+  padding: var(--s5) var(--s5);
+  max-width: none;            /* full-width — fill the screen, no narrow centre column */
 }
 .page__h {
   font-family: var(--font-sans);
@@ -1713,6 +1713,7 @@ select {
   font-size: var(--fs-data);
   margin-bottom: var(--s5);
   line-height: 1.6;
+  max-width: 760px;          /* keep prose readable even though the page is full-width */
 }
 .funnel {
   display: flex;
@@ -2076,3 +2077,16 @@ code {
   padding: 1px 5px;
   border-radius: var(--r-chip);
 }
+
+/* ============================================================================
+   Board polish (2026-06) — roomier rows on the now full-width board, smoother
+   hover, and a clearer selected/hover accent. Additive; stays on-brand.
+   ========================================================================== */
+.board__row { transition: background var(--t-fast) var(--ease); }
+.board__row td { padding: 11px 14px; }              /* more vertical air now there's full width */
+.board__row:hover { background: var(--bg-row-hover); }
+.board__row.is-sel { background: var(--bg-row-sel); box-shadow: inset 2px 0 0 var(--gold); }
+/* brighten the fit number + meter a touch as the row's hero */
+.board__row:hover .fit__num { color: var(--gold-bright); }
+/* roomier pipeline/ttable rows to match the board rhythm */
+.ttable td { padding: 11px 12px; }
