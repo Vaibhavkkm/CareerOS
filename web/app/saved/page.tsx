@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type CSSProperties } from 'react';
 import { TopBar } from '@/components/TopBar';
 import { BandStars } from '@/components/BandStars';
 import { DetailDrawer } from '@/components/DetailDrawer';
@@ -20,6 +20,23 @@ interface SavedJob {
   score?: number;
   fit?: number;
   saved_at?: string;
+}
+
+// Fit meter helpers (mirror the Board) — colour ramp + segment snapping.
+function fitColor(fit: number): { color: string; glow: string } {
+  if (fit >= 9) return { color: '#FFCB6B', glow: 'rgba(255,203,107,0.45)' };
+  if (fit >= 8) return { color: '#F2B33D', glow: 'rgba(242,179,61,0.4)' };
+  if (fit >= 7) return { color: '#C9923A', glow: 'rgba(201,146,58,0.35)' };
+  return { color: '#C9A86A', glow: 'rgba(201,168,106,0.3)' };
+}
+function snapPct(fit: number, segCount = 13): number {
+  const raw = Math.max(0, Math.min(10, fit)) * 10;
+  return Math.round((Math.round((raw / 100) * segCount) / segCount) * 1000) / 10;
+}
+// Saved jobs may carry fit on the 0–10 Board scale or as 0–100 — normalise to 0–10.
+function fitOn10(f: number): number {
+  if (!Number.isFinite(f)) return 0;
+  return f > 10 ? f / 10 : f;
 }
 
 export default function SavedPage() {
@@ -73,40 +90,53 @@ export default function SavedPage() {
               <div className="hint">Open a role on the Board and click <b>☆ save</b> to shortlist it for later.</div>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {jobs.map((job, i) => (
-                <div
-                  key={job.id || job.url || i}
-                  style={{
-                    border: '1px solid var(--hairline)', borderRadius: 'var(--r-control, 6px)',
-                    padding: '12px 14px', background: 'var(--bg-raised)',
-                    display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
-                  }}
-                >
-                  <div
-                    style={{ flex: '1 1 280px', minWidth: 0, cursor: 'pointer' }}
-                    onClick={() => setSel(i)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSel(i); } }}
-                    title="Click for full details"
-                  >
-                    <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{job.role || 'Untitled role'}</div>
-                    <div className="dim" style={{ fontSize: 13 }}>
-                      {job.company || '—'}{job.location ? ` · ${job.location}` : ''}{job.posted ? ` · ${job.posted}` : ''}
+            <div className="saved-list">
+              {jobs.map((job, i) => {
+                const f10 = fitOn10(job.fit ?? (job.score != null ? job.score * 10 : 0));
+                const { color, glow } = fitColor(f10);
+                const fitVars = { '--fit-color': color, '--fit-glow': glow } as CSSProperties;
+                return (
+                  <div className="saved-card" key={job.id || job.url || i}>
+                    <div
+                      className="saved-card__main"
+                      onClick={() => setSel(i)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSel(i); } }}
+                      title="Click for full details"
+                    >
+                      <div className="saved-card__role">{job.role || 'Untitled role'}</div>
+                      <div className="saved-card__meta dim">
+                        {job.company || '—'}{job.location ? ` · ${job.location}` : ''}{job.posted ? ` · ${job.posted}` : ''}
+                      </div>
+                      <div className="saved-card__fit" style={fitVars}>
+                        <span className="sig sig--big" aria-hidden>
+                          <span className="sig-fill" style={{ '--fit-pct': `${snapPct(f10)}%` } as CSSProperties} />
+                        </span>
+                        <span className="saved-card__score">
+                          {Math.round(f10 * 10)}<span className="saved-card__scorelbl"> fit</span>
+                        </span>
+                        {job.band && <BandStars band={job.band} />}
+                      </div>
+                    </div>
+                    <div className="saved-card__actions">
+                      {job.url && (
+                        <a className="btn btn--ghost" href={job.url} target="_blank" rel="noreferrer">Open ↗</a>
+                      )}
+                      <button className="btn btn--primary" onClick={() => enqueue('build-cv', job)}>Build CV</button>
+                      <button className="btn" onClick={() => enqueue('build-cl', job)}>Build CL</button>
+                      <button
+                        className="btn btn--ghost btn--icon btn--danger"
+                        onClick={() => remove(job)}
+                        title="Remove from saved"
+                        aria-label="Remove from saved"
+                      >
+                        ✕
+                      </button>
                     </div>
                   </div>
-                  {job.band && <div style={{ flex: '0 0 auto' }}><BandStars band={job.band} /></div>}
-                  <div style={{ display: 'flex', gap: 8, flex: '0 0 auto', flexWrap: 'wrap' }}>
-                    {job.url && (
-                      <a className="btn btn--ghost" href={job.url} target="_blank" rel="noreferrer">Open ↗</a>
-                    )}
-                    <button className="btn btn--primary" onClick={() => enqueue('build-cv', job)}>Build CV</button>
-                    <button className="btn" onClick={() => enqueue('build-cl', job)}>Build CL</button>
-                    <button className="btn btn--ghost" onClick={() => remove(job)} title="Remove from saved">✕</button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

@@ -2090,3 +2090,61 @@ code {
 .board__row:hover .fit__num { color: var(--gold-bright); }
 /* roomier pipeline/ttable rows to match the board rhythm */
 .ttable td { padding: 11px 12px; }
+
+/* ============================================================================
+   Saved page cards (2026-06) — full-width themed cards with a fit meter + score,
+   in the Board's signal language (replaces the old inline-styled rows).
+   ========================================================================== */
+.saved-list { display: flex; flex-direction: column; gap: var(--s3); }
+.saved-card {
+  display: flex;
+  align-items: center;
+  gap: var(--s5);
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  border: 1px solid var(--hair);
+  border-radius: var(--r-control);
+  background: var(--bg-raised);
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.saved-card:hover { border-color: var(--hair-2); background: var(--surface); }
+.saved-card__main {
+  flex: 1 1 340px;
+  min-width: 0;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.saved-card__role {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: var(--fs-h);
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+.saved-card:hover .saved-card__role { color: var(--gold-bright); }
+.saved-card__meta { font-size: var(--fs-data); }
+.saved-card__fit { display: flex; align-items: center; gap: var(--s4); margin-top: 4px; flex-wrap: wrap; }
+.saved-card__score {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: var(--fs-display);
+  color: var(--fit-color, var(--gold));
+  text-shadow: 0 0 14px var(--fit-glow, transparent);
+  line-height: 1;
+}
+.saved-card__scorelbl {
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  color: var(--fg-faint);
+  text-transform: uppercase;
+  letter-spacing: var(--track-label);
+}
+.saved-card__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+}
