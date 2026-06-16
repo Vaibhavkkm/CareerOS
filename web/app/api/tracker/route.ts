@@ -71,3 +71,14 @@ export async function POST(request: Request) {
   const r = await runScript('tracker.mjs', args, { timeoutMs: 10_000 });
   return fromRun(r, 'tracker update failed');
 }
+
+// DELETE /api/tracker?id=N — remove a record from the tracker. Goes through the
+// engine script (never a raw web write), and is gated like any other mutation.
+export async function DELETE(request: Request) {
+  const gate = gateMutation();
+  if (gate) return gate;
+  const id = Number(new URL(request.url).searchParams.get('id'));
+  if (!Number.isInteger(id) || id < 1) return bad('a valid integer id is required');
+  const r = await runScript('tracker.mjs', ['remove', '--id', String(id), '--json'], { timeoutMs: 10_000 });
+  return fromRun(r, 'tracker remove failed');
+}

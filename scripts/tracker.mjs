@@ -6,6 +6,7 @@
 //   node scripts/tracker.mjs add --json '<record>'
 //   node scripts/tracker.mjs add --company Acme --role "Staff SWE" --score 4.2 --status evaluated [--url --report --archetype --legitimacy --notes]
 //   node scripts/tracker.mjs update --id 3 --status applied [--score=4.5 --notes="..." ...]
+//   node scripts/tracker.mjs remove --id 3
 //   node scripts/tracker.mjs list [--status applied] [--json|--summary]
 //   node scripts/tracker.mjs stats [--json|--summary]
 //   node scripts/tracker.mjs --self-test
@@ -129,6 +130,17 @@ export function cmdUpdate(records, flags, theToday) {
   return { action: changed ? 'updated' : 'touched', record: cur, index: idx };
 }
 
+// ---------- remove ----------
+export function cmdRemove(records, flags) {
+  if (flags.id == null || flags.id === true) throw new Error('remove requires --id N');
+  const id = Number(flags.id);
+  if (!Number.isInteger(id)) throw new Error(`--id must be an integer, got: ${flags.id}`);
+  const idx = records.findIndex((r) => Number(r.id) === id);
+  if (idx === -1) throw new Error(`no record with id ${id}`);
+  const [removed] = records.splice(idx, 1);
+  return { action: 'removed', record: removed, index: idx };
+}
+
 // ---------- list ----------
 export function cmdList(records, flags) {
   let filterId = null;
@@ -198,7 +210,7 @@ export function main(argv = process.argv.slice(2)) {
   const wantSummary = !!flags.summary && !flags.json;
 
   if (!cmd) {
-    console.error('usage: tracker.mjs <add|update|list|stats> [options]  (see --self-test)');
+    console.error('usage: tracker.mjs <add|update|remove|list|stats> [options]  (see --self-test)');
     process.exit(1);
   }
 
@@ -221,6 +233,15 @@ export function main(argv = process.argv.slice(2)) {
       process.exit(0);
     }
 
+    if (cmd === 'remove') {
+      const records = readTracker(file);
+      const res = cmdRemove(records, flags);
+      writeTracker(file, records);
+      if (wantSummary) console.log(`removed: #${res.record.id} ${res.record.company} — ${res.record.role}`);
+      else console.log(JSON.stringify({ action: res.action, record: res.record }, null, 2));
+      process.exit(0);
+    }
+
     if (cmd === 'list') {
       const records = readTracker(file);
       const { rows, filterId } = cmdList(records, flags);
@@ -237,7 +258,7 @@ export function main(argv = process.argv.slice(2)) {
       process.exit(0);
     }
 
-    console.error(`unknown command: ${cmd} (expected add|update|list|stats)`);
+    console.error(`unknown command: ${cmd} (expected add|update|remove|list|stats)`);
     process.exit(1);
   } catch (e) {
     console.error(`error: ${e.message}`);
@@ -367,6 +388,20 @@ export function selfTest() {
       ok(p._[0] === 'add', 'parseArgs positional');
       ok(p.flags.company === 'Foo Bar' && p.flags.score === '4.1' && p.flags.summary === true, 'parseArgs flag forms');
       ok(p.flags.json === '{"role":"R"}', 'parseArgs preserves --json value');
+    }
+
+    // --- remove: delete a record by id; unknown id rejected ---
+    {
+      const records = readTracker(file);
+      const before = records.length;
+      const res = cmdRemove(records, { id: '2' });
+      writeTracker(file, records);
+      ok(res.action === 'removed' && Number(res.record.id) === 2, 'remove returned the deleted record');
+      const after = readTracker(file);
+      ok(after.length === before - 1 && !after.some((r) => Number(r.id) === 2), 'remove deleted id 2; the rest remain');
+      let threw = false;
+      try { cmdRemove(after, { id: '404' }); } catch { threw = true; }
+      ok(threw, 'remove on unknown id rejected');
     }
 
     console.log(`tracker self-test: ${checks} checks passed`);

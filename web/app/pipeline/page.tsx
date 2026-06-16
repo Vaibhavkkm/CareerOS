@@ -7,12 +7,9 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Toaster, useToasts } from '@/components/Toast';
 import { api } from '@/components/util';
 
-const NEXT_STATUS: Record<string, string> = {
-  evaluated: 'applied',
-  applied: 'responded',
-  responded: 'interview',
-  interview: 'offer',
-};
+// All canonical statuses the tracker API accepts — drives the per-row selector so
+// a status can be moved in ANY direction (e.g. revert a mistaken advance).
+const ALL_STATUSES = ['evaluated', 'applied', 'responded', 'interview', 'offer', 'rejected', 'discarded', 'skip'];
 const STATUS_LABEL: Record<string, string> = {
   evaluated: 'Evaluated',
   applied: 'Applied',
@@ -57,6 +54,7 @@ function DocLinks({ cv, cl }: { cv?: string; cl?: string }) {
 export default function PipelinePage() {
   const [records, setRecords] = useState<TrackerRecord[] | null>(null);
   const [confirm, setConfirm] = useState<number | null>(null);
+  const [removeConfirm, setRemoveConfirm] = useState<number | null>(null);
   const { toasts, push, dismiss } = useToasts();
 
   const load = useCallback(async () => {
@@ -85,6 +83,19 @@ export default function PipelinePage() {
         setConfirm(id);
       } else {
         push(r.error || 'update failed', 'err');
+      }
+    },
+    [load, push],
+  );
+
+  const remove = useCallback(
+    async (id: number) => {
+      const r = await api<{ ok: boolean; error?: string }>(`/api/tracker?id=${id}`, { method: 'DELETE' });
+      if (r.ok) {
+        push(`#${id} removed from tracker`, 'ok');
+        load();
+      } else {
+        push(r.error || 'remove failed', 'err');
       }
     },
     [load, push],
@@ -158,7 +169,7 @@ export default function PipelinePage() {
                     <th className="num">Score</th>
                     <th>Status</th>
                     <th>Docs</th>
-                    <th />
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -175,12 +186,27 @@ export default function PipelinePage() {
                       <td>
                         <DocLinks cv={r.cv_pdf} cl={r.cl_pdf} />
                       </td>
-                      <td className="num">
-                        {NEXT_STATUS[r.status] && (
-                          <button className="btn btn--ghost" onClick={() => update(r.id, NEXT_STATUS[r.status])}>
-                            → {STATUS_LABEL[NEXT_STATUS[r.status]]}
+                      <td>
+                        <div className="row-actions">
+                          <select
+                            className="select select--status"
+                            value={r.status}
+                            onChange={(e) => update(r.id, e.target.value)}
+                            title="Move this application to any status (advance or revert)"
+                          >
+                            {ALL_STATUSES.map((s) => (
+                              <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+                            ))}
+                          </select>
+                          <button
+                            className="btn btn--ghost btn--icon btn--danger"
+                            title="Remove from tracker"
+                            aria-label={`Remove ${r.company} from tracker`}
+                            onClick={() => setRemoveConfirm(r.id)}
+                          >
+                            ✕
                           </button>
-                        )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -222,6 +248,24 @@ export default function PipelinePage() {
             update(id, 'applied', true);
           }}
           onCancel={() => setConfirm(null)}
+        />
+      )}
+      {removeConfirm != null && (
+        <ConfirmDialog
+          title="Remove from tracker"
+          body={
+            <>
+              Remove <b>#{removeConfirm}</b> from your tracker? This deletes the record from{' '}
+              <code>data/tracker.jsonl</code>. Any generated CV/CL files are left untouched.
+            </>
+          }
+          confirmLabel="Remove"
+          onConfirm={() => {
+            const id = removeConfirm;
+            setRemoveConfirm(null);
+            remove(id);
+          }}
+          onCancel={() => setRemoveConfirm(null)}
         />
       )}
       <Toaster toasts={toasts} onDismiss={dismiss} />
