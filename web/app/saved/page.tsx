@@ -2,10 +2,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { TopBar } from '@/components/TopBar';
 import { BandStars } from '@/components/BandStars';
+import { DetailDrawer } from '@/components/DetailDrawer';
 import { Toaster, useToasts } from '@/components/Toast';
 import { api } from '@/components/util';
 import { IS_PUBLIC, openForkGate } from '@/lib/public';
-import type { Band } from '@/lib/types';
+import type { Band, BoardRow } from '@/lib/types';
 
 interface SavedJob {
   id?: string;
@@ -23,6 +24,8 @@ interface SavedJob {
 
 export default function SavedPage() {
   const [jobs, setJobs] = useState<SavedJob[] | null>(null);
+  const [sel, setSel] = useState<number | null>(null);
+  const today = new Date().toISOString().slice(0, 10);
   const { toasts, push, dismiss } = useToasts();
 
   const load = useCallback(async () => {
@@ -80,7 +83,14 @@ export default function SavedPage() {
                     display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
                   }}
                 >
-                  <div style={{ flex: '1 1 280px', minWidth: 0 }}>
+                  <div
+                    style={{ flex: '1 1 280px', minWidth: 0, cursor: 'pointer' }}
+                    onClick={() => setSel(i)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSel(i); } }}
+                    title="Click for full details"
+                  >
                     <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{job.role || 'Untitled role'}</div>
                     <div className="dim" style={{ fontSize: 13 }}>
                       {job.company || '—'}{job.location ? ` · ${job.location}` : ''}{job.posted ? ` · ${job.posted}` : ''}
@@ -101,6 +111,25 @@ export default function SavedPage() {
           )}
         </div>
       </div>
+      {sel != null && jobs && jobs[sel] && (
+        <div
+          className="saved-modal"
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setSel(null); }}
+        >
+          <div className="saved-modal__panel">
+            <DetailDrawer
+              row={{ ...jobs[sel], fit: jobs[sel].fit ?? (jobs[sel].score != null ? jobs[sel].score * 10 : 0) } as unknown as BoardRow}
+              today={today}
+              onClose={() => setSel(null)}
+              onEnqueue={(kind) => { const j = jobs[sel]; if (j) enqueue(kind, j); }}
+              saved
+              savedCount={jobs.length}
+              onToggleSave={() => { const j = jobs[sel]; setSel(null); if (j) remove(j); }}
+              inline
+            />
+          </div>
+        </div>
+      )}
       <Toaster toasts={toasts} onDismiss={dismiss} />
     </div>
   );
