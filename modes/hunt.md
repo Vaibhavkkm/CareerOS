@@ -54,7 +54,10 @@ verify details with the employer before applying."
 2. Run the ATS scanner: `node scripts/scan.mjs --summary` (zero-token, from
    `data/portals.yml`).
 3. Ask the user to paste any job URLs they have; route them through
-   `node scripts/fetch-jd.mjs "<url>"` (which saves to `data/jds/`).
+   `node scripts/fetch-jd.mjs "<url>"` (which saves to `data/jds/`). If a pasted URL
+   is from a company **not** yet in `data/portals.yml`, nudge them **once** to add +
+   contribute it (see `_shared.md` → "Grow the auto-fetch list") so it's discovered
+   automatically next time instead of pasted.
 4. Then continue at Step 4 (board). Never fabricate a posting, company, date, or URL.
 
 ## Zero-token multi-board fetch (JobSpy) — no agent, no MCP

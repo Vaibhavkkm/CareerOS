@@ -72,6 +72,35 @@ snapshot the AI draft for the learning loop · state missing requirements honest
 
 ---
 
+## Grow the auto-fetch list — when the user pastes a link from a NEW source
+When a user hands you a job **link** (auto-pipeline Step 0, or a pasted URL in
+`hunt` / `pipeline`), check whether that company is already auto-fetched — i.e. has a
+`tracked_companies` entry in `data/portals.yml`. If it does, just proceed. If it does
+**not**, after you've handled the posting, nudge them **once** (never nag, never block
+the result) so they never have to paste that company again:
+
+- **Supported ATS** (`fetch-jd.mjs` reported a `source` of greenhouse / lever / ashby /
+  workable / recruitee / smartrecruiters): it's a one-line add. Show the exact entry —
+  `{ name: "<Co>", provider: <ats>, api: "<token>", enabled: true }` (derive `<token>`
+  from the URL; see each `scripts/providers/<id>.mjs`). Offer to:
+  1. add it to **their own** `data/portals.yml` now (confirm first — it's their private,
+     git-ignored data) so their next `/cos scan` pulls every open **and future** role; AND
+  2. **contribute it upstream** — open a PR adding that line to the PUBLIC seed list
+     `templates/portals.example.yml`, so every CareerOS user gets that company too.
+- **Unsupported / custom source** (`fetch-jd.mjs` fell back to generic HTML or
+  `needs_agent_fetch` — e.g. a self-hosted careers page): there's no provider for it yet,
+  so it can't be auto-scanned. Point them at the bigger contribution — a new
+  `scripts/providers/<id>.mjs` plugin (or a `local-parser` entry) per `CONTRIBUTING.md` —
+  and offer to draft it.
+
+Frame it as a win on both sides: more sources auto-fetched = a stronger, hands-off
+pipeline for them, and a public-repo contribution that strengthens their own
+open-source profile. You may **draft** the change (branch, edit, PR body), but — per the
+guardrails — NEVER auto-open the PR, push, or edit anything under `data/` without an
+explicit confirm; the human ships it.
+
+---
+
 ## ATS rules (resume parsers)
 - Single column. Real selectable text. Standard section names: SUMMARY,
   EXPERIENCE, EDUCATION, SKILLS, PROJECTS.

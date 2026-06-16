@@ -70,6 +70,14 @@ the provider files under `scripts/providers/`. Tune the global `title_filter` /
 `location_filter` there too. Edits to `data/portals.yml` are the user's data —
 confirm before changing it, and prefer a `--dry-run` after any edit.
 
+**Two lists, two scopes.** `data/portals.yml` is the user's PRIVATE, git-ignored list —
+edit it (with a confirm) to fetch a company for *themselves*. `templates/portals.example.yml`
+is the PUBLIC seed shipped in the repo; adding a company there via a PR makes it
+discoverable for *every* CareerOS user. When someone pastes a link from a company that
+isn't tracked yet, offer **both** — see `_shared.md` → "Grow the auto-fetch list". A
+custom career page with no public ATS endpoint can't be a one-line add; it needs a new
+`scripts/providers/<id>.mjs` (or a `local-parser` entry) — point them at `CONTRIBUTING.md`.
+
 ## Escape hatch — JS-heavy career pages (no Playwright)
 For sites with no public ATS endpoint, use the `local-parser` provider: set
 `provider: local-parser` and `parser: { command: "...", script: "..." }` on the
