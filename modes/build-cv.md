@@ -81,7 +81,10 @@ Working from the theme file resolved in Step 0.5 (default `templates/cv.tex.tmpl
 - **Escape every raw value** per the `_shared.md` LaTeX table (the `lib/text.mjs`
   `latexEscape` rules) — `& % $ # _ { } ~ ^ \`, smart quotes, dashes. Do not alter
   the preamble. Leave **no** `<<PLACEHOLDER>>` behind.
-- Keep it **one page** unless the user is clearly senior enough for two.
+- **Page length:** *try* for **one page** on a per-position CV — trim the least-relevant
+  skills/projects/bullets first; **never** compress line spacing or cram the header to
+  force it. A **second page is fine when the remaining content is genuinely important**
+  (or the user is senior). The master/reference CV has **no** page limit.
 
 ## Step 3.5 — Self-check & revise (REQUIRED, before the snapshot)
 Before treating the draft as done, critique YOUR OWN output against this checklist
@@ -96,7 +99,8 @@ self-correction is the single biggest driver of a first draft that lands:
    and the active style rules (Step 5); contains **no** word from the `avoid`/banned list.
 4. **Bullets** — each is strong-verb + quantified real outcome; no filler ("worked on",
    "responsible for", "passionate"); most JD-relevant first.
-5. **Format** — one page (unless senior), zero `<<PLACEHOLDER>>` left, every special
+5. **Format** — aim for one page (two is OK when content is genuinely important — never
+   cram by shrinking line spacing), zero `<<PLACEHOLDER>>` left, every special
    char escaped per `_shared.md`.
 Do at least one revision pass. Briefly note to yourself what you changed (or "clean").
 

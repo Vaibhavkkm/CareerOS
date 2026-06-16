@@ -169,7 +169,10 @@ cue if any; convert concessions into claims where there's real evidence.
 reference document, MATCH its layout (letterhead alignment, justification, sign-off)
 rather than imposing template defaults. **Bold the field labels and key items** —
 Email:/LinkedIn:/Relationship: on a references sheet; named systems + metrics in CV
-and cover-letter bodies. Keep each document to ONE page by TRIMMING content, never
-by compressing line spacing or cramming the header. Apply the candidate's saved
+and cover-letter bodies. A per-position CV/cover letter should *try* to fit ONE page — by TRIMMING content
+(cut the least-relevant skills/projects/bullets), never by compressing line spacing
+or cramming the header; a SECOND page is acceptable when the remaining content is
+genuinely important. The master/reference CV has NO page limit (it is the full
+source — let it run several pages with readable spacing). Apply the candidate's saved
 `data/profile.yml narrative.voice.formatting` every time. Stay strictly within the
 user's explicit request — never edit, or offer to change, a document they didn't ask about.
