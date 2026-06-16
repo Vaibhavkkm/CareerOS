@@ -125,9 +125,14 @@ Tell the user: the **per-job folder and exact PDF path** (e.g. "CV ready →
 `data/output/<company>--<role>/cv-….pdf`"), what you tailored (1–3 lines), and that
 they can edit the `.tex` in that folder directly. When they're done editing, they say
 **"learn from my edits"** (or `/cos style-learn`) and the system will diff their
-changes and get better next time. If a tracker record exists, update its `cv_pdf` via
-`node scripts/tracker.mjs update --id <id> --cv_pdf "<path>"` (this is what makes the
-Pipeline tab show a CV link for the row).
+changes and get better next time.
+- **Register the doc for the web UI (ALWAYS):**
+  `node scripts/job-docs.mjs add --jd "<jd_path>" --url "<url>" --type cv --path "<pdf path>"`
+  (and `--type tex` for the `.tex`). This is what makes the CV show up in the Board/Saved
+  **detail drawer** (`/api/docs` reads `data/ui/job-docs.jsonl`). Do this even when there is
+  NO tracker record — e.g. a *saved-but-not-tracked* job — otherwise the drawer can't find it.
+- If a tracker record exists, ALSO update its `cv_pdf`:
+  `node scripts/tracker.mjs update --id <id> --cv_pdf "<path>"` (this makes the Pipeline tab link it).
 
 ## Never
 Fabricate experience/metrics/dates · break the template preamble · leave a

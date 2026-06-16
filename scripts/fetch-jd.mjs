@@ -334,6 +334,33 @@ export function firstH1(html) {
   return m ? htmlToText(m[1]) : '';
 }
 
+// The first real heading (try <h1>, then <h2>) in some HTML. Some career CMSes
+// (WordPress especially) put the SITE NAME in <title>, a generic word like "Job" in
+// the breadcrumb, the real role in the page's only <h2>, and NO <h1> at all — so we
+// fall through h1 → h2 to recover the title before giving up to an agent fetch.
+export function firstHeading(html) {
+  const s = String(html || '');
+  for (const tag of ['h1', 'h2']) {
+    const m = s.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, 'i'));
+    if (m) { const t = htmlToText(m[1]); if (t) return t; }
+  }
+  return '';
+}
+
+// CMS career pages (WordPress especially) append a cookie-consent / privacy banner
+// AFTER the real posting; left in, it dilutes the JD and the match score. Cut it at a
+// clear banner marker — but only once we're well past the start, so a short genuine
+// posting is never truncated.
+export function trimBoilerplate(text) {
+  const s = String(text || '');
+  let cut = s.length;
+  for (const re of [/\n\s*We use cookies/i, /\n\s*This website uses cookies/i, /\n\s*Privacy Overview/i, /\n\s*Manage consent/i, /\n\s*Cookie Settings/i]) {
+    const m = s.match(re);
+    if (m && m.index >= 300) cut = Math.min(cut, m.index);
+  }
+  return s.slice(0, cut).trim();
+}
+
 // Generic HTML page → Posting (best effort). Pulls <title>/<h1> for the role and the
 // main content text. Used for unknown hosts and as the ATS fallback.
 export function normalizeGenericHtml(html, url = '') {
@@ -368,7 +395,12 @@ export function normalizeGenericHtml(html, url = '') {
   // (an en/em dash inside the role itself is left alone). Best effort: no separator
   // → the whole title stays the role, company stays unknown.
   const splitTitle = (t) => {
-    const sep = Math.max(t.lastIndexOf(' - '), t.lastIndexOf(' | '));
+    // Unambiguous title separators only: hyphen, pipe, » (Yoast/WordPress breadcrumb)
+    // and · (middot). Deliberately NOT en/em dash or colon — roles legitimately contain
+    // those (e.g. "Senior Consultant – Data & AI"). Split on the LAST one (all 3 chars).
+    const sep = Math.max(
+      t.lastIndexOf(' - '), t.lastIndexOf(' | '), t.lastIndexOf(' » '), t.lastIndexOf(' · '),
+    );
     if (sep > 0) {
       const head = t.slice(0, sep).trim();
       const tail = t.slice(sep + 3).trim();
@@ -381,8 +413,8 @@ export function normalizeGenericHtml(html, url = '') {
   // real job title from the page's main <h1>. An <h1> is the whole job title, so it is
   // NOT split into role/company the way a "Role - Company" <title> is.
   if (!role || GENERIC_ROLE.test(role)) {
-    const h1 = firstH1(mainHtml) || firstH1(html);
-    if (h1) role = h1;
+    const heading = firstHeading(mainHtml) || firstHeading(html);
+    if (heading) role = heading;
   }
   return {
     source: 'generic-html',
@@ -391,7 +423,7 @@ export function normalizeGenericHtml(html, url = '') {
     location: '',
     url,
     departments: [],
-    content: htmlToText(mainHtml),
+    content: trimBoilerplate(htmlToText(mainHtml)),
     posted: '',
     questions: [],
   };
@@ -651,6 +683,23 @@ export async function selfTest() {
   ok(genNoSep.role === 'Cool Role' && genNoSep.company === '', 'generic html title without separator stays whole');
   const genDash = normalizeGenericHtml('<html><head><title>DC-1 – DATA SCIENTIST - Acme Institute</title></head><body></body></html>', 'https://x.io/j/3');
   ok(genDash.role === 'DC-1 – DATA SCIENTIST' && genDash.company === 'Acme Institute', 'generic html keeps en dash inside role, splits on last " - "');
+
+  // WordPress/Yoast pattern (e.g. lih.lu): <title> = "Job » Site Name" (generic role +
+  // » breadcrumb separator), NO <h1>, the real role in the page's single <h2>, and a
+  // trailing cookie banner. Must split on », detect the generic "Job", fall back to the
+  // <h2>, and trim the banner — instead of saving role "Job » Site Name" with noisy body.
+  const wpHtml = '<html><head><title>Job &#187; Luxembourg Institute of Health</title></head><body><nav><a>Home</a></nav><div class="content"><h2>Data Scientist in AI - Department of Infection &amp; Immunity</h2><p>LIH is seeking a Data Scientist. Responsibilities: build ML models. ' + 'x'.repeat(600) + '</p><div>\nWe use cookies on our website to give you the best experience. Privacy Overview. Accept All</div></div></body></html>';
+  const wpP = normalizeGenericHtml(wpHtml, 'https://www.lih.lu/en/job/?value=JA/DS0326');
+  eq(wpP.company, 'Luxembourg Institute of Health', 'wp »-title splits the company off');
+  eq(wpP.role, 'Data Scientist in AI - Department of Infection & Immunity', 'wp generic "Job" role falls back to the page <h2>');
+  ok(!/We use cookies|Privacy Overview/.test(wpP.content), 'wp trailing cookie banner trimmed from content');
+  ok(looksLikeRealPosting(wpP), 'wp posting now passes looksLikeRealPosting (no agent fetch needed)');
+
+  // firstHeading: prefer <h1>, else fall back to <h2>
+  eq(firstHeading('<h2>Only H2</h2>'), 'Only H2', 'firstHeading falls back to h2 when no h1');
+  eq(firstHeading('<h1>The H1</h1><h2>The H2</h2>'), 'The H1', 'firstHeading prefers h1 over h2');
+  // trimBoilerplate: a banner marker within the first 300 chars is NOT cut (keep short posts)
+  eq(trimBoilerplate('short body\nWe use cookies here'), 'short body\nWe use cookies here', 'trimBoilerplate keeps content when the banner is near the start');
 
   // toMarkdown
   const md = toMarkdown(ghP, '2026-06-07');

@@ -1153,6 +1153,29 @@ select {
   display: none; /* hidden on desktop; shown on mobile via media query */
 }
 
+/* Saved page: open the board's detail drawer as a DESKTOP-visible right slide-over
+   (the board's own .drawer overlay is mobile-only). Reuses DrawerContent via
+   <DetailDrawer inline> wrapped here, so clicking a saved row pops up full details. */
+.saved-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: var(--overlay);
+  backdrop-filter: blur(2px);
+  display: flex;
+  justify-content: flex-end;
+}
+.saved-modal__panel {
+  width: min(560px, 96vw);
+  height: 100%;
+  overflow-y: auto;
+  background: var(--surface);
+  border-left: 1px solid var(--hair-2);
+  box-shadow: -8px 0 40px rgba(0, 0, 0, 0.45);
+  animation: slidein 0.18s var(--ease-out);
+}
+@media (prefers-reduced-motion: reduce) { .saved-modal__panel { animation: none; } }
+
 /* breakdown meters */
 .breakdown {
   display: flex;
