@@ -98,7 +98,11 @@ Fix any `issues` and recompile; never hand off a failed build.
 ## Step 5 — Hand off + invite the loop
 Give the **per-job folder and exact PDF path**, note the hook you used, and remind the
 user they can edit the `.tex` in that folder and then say **"learn from my edits"**.
-Update the tracker `cl_pdf` if a record exists (this makes the Pipeline tab link it).
+**Register the doc for the web UI (ALWAYS):**
+`node scripts/job-docs.mjs add --jd "<jd_path>" --url "<url>" --type cl --path "<pdf path>"`
+(and `--type tex` for the `.tex`) — this is what surfaces the letter in the Board/Saved
+**detail drawer** (`/api/docs` reads `data/ui/job-docs.jsonl`), even for a *saved-but-not-tracked*
+job with no tracker record. ALSO update the tracker `cl_pdf` if a record exists (links it on the Pipeline tab).
 
 ## Never
 Fabricate · put compensation or the user's phone-only context on the letter ·
