@@ -87,6 +87,10 @@ Present in a few lines:
 - **Recommended next action** (the user decides): for an Apply-band fit, "review
   the CV, then run `/cos apply` when you submit"; for a Skip, recommend against and
   stop. Offer to override any gate on request.
+- **Make it auto-fetch (only if new):** if this company isn't already in
+  `data/portals.yml` `tracked_companies`, nudge the user **once** to add it and
+  contribute it upstream so future roles arrive without pasting — see `_shared.md` →
+  "Grow the auto-fetch list". Skip silently when it's already tracked.
 
 ## Never
 Auto-submit or auto-fill any form · fabricate facts/metrics/dates to clear a gate ·
