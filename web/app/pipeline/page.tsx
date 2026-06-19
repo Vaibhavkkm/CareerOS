@@ -19,22 +19,6 @@ const RANK: Record<string, number> = { evaluated: 1, applied: 2, responded: 3, i
 const FUNNEL = ['evaluated', 'applied', 'responded', 'interview', 'offer'] as const;
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
-const SCORE_MAX = 5;
-
-function ScoreMeter({ score }: { score: number | null }) {
-  const segs = Array.from({ length: SCORE_MAX }, (_, i) => {
-    const f = score == null ? 0 : Math.max(0, Math.min(1, score - i));
-    return <span key={i} className={`score__seg ${f > 0 ? 'on' : ''}`} style={{ '--f': f } as CSSProperties} />;
-  });
-  return (
-    <div className="score">
-      <div className="score__bars">{segs}</div>
-      {score == null
-        ? <span className="score__v muted">··</span>
-        : <span className="score__v">{score.toFixed(1)}</span>}
-    </div>
-  );
-}
 
 function DocLinks({ cv, cl }: { cv?: string; cl?: string }) {
   const items: [string, string][] = [];
@@ -176,26 +160,36 @@ export default function PipelinePage() {
               <div className="panel__meta"><b>{pad2(total)}</b> tracked</div>
             </div>
             <table className="tbl">
+              {/* table-layout:fixed + colgroup → headers always sit exactly over their
+                  columns (no auto-layout compression skew). Mobile (≤780px) stacks to
+                  cards and ignores these widths. */}
+              <colgroup>
+                <col className="col-id" />
+                <col className="col-date" />
+                <col className="col-co" />
+                <col className="col-role" />
+                <col className="col-status" />
+                <col className="col-docs" />
+                <col className="col-act" />
+              </colgroup>
               <thead>
                 <tr>
                   <th>ID</th><th>Date</th><th>Company</th><th>Role</th>
-                  <th>Score</th><th>Status</th><th>Docs</th><th>Actions</th>
+                  <th>Status</th><th>Docs</th><th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {records == null ? (
-                  <tr><td colSpan={8} style={{ color: 'var(--pdim)' }}>loading…</td></tr>
+                  <tr><td colSpan={7} style={{ color: 'var(--pdim)' }}>loading…</td></tr>
                 ) : records.length === 0 ? (
-                  <tr><td colSpan={8} style={{ color: 'var(--pdim)' }}>No applications yet. Evaluate a role from the Board to start tracking.</td></tr>
+                  <tr><td colSpan={7} style={{ color: 'var(--pdim)' }}>No applications yet. Evaluate or mark a role Applied from the Board to start tracking.</td></tr>
                 ) : records.map((r) => {
-                  const score = Number.isFinite(Number(r.score)) ? Number(r.score) : null;
                   return (
                     <tr key={r.id} data-id={r.id}>
                       <td className="c-id" data-label="ID">{pad2(r.id)}</td>
                       <td className="c-date" data-label="Date">{r.date}</td>
                       <td className="c-co" data-label="Company">{r.company}</td>
                       <td className="c-role" data-label="Role">{r.role}</td>
-                      <td className="c-score" data-label="Score"><ScoreMeter score={score} /></td>
                       <td className="c-status" data-label="Status">
                         <span className={`pill pill--${r.status}`}><i />{STATUS_LABEL[r.status] || r.status}</span>
                       </td>

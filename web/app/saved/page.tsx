@@ -4,6 +4,7 @@ import { TopBar } from '@/components/TopBar';
 import { BandStars } from '@/components/BandStars';
 import { DetailDrawer } from '@/components/DetailDrawer';
 import { Toaster, useToasts } from '@/components/Toast';
+import { useMarkApplied } from '@/components/useMarkApplied';
 import { api } from '@/components/util';
 import { IS_PUBLIC, openForkGate } from '@/lib/public';
 import type { Band, BoardRow } from '@/lib/types';
@@ -44,6 +45,7 @@ export default function SavedPage() {
   const [sel, setSel] = useState<number | null>(null);
   const today = new Date().toISOString().slice(0, 10);
   const { toasts, push, dismiss } = useToasts();
+  const { markApplied, dialog: appliedDialog } = useMarkApplied(push);
 
   const load = useCallback(async () => {
     const r = await api<{ ok: boolean; saved?: SavedJob[]; error?: string }>('/api/save');
@@ -152,6 +154,7 @@ export default function SavedPage() {
               today={today}
               onClose={() => setSel(null)}
               onEnqueue={(kind) => { const j = jobs[sel]; if (j) enqueue(kind, j); }}
+              onMarkApplied={() => { const j = jobs[sel]; if (j) markApplied(j); }}
               saved
               savedCount={jobs.length}
               onToggleSave={() => { const j = jobs[sel]; setSel(null); if (j) remove(j); }}
@@ -160,6 +163,7 @@ export default function SavedPage() {
           </div>
         </div>
       )}
+      {appliedDialog}
       <Toaster toasts={toasts} onDismiss={dismiss} />
     </div>
   );

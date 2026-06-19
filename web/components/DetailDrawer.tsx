@@ -230,6 +230,7 @@ function DrawerContent({
   today,
   onClose,
   onEnqueue,
+  onMarkApplied,
   saved,
   savedCount,
   onToggleSave,
@@ -239,6 +240,7 @@ function DrawerContent({
   today: string;
   onClose: () => void;
   onEnqueue: (kind: string, args: Record<string, unknown>) => void;
+  onMarkApplied?: () => void;
   saved: boolean;
   savedCount: number;
   onToggleSave?: () => void;
@@ -484,6 +486,17 @@ function DrawerContent({
         <button className="btn" onClick={() => onEnqueue('apply', args)}>
           Draft answers
         </button>
+        {/* Logs that YOU applied → adds/advances this role in the Pipeline tracker.
+            Opens a confirm first (Class A): CareerOS never marks an application for you. */}
+        {onMarkApplied && (
+          <button
+            className="btn"
+            onClick={onMarkApplied}
+            title="Log that you applied to this role — adds it to your Pipeline tracker"
+          >
+            <span aria-hidden>✓</span> I applied
+          </button>
+        )}
         <div style={{ flex: 1 }} />
         {row.url && (
           <button className="btn btn--ghost" onClick={() => window.open(row.url, '_blank', 'noreferrer')}>
@@ -500,6 +513,7 @@ export function DetailDrawer({
   today,
   onClose,
   onEnqueue,
+  onMarkApplied,
   saved = false,
   savedCount = 0,
   onToggleSave,
@@ -509,6 +523,7 @@ export function DetailDrawer({
   today: string;
   onClose: () => void;
   onEnqueue: (kind: string, args: Record<string, unknown>) => void;
+  onMarkApplied?: () => void;
   saved?: boolean;
   savedCount?: number;
   onToggleSave?: () => void;
@@ -562,6 +577,7 @@ export function DetailDrawer({
         today={today}
         onClose={onClose}
         onEnqueue={onEnqueue}
+        onMarkApplied={onMarkApplied}
         saved={saved}
         savedCount={savedCount}
         onToggleSave={onToggleSave}
@@ -586,6 +602,7 @@ export function DetailDrawer({
           today={today}
           onClose={onClose}
           onEnqueue={onEnqueue}
+          onMarkApplied={onMarkApplied}
           saved={saved}
           savedCount={savedCount}
           onToggleSave={onToggleSave}
