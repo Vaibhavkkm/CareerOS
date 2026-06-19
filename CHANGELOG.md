@@ -6,6 +6,31 @@ All notable changes to CareerOS are recorded here. The format is based on
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-06-19
+
+### Added
+
+- **Mark a job "Applied" from the board.** The job detail drawer (and the **Saved**
+  view) now has an **I applied** action that logs the role straight to your pipeline
+  tracker. It creates a new tracked record or advances an already-evaluated one —
+  status only ever moves forward, never duplicating an opening — behind a "confirm you
+  submitted it" step. As always, CareerOS never marks an application for you. Routes
+  through a new create-or-advance `POST /api/tracker` path (the engine `tracker.mjs add`
+  upsert); the web app still never writes the tracker directly.
+
+### Changed
+
+- **Pipeline ledger table.** Removed the Score column and switched to a fixed table
+  layout so column headers always line up over their data; tightened cell padding.
+- **Clearer apply feedback.** The success toast now reflects what actually happened —
+  *added* to the pipeline, *advanced* to Applied, or *already tracked* (no change).
+
+### Fixed
+
+- **Confirm dialogs are keyboard-accessible.** The shared confirm dialog now manages its
+  own focus (Esc cancels, Tab stays inside it, autofocus on open), so it behaves
+  correctly even when it opens on top of the mobile job drawer.
+
 ## [0.6.0] - 2026-06-15
 
 ### Added

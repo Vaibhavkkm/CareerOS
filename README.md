@@ -70,9 +70,10 @@ need to type a command:
 
 - A match board with each role's fit score, match band, recency, and a country
   column when you browse more than one country.
-- Click a role for a detail pane: the score breakdown, skills you have vs. gaps, and
-  one-click Tailor CV / Cover letter / Evaluate / Draft answers. Generated documents
-  show inline (and open in a new tab).
+- Click a role for a detail pane: the score breakdown, skills you have vs. gaps,
+  one-click Tailor CV / Cover letter / Evaluate / Draft answers, and an **I applied**
+  action that logs the role to your pipeline after a confirm (also on the Saved tab).
+  Generated documents show inline (and open in a new tab).
 - Fetch recent openings, scan watched companies, or paste a job URL — from the browser.
 - Upload your CV + cover letter (**⤴ my CV/CL**) to onboard; staged files are removed
   afterward.
