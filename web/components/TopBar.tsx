@@ -7,6 +7,7 @@ import { OnboardDialog } from './OnboardDialog';
 // Step 9: TopBar no longer hosts its own Toaster — it receives push via prop
 // so that the single toaster in the page/layout can handle all toasts.
 import { IS_PUBLIC, openForkGate } from '@/lib/public';
+import { api } from './util';
 
 const TABS = [
   { href: '/', label: 'Board' },
@@ -23,6 +24,22 @@ export function TopBar({
 }) {
   const path = usePathname();
   const [onboard, setOnboard] = useState(false);
+  const [running, setRunning] = useState(false);
+
+  // Process whatever is queued NOW (build CV/CL, evaluate, …) without waiting for the
+  // background daemon's poll. Fires a one-shot drain server-side; the QueueIndicator
+  // reflects progress. CareerOS still never auto-submits an application.
+  const runQueue = async () => {
+    if (IS_PUBLIC) { openForkGate(); return; }
+    setRunning(true);
+    const r = await api<{ ok: boolean; queued?: number; started?: boolean; error?: string }>(
+      '/api/run-queue', { method: 'POST' },
+    );
+    setRunning(false);
+    if (r.ok) onToast?.(r.queued ? `processing ${r.queued} queued item(s)…` : 'queue is empty — nothing to run', r.queued ? 'ok' : 'info');
+    else onToast?.(r.error || 'could not run the queue', 'err');
+  };
+
   return (
     <header className="topbar">
       <div className="brand">
@@ -47,6 +64,14 @@ export function TopBar({
           DEMO · fork to run
         </button>
       )}
+      <button
+        className="btn"
+        onClick={runQueue}
+        disabled={running}
+        title="Process queued work now (build CV/CL, evaluate, onboard…) — runs your queue without waiting for the daemon"
+      >
+        {running ? '▶ running…' : '▶ run queue'}
+      </button>
       <button
         className="btn"
         onClick={() => (IS_PUBLIC ? openForkGate() : setOnboard(true))}
