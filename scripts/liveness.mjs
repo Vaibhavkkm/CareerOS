@@ -15,7 +15,7 @@
 //   node scripts/liveness.mjs prune  [--limit N] [--json]           # check a stale batch
 //   node scripts/liveness.mjs --self-test
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -24,29 +24,38 @@ import { fetchText } from './providers/_http.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const CACHE_PATH = join(ROOT, 'data', 'ui', 'liveness.json');
-const TTL_MS = 3 * 24 * 60 * 60 * 1000; // re-check a cached verdict after 3 days
-const DEFAULT_PRUNE_LIMIT = 12;         // URLs checked per background prune (bounded)
+const ALIVE_TTL_MS = 3 * 24 * 60 * 60 * 1000;  // re-confirm a live posting after 3 days
+const EXPIRED_TTL_MS = 12 * 60 * 60 * 1000;    // re-check an "expired" verdict sooner (recover faster)
+const DEFAULT_PRUNE_LIMIT = 12;                // URLs checked per background prune (bounded)
 const CONCURRENCY = 4;
 const REQUEST_TIMEOUT_MS = 8_000;
+// A genuine "gone" page is a short notice/error page. A LIVE posting is long (full
+// description + "similar jobs" + footer chrome), so a marker buried in that chrome
+// is NOT decisive — we only trust a body marker on a short page. This is what stops
+// related-jobs widgets / footers / soft-404 aggregators (Indeed) from hiding live jobs.
+const SHORT_PAGE_CHARS = 2_500;
 
-// Specific "this posting is gone" phrases (EN/FR/DE/NL). Kept specific so ordinary
-// job copy ("no longer than 2 years") can't trip the filter.
+// Specific "this posting is gone" phrases (EN/FR/DE/NL). Ambiguous strings that can
+// appear on a live page in another sense ("applications are closed on holidays",
+// German "besetzt mit …" = staffed/equipped) are deliberately excluded.
 const EXPIRED_MARKERS = [
   'no longer available', 'no longer accepting', 'no longer be available',
-  'position has been filled', 'this position is closed', 'this job is no longer',
-  'posting has expired', 'job posting has expired', 'vacancy is closed',
-  'applications are closed', 'application period has ended', 'this job is closed',
-  'job not found', 'page not found', 'offer not found', 'job has expired',
+  'position has been filled', 'this position has been filled', 'this position is closed',
+  'this job is no longer', 'this job has expired', 'job posting has expired',
+  'posting has expired', 'job has expired', 'vacancy is closed', 'this job is closed',
+  'job not found', 'page not found', 'offer not found',
   "n'est plus disponible", 'offre expir', 'poste pourvu', 'candidatures closes',
   "cette offre n'existe plus", "cette offre n'est plus",
-  'nicht mehr verfügbar', 'stelle ist besetzt', 'bewerbungsfrist abgelaufen',
+  'nicht mehr verfügbar', 'bewerbungsfrist abgelaufen',
   'niet meer beschikbaar', 'vacature is gesloten',
 ];
 
-// Pure: does the page body say the posting is gone? Exported for the self-test.
+// Pure: does the page say the posting is gone? Strips tags to visible text and only
+// trusts a marker on a SHORT page (see SHORT_PAGE_CHARS). Exported for the self-test.
 export function hasExpiredMarker(body) {
-  const t = String(body || '').toLowerCase();
-  return EXPIRED_MARKERS.some((m) => t.includes(m));
+  const text = String(body || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+  if (text.length > SHORT_PAGE_CHARS) return false; // a long, content-rich page → treat as live
+  return EXPIRED_MARKERS.some((m) => text.includes(m));
 }
 
 // Pure: classify a fetch outcome. status = HTTP status (or null on network error);
@@ -63,7 +72,9 @@ export function classify({ status, body }) {
 // Network: fetch the URL once and classify it. Never throws.
 export async function classifyUrl(url) {
   try {
-    const body = await fetchText(url, { timeoutMs: REQUEST_TIMEOUT_MS, redirect: 'follow' });
+    // maxRedirects > 0 routes through _http's manual redirect path, which re-runs the
+    // SSRF guard on EVERY hop (a bare redirect:'follow' would skip that re-validation).
+    const body = await fetchText(url, { timeoutMs: REQUEST_TIMEOUT_MS, redirect: 'follow', maxRedirects: 3 });
     return classify({ status: 200, body });
   } catch (e) {
     return classify({ status: typeof e?.status === 'number' ? e.status : null, body: '' });
@@ -78,7 +89,11 @@ export function readCache() {
 }
 function writeCache(cache) {
   mkdirSync(dirname(CACHE_PATH), { recursive: true });
-  writeFileSync(CACHE_PATH, JSON.stringify(cache, null, 2));
+  // Atomic write (temp + rename) so two overlapping background prunes can't tear the
+  // file or clobber it mid-write — last-writer-wins on a complete file, never garbage.
+  const tmp = `${CACHE_PATH}.tmp-${process.pid}`;
+  writeFileSync(tmp, JSON.stringify(cache, null, 2));
+  renameSync(tmp, CACHE_PATH);
 }
 
 // The set of URLs currently known-expired (used by the board filter). Pure over the
@@ -89,19 +104,22 @@ export function expiredUrlsFrom(cache) {
     .map(([url]) => url);
 }
 
-// Which URLs need a (re)check: never seen, or older than the TTL. `now` injected for tests.
-export function staleUrls(cache, urls, now, ttlMs = TTL_MS) {
+// Which URLs need a (re)check: never seen, or older than the per-state TTL ('expired'
+// verdicts are re-checked sooner so a false positive recovers faster). `now` for tests.
+export function staleUrls(cache, urls, now) {
   return urls.filter((u) => {
     const v = cache[u];
-    return !v || typeof v.ts !== 'number' || now - v.ts > ttlMs;
+    if (!v || typeof v.ts !== 'number') return true;
+    const ttl = v.state === 'expired' ? EXPIRED_TTL_MS : ALIVE_TTL_MS;
+    return now - v.ts > ttl;
   });
 }
 
 // Bounded, concurrency-limited prune. Checks up to `limit` stale URLs and updates
-// the cache. `nowFn`/`classifyFn` injectable for the self-test.
-export async function prune(urls, { limit = DEFAULT_PRUNE_LIMIT, now = Date.now(), classifyFn = classifyUrl, ttlMs = TTL_MS } = {}) {
+// the cache. `now`/`classifyFn` injectable for the self-test.
+export async function prune(urls, { limit = DEFAULT_PRUNE_LIMIT, now = Date.now(), classifyFn = classifyUrl } = {}) {
   const cache = readCache();
-  const todo = staleUrls(cache, urls, now, ttlMs).slice(0, limit);
+  const todo = staleUrls(cache, urls, now).slice(0, limit);
   let expired = 0, alive = 0, unknown = 0;
   let i = 0;
   async function worker() {
@@ -163,13 +181,24 @@ export function selfTest() {
   eq(classify({ status: 503, body: '' }), 'unknown', '5xx → unknown (kept)');
   eq(classify({ status: 403, body: '' }), 'unknown', '403 robots → unknown (kept)');
   ok(!hasExpiredMarker('We offer no longer than a 2-year contract.'), 'ordinary "no longer" not a marker');
-  ok(hasExpiredMarker('Sorry, this job is no longer available.'), 'specific phrase IS a marker');
+  ok(hasExpiredMarker('Sorry, this job is no longer available.'), 'specific phrase IS a marker (short page)');
+  // a LIVE posting whose related-jobs / footer chrome contains a marker must NOT be hidden
+  const longLive = 'Senior Data Engineer. ' + 'We build pipelines in Python and SQL. '.repeat(120) +
+    'Similar jobs: Junior Analyst — this position is closed. Footer: Page not found? Use search.';
+  ok(longLive.length > 2500, 'fixture is a long, content-rich page');
+  ok(!hasExpiredMarker(longLive), 'marker buried in a long live page → NOT expired');
+  eq(classify({ status: 200, body: longLive }), 'alive', 'long live page with chrome marker → alive');
+  // dropped ambiguous markers no longer trip the filter
+  ok(!hasExpiredMarker('Applications are closed on public holidays and weekends.'), 'ambiguous "applications are closed" dropped');
+  ok(!hasExpiredMarker('Die Stelle ist besetzt mit modernster Ausrüstung.'), 'ambiguous German "besetzt" dropped');
 
-  // cache helpers
+  // cache helpers + per-state TTL
   const cache = { 'a': { state: 'expired', ts: 1000 }, 'b': { state: 'alive', ts: 1000 } };
   assert.deepEqual(expiredUrlsFrom(cache), ['a']); n++;
-  assert.deepEqual(staleUrls(cache, ['a', 'b', 'c'], 1000 + TTL_MS + 1), ['a', 'b', 'c'], 'all stale past TTL'); n++;
-  assert.deepEqual(staleUrls(cache, ['a', 'b', 'c'], 1500), ['c'], 'only the unseen url is stale within TTL'); n++;
+  assert.deepEqual(staleUrls(cache, ['a', 'b', 'c'], 1000 + ALIVE_TTL_MS + 1), ['a', 'b', 'c'], 'all stale past alive TTL'); n++;
+  assert.deepEqual(staleUrls(cache, ['a', 'b', 'c'], 1500), ['c'], 'only the unseen url is stale within both TTLs'); n++;
+  // an "expired" verdict goes stale sooner than an "alive" one (recovers faster)
+  assert.deepEqual(staleUrls(cache, ['a', 'b'], 1000 + EXPIRED_TTL_MS + 1), ['a'], 'expired rechecks before alive does'); n++;
 
   console.log(`liveness self-test: ${n} checks passed ✅`);
   return n;

@@ -73,6 +73,22 @@ function rowMatches(r: BoardRow, q: string): boolean {
 const APPLIED_RANK: Record<string, number> = { evaluated: 10, applied: 20, responded: 30, interview: 40, offer: 50 };
 const APPLIED_LABEL: Record<string, string> = { applied: 'Applied', responded: 'Responded', interview: 'Interview', offer: 'Offer' };
 const normKey = (s?: string): string => (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+// Canonicalize a job URL so the same posting matches even with a trailing slash,
+// fragment, or tracking params (Indeed/SF/etc. add these), instead of relying on the
+// fuzzy company|role fallback.
+const canonUrl = (u?: string): string => {
+  if (!u) return '';
+  try {
+    const x = new URL(u);
+    x.hash = '';
+    for (const k of [...x.searchParams.keys()]) {
+      if (/^(utm_|gclid|fbclid|mc_|ref|source|src)$/i.test(k) || /^utm_/i.test(k)) x.searchParams.delete(k);
+    }
+    return x.toString().toLowerCase().replace(/\/+$/, '');
+  } catch {
+    return (u || '').trim().toLowerCase().replace(/\/+$/, '');
+  }
+};
 
 export default function BoardPage() {
   const [board, setBoard] = useState<BoardResponse | null>(null);
@@ -145,7 +161,7 @@ export default function BoardPage() {
     for (const rec of r.records) {
       if ((APPLIED_RANK[rec.status || ''] ?? 0) < 20) continue; // applied or further only
       const label = APPLIED_LABEL[rec.status || ''] || 'Applied';
-      if (rec.url) map[`u:${normKey(rec.url)}`] = label;
+      if (rec.url) map[`u:${canonUrl(rec.url)}`] = label;
       if (rec.company && rec.role) map[`cr:${normKey(rec.company)}|${normKey(rec.role)}`] = label;
     }
     setAppliedMap(map);
@@ -154,7 +170,7 @@ export default function BoardPage() {
   useEffect(() => { loadApplied(); }, [loadApplied, board]);
 
   const appliedLabelFor = useCallback((row: BoardRow): string | null => {
-    if (row.url && appliedMap[`u:${normKey(row.url)}`]) return appliedMap[`u:${normKey(row.url)}`];
+    if (row.url && appliedMap[`u:${canonUrl(row.url)}`]) return appliedMap[`u:${canonUrl(row.url)}`];
     if (row.company && row.role) return appliedMap[`cr:${normKey(row.company)}|${normKey(row.role)}`] || null;
     return null;
   }, [appliedMap]);

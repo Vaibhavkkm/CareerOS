@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { spawn } from 'node:child_process';
+import { statSync } from 'node:fs';
 import { join } from 'node:path';
 import { runScript } from '@/lib/run';
 import { isPublicMode } from '@/lib/gate';
@@ -69,11 +70,16 @@ export async function GET(request: Request) {
       board.rows = kept;
       if (typeof board.count === 'number') board.count = Math.max(0, board.count - removed);
     }
-    // fire-and-forget liveness refresh (checks a small stale batch; updates the cache)
+    // fire-and-forget liveness refresh, but only if the cache wasn't touched recently
+    // — avoids a prune stampede across rapid loads / multiple tabs.
     const root = repoRoot();
-    spawn(process.execPath, [join(root, 'scripts', 'liveness.mjs'), 'prune'], {
-      cwd: root, detached: true, stdio: 'ignore',
-    }).unref();
+    let fresh = false;
+    try { fresh = Date.now() - statSync(join(root, 'data', 'ui', 'liveness.json')).mtimeMs < 90_000; } catch { /* no cache yet → prune */ }
+    if (!fresh) {
+      spawn(process.execPath, [join(root, 'scripts', 'liveness.mjs'), 'prune'], {
+        cwd: root, detached: true, stdio: 'ignore',
+      }).unref();
+    }
   } catch {
     // liveness is best-effort: never let it break the board
   }
