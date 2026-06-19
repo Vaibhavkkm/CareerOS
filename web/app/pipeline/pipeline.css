@@ -99,28 +99,27 @@
 @media (max-width: 560px) { .pipe .chan { grid-template-columns: 92px 1fr 42px; gap: .7rem; } .pipe .chan__label { font-size: .7rem; letter-spacing: .12em; } }
 
 /* ---- ledger table ---- */
-.pipe .ledger .tbl { width: 100%; border-collapse: collapse; font-family: var(--pmono); }
-.pipe .tbl thead th { font-family: var(--pfascia); font-size: .72rem; letter-spacing: .2em; text-transform: uppercase; color: var(--pdim); text-align: left; font-weight: 500; padding: .85rem 1rem; border-bottom: 1px solid var(--line-soft); white-space: nowrap; }
-.pipe .tbl tbody td { padding: 1rem; border-bottom: 1px solid rgba(236,228,210,.05); vertical-align: middle; font-size: .88rem; }
+.pipe .ledger .tbl { width: 100%; border-collapse: collapse; table-layout: fixed; font-family: var(--pmono); }
+.pipe .tbl thead th { font-family: var(--pfascia); font-size: .72rem; letter-spacing: .2em; text-transform: uppercase; color: var(--pdim); text-align: left; font-weight: 500; padding: .85rem .7rem; border-bottom: 1px solid var(--line-soft); white-space: nowrap; }
+.pipe .tbl tbody td { padding: .9rem .7rem; border-bottom: 1px solid rgba(236,228,210,.05); vertical-align: middle; font-size: .88rem; }
 .pipe .tbl tbody tr { position: relative; transition: background .2s ease; }
 .pipe .tbl tbody tr::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--amber); box-shadow: 0 0 10px var(--glow-amber); transform: scaleY(0); transform-origin: center; transition: transform .22s ease; }
 .pipe .tbl tbody tr:hover { background: rgba(255,176,46,.035); }
 .pipe .tbl tbody tr:hover::before { transform: scaleY(1); }
 .pipe .tbl tbody tr:last-child td { border-bottom: none; }
-.pipe .c-id { color: var(--amber); font-weight: 600; font-variant-numeric: tabular-nums; width: 48px; }
-.pipe .c-date { color: var(--pdim); white-space: nowrap; width: 108px; }
-.pipe .c-co { color: var(--bone); font-weight: 500; min-width: 180px; }
-.pipe .c-role { color: var(--pdim); min-width: 200px; }
-.pipe .c-score { width: 140px; }
-.pipe .c-status { width: 118px; }
-.pipe .c-docs { width: 96px; }
-.pipe .c-act { width: 210px; }
-.pipe .score { display: flex; align-items: center; gap: .6rem; }
-.pipe .score__bars { display: flex; gap: 3px; }
-.pipe .score__seg { width: 8px; height: 18px; border-radius: 1px; background: linear-gradient(90deg, var(--amber) calc(var(--f,0) * 100%), var(--seg-empty) 0); }
-.pipe .score__seg.on { box-shadow: 0 0 8px var(--glow-amber); }
-.pipe .score__v { font-weight: 600; color: var(--amber); text-shadow: 0 0 10px var(--glow-amber); font-variant-numeric: tabular-nums; }
-.pipe .score__v.muted { color: var(--pdim-2); text-shadow: none; }
+/* fixed column widths (sum = 100%); the <colgroup> keeps thead + tbody columns in
+   exact lockstep so the headers always sit over their data. */
+.pipe .col-id { width: 5%; }
+.pipe .col-date { width: 10%; }
+.pipe .col-co { width: 21%; }
+.pipe .col-role { width: 22%; }
+.pipe .col-status { width: 14%; }
+.pipe .col-docs { width: 8%; }
+.pipe .col-act { width: 20%; }
+.pipe .c-id { color: var(--amber); font-weight: 600; font-variant-numeric: tabular-nums; }
+.pipe .c-date { color: var(--pdim); white-space: nowrap; }
+.pipe .c-co { color: var(--bone); font-weight: 500; }
+.pipe .c-role { color: var(--pdim); }
 .pipe .pill { display: inline-flex; align-items: center; gap: .45rem; font-family: var(--pfascia); font-size: .72rem; letter-spacing: .16em; text-transform: uppercase; padding: .32rem .6rem; border-radius: 6px; border: 1px solid currentColor; white-space: nowrap; }
 .pipe .pill i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 7px currentColor; }
 .pipe .pill--offer { color: var(--teal); }

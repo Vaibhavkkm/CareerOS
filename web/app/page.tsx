@@ -7,6 +7,7 @@ import { BoardTable } from '@/components/BoardTable';
 import { DetailDrawer } from '@/components/DetailDrawer';
 import { CommandPalette, type Command } from '@/components/CommandPalette';
 import { Toaster, useToasts } from '@/components/Toast';
+import { useMarkApplied } from '@/components/useMarkApplied';
 import { api } from '@/components/util';
 import { IS_PUBLIC, openForkGate } from '@/lib/public';
 
@@ -80,6 +81,7 @@ export default function BoardPage() {
   const [savedUrls, setSavedUrls] = useState<Set<string>>(new Set());
   const [savedCount, setSavedCount] = useState(0);
   const { toasts, push, dismiss } = useToasts();
+  const { markApplied, dialog: appliedDialog } = useMarkApplied(push);
 
   // Step 1: flag set true after FIRST successful board load — gates stagger replay.
   const [boardEntered, setBoardEntered] = useState(false);
@@ -498,6 +500,7 @@ export default function BoardPage() {
               today={today}
               onClose={() => setDrawer(-1)}
               onEnqueue={enqueue}
+              onMarkApplied={() => markApplied(visibleRows[drawer])}
               saved={!!visibleRows[drawer].url && savedUrls.has(visibleRows[drawer].url!)}
               savedCount={savedCount}
               onToggleSave={() => toggleSave(visibleRows[drawer])}
@@ -514,6 +517,7 @@ export default function BoardPage() {
           today={today}
           onClose={() => setDrawer(-1)}
           onEnqueue={enqueue}
+          onMarkApplied={() => markApplied(visibleRows[drawer])}
           saved={!!visibleRows[drawer].url && savedUrls.has(visibleRows[drawer].url!)}
           savedCount={savedCount}
           onToggleSave={() => toggleSave(visibleRows[drawer])}
@@ -522,6 +526,7 @@ export default function BoardPage() {
       )}
 
       {palette && <CommandPalette commands={commands} onClose={() => setPalette(false)} />}
+      {appliedDialog}
       <Toaster toasts={toasts} onDismiss={dismiss} />
     </div>
   );
