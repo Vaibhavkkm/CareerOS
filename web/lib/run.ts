@@ -15,6 +15,7 @@ const ALLOW = new Set([
   'hunt-ingest.mjs',
   'jobspy.mjs',
   'saved.mjs',
+  'liveness.mjs',
   // zero-token analysis tools
   'gaps.mjs',
   'salary.mjs',

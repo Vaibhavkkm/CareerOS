@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
+import { spawn } from 'node:child_process';
+import { join } from 'node:path';
 import { runScript } from '@/lib/run';
 import { isPublicMode } from '@/lib/gate';
+import { repoRoot } from '@/lib/repo';
 import type { BoardResponse } from '@/lib/types';
 import demoBoard from '@/lib/demo/board.json';
 
@@ -52,5 +55,28 @@ export async function GET(request: Request) {
       r.error || (r.data && typeof r.data === 'object' && (r.data as { error?: string }).error) || 'board failed';
     return NextResponse.json({ ok: false, error: err, today: '', count: 0, rows: [] });
   }
-  return NextResponse.json(r.data);
+
+  const board = r.data as BoardResponse;
+  // Hide postings we KNOW are expired (404/410 or an explicit "no longer available"
+  // marker) from the liveness cache — instant, read-only, conservative. Then kick off
+  // a bounded background prune so the cache keeps up as listings go stale.
+  try {
+    const ex = await runScript<{ urls?: string[] }>('liveness.mjs', ['expired', '--json'], { timeoutMs: 10_000 });
+    const expired = new Set(ex.ok && Array.isArray(ex.data?.urls) ? ex.data!.urls! : []);
+    if (expired.size && Array.isArray(board.rows)) {
+      const kept = board.rows.filter((row) => !row.url || !expired.has(row.url));
+      const removed = board.rows.length - kept.length;
+      board.rows = kept;
+      if (typeof board.count === 'number') board.count = Math.max(0, board.count - removed);
+    }
+    // fire-and-forget liveness refresh (checks a small stale batch; updates the cache)
+    const root = repoRoot();
+    spawn(process.execPath, [join(root, 'scripts', 'liveness.mjs'), 'prune'], {
+      cwd: root, detached: true, stdio: 'ignore',
+    }).unref();
+  } catch {
+    // liveness is best-effort: never let it break the board
+  }
+
+  return NextResponse.json(board);
 }
