@@ -59,12 +59,27 @@ export default function PipelinePage() {
   }, []);
 
   const update = useCallback(async (id: number, status: string, confirmApplied = false) => {
+    // Moving a row to "Applied" needs the human confirm first — show the dialog and
+    // don't flip the row until confirmed.
+    if (status === 'applied' && !confirmApplied) {
+      const r = await api<{ ok: boolean; error?: string }>('/api/tracker', {
+        method: 'POST', body: JSON.stringify({ id, status, confirmApplied: false }),
+      });
+      if (r.error === 'needs_confirm') setConfirm(id);
+      else if (r.ok) { push(`#${id} → ${STATUS_LABEL[status] || status}`, 'ok'); load(); }
+      else push(r.error || 'update failed', 'err');
+      return;
+    }
+    // Optimistically reflect the new status so the controlled <select> doesn't snap
+    // back to the old value while the request is in flight; reconcile from the server
+    // afterwards (which also reverts the optimistic flip on a failure).
+    setRecords((prev) => (prev ? prev.map((r) => (r.id === id ? { ...r, status } : r)) : prev));
     const r = await api<{ ok: boolean; error?: string }>('/api/tracker', {
       method: 'POST', body: JSON.stringify({ id, status, confirmApplied }),
     });
-    if (r.ok) { push(`#${id} → ${STATUS_LABEL[status] || status}`, 'ok'); load(); }
-    else if (r.error === 'needs_confirm') setConfirm(id);
+    if (r.ok) push(`#${id} → ${STATUS_LABEL[status] || status}`, 'ok');
     else push(r.error || 'update failed', 'err');
+    load();
   }, [load, push]);
 
   const remove = useCallback(async (id: number) => {
