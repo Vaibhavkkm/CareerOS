@@ -130,6 +130,7 @@ function DocumentsSection({ jdPath, url }: { jdPath?: string; url?: string }) {
   const [sel, setSel] = useState('');
   const [text, setText] = useState('');
   const [loadingText, setLoadingText] = useState(false);
+  const [collapsed, setCollapsed] = useState(false); // hide the bulky inline preview
 
   // Send BOTH jd_path and url — a built job is often tracked by url with no jd_path
   // (or vice-versa), so /api/docs must be free to match on either.
@@ -181,8 +182,22 @@ function DocumentsSection({ jdPath, url }: { jdPath?: string; url?: string }) {
 
   return (
     <div className="section">
-      <div className="section__h">Documents</div>
-      <div className="chips" style={{ marginBottom: 10 }}>
+      <div className="section__h" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <span>Documents</span>
+        <button
+          onClick={() => setCollapsed((c) => !c)}
+          aria-expanded={!collapsed}
+          title={collapsed ? 'Show the document preview' : 'Hide the document preview'}
+          style={{
+            background: 'none', border: '1px solid var(--hairline)', borderRadius: 'var(--r-control, 6px)',
+            color: 'var(--fg-dim)', cursor: 'pointer', fontSize: 11, padding: '2px 8px',
+            textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap',
+          }}
+        >
+          {collapsed ? '⌄ show' : '⌃ hide'}
+        </button>
+      </div>
+      <div className="chips" style={{ marginBottom: collapsed ? 0 : 10 }}>
         {docs.map((d) => (
           <button
             key={d.path}
@@ -197,7 +212,7 @@ function DocumentsSection({ jdPath, url }: { jdPath?: string; url?: string }) {
           </button>
         ))}
       </div>
-      {current && (
+      {current && !collapsed && (
         <>
           {isPdf ? (
             <iframe src={href} title={current.name} style={frameStyle} />
@@ -212,13 +227,15 @@ function DocumentsSection({ jdPath, url }: { jdPath?: string; url?: string }) {
               {loadingText ? 'Loading…' : text}
             </pre>
           )}
-          <div style={{ marginTop: 8, display: 'flex', gap: 12, alignItems: 'center' }}>
-            <a href={href} target="_blank" rel="noreferrer" style={{ color: 'var(--gold)', fontSize: 12 }}>
-              Open {docLabel(current.type)} in new tab ↗
-            </a>
-            <span className="faint" style={{ fontSize: 11 }}>{current.name}</span>
-          </div>
         </>
+      )}
+      {current && (
+        <div style={{ marginTop: 8, display: 'flex', gap: 12, alignItems: 'center' }}>
+          <a href={href} target="_blank" rel="noreferrer" style={{ color: 'var(--gold)', fontSize: 12 }}>
+            Open {docLabel(current.type)} in new tab ↗
+          </a>
+          <span className="faint" style={{ fontSize: 11 }}>{current.name}</span>
+        </div>
       )}
     </div>
   );
