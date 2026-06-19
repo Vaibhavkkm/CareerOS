@@ -745,6 +745,22 @@ select {
   letter-spacing: 0.04em;
   vertical-align: middle;
 }
+/* "already in your pipeline" marker on the board — mint outline (the board's
+   positive/done accent), no fill, so it reads as a status not a background. */
+.applied-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border: 1px solid var(--mint-dim);
+  border-radius: 3px;
+  color: var(--mint);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  white-space: nowrap;
+}
 .cell-idx {
   color: var(--fg-faint);
   text-align: right;

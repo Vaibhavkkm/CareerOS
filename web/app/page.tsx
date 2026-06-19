@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { BoardResponse, BoardRow } from '@/lib/types';
 import { TopBar } from '@/components/TopBar';
 import { FilterBar, extractUrl, type Filters, type FetchRecentOpts, COUNTRIES, fetchBoards } from '@/components/FilterBar';
@@ -68,6 +68,12 @@ function rowMatches(r: BoardRow, q: string): boolean {
   return q.toLowerCase().split(/\s+/).filter(Boolean).every((term) => hay.includes(term));
 }
 
+// Cross-reference the board against the pipeline tracker so already-applied roles get
+// a badge. Status rank: only applied (20) or further gets a badge.
+const APPLIED_RANK: Record<string, number> = { evaluated: 10, applied: 20, responded: 30, interview: 40, offer: 50 };
+const APPLIED_LABEL: Record<string, string> = { applied: 'Applied', responded: 'Responded', interview: 'Interview', offer: 'Offer' };
+const normKey = (s?: string): string => (s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
 export default function BoardPage() {
   const [board, setBoard] = useState<BoardResponse | null>(null);
   const [filters, setFilters] = useState<Filters>({ min: '', recent: '' });
@@ -128,6 +134,46 @@ export default function BoardPage() {
     }
   }, []);
   useEffect(() => { loadSaved(); }, [loadSaved]);
+
+  // Which board rows are already in the pipeline (applied+) → keyed by url and company|role.
+  const [appliedMap, setAppliedMap] = useState<Record<string, string>>({});
+  const loadApplied = useCallback(async () => {
+    if (IS_PUBLIC) return;
+    const r = await api<{ ok: boolean; records?: { url?: string; company?: string; role?: string; status?: string }[] }>('/api/tracker');
+    if (!r.ok || !Array.isArray(r.records)) return;
+    const map: Record<string, string> = {};
+    for (const rec of r.records) {
+      if ((APPLIED_RANK[rec.status || ''] ?? 0) < 20) continue; // applied or further only
+      const label = APPLIED_LABEL[rec.status || ''] || 'Applied';
+      if (rec.url) map[`u:${normKey(rec.url)}`] = label;
+      if (rec.company && rec.role) map[`cr:${normKey(rec.company)}|${normKey(rec.role)}`] = label;
+    }
+    setAppliedMap(map);
+  }, []);
+  // Refresh on mount and whenever the board reloads (covers marking a role applied then re-ranking).
+  useEffect(() => { loadApplied(); }, [loadApplied, board]);
+
+  const appliedLabelFor = useCallback((row: BoardRow): string | null => {
+    if (row.url && appliedMap[`u:${normKey(row.url)}`]) return appliedMap[`u:${normKey(row.url)}`];
+    if (row.company && row.role) return appliedMap[`cr:${normKey(row.company)}|${normKey(row.role)}`] || null;
+    return null;
+  }, [appliedMap]);
+
+  // Opening the detail pane re-flows the board column (it narrows), which otherwise
+  // makes the board scroll region jump to the top. Capture the scroll on click and
+  // restore it across the open re-render(s) so clicking a row keeps your place.
+  const boardPaneRef = useRef<HTMLDivElement | null>(null);
+  const pendingScroll = useRef<number | null>(null);
+  const selectRow = useCallback((i: number) => {
+    pendingScroll.current = boardPaneRef.current?.scrollTop ?? null;
+    setDrawer(i);
+  }, []);
+  useLayoutEffect(() => {
+    if (pendingScroll.current != null && boardPaneRef.current) {
+      boardPaneRef.current.scrollTop = pendingScroll.current;
+      if (drawerW != null) pendingScroll.current = null; // cleared once the pane width is seeded (reflow settled)
+    }
+  }, [drawer, drawerW]);
 
   const toggleSave = useCallback(
     async (row: { url?: string; jd_path?: string; company?: string; role?: string; location?: string; posted?: string; band?: string; score?: number }) => {
@@ -441,7 +487,7 @@ export default function BoardPage() {
         }}
       >
         {/* Left: board list */}
-        <div className="board-pane">
+        <div className="board-pane" ref={boardPaneRef}>
           <h1 className="sr-only">CareerOS — CV-ranked job board</h1>
           {!board ? (
             <div className="placeholder">loading board…</div>
@@ -470,9 +516,10 @@ export default function BoardPage() {
               rows={visibleRows}
               today={today}
               selected={drawer}
-              onSelect={(i) => setDrawer(i)}
+              onSelect={selectRow}
               showCountry={place.countries.length !== 1}
               entered={boardEntered}
+              appliedLabelFor={appliedLabelFor}
             />
           )}
         </div>

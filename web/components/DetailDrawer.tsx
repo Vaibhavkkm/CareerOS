@@ -539,7 +539,7 @@ export function DetailDrawer({
 
     prevFocusRef.current = document.activeElement;
     // Focus the close button on mount
-    const t = setTimeout(() => closeBtnRef.current?.focus(), 50);
+    const t = setTimeout(() => closeBtnRef.current?.focus({ preventScroll: true }), 50);
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { onClose(); return; }
@@ -556,9 +556,9 @@ export function DetailDrawer({
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
       if (e.shiftKey) {
-        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+        if (document.activeElement === first) { e.preventDefault(); last.focus({ preventScroll: true }); }
       } else {
-        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+        if (document.activeElement === last) { e.preventDefault(); first.focus({ preventScroll: true }); }
       }
     };
     document.addEventListener('keydown', onKey);
