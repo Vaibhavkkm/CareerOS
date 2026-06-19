@@ -4,22 +4,24 @@
    the richness lives in the panels, gauges and ledger. Wired to the real tracker.
    ========================================================================== */
 .pipe {
-  --void: #0a0807;
-  --surface: #13110c;
-  --surface-2: #1a1710;
-  --line: rgba(255, 176, 46, 0.14);
-  --line-soft: rgba(236, 228, 210, 0.07);
-  --amber: #ffb02e;
-  --amber-hot: #ffd27a;
-  --amber-deep: #c9831a;
-  --teal: #2fe0c0;
-  --teal-hot: #8af0e1;
-  --bone: #ece4d2;
-  --pdim: #9a917f;
-  --pdim-2: #6f6856;
-  --seg-empty: rgba(255, 176, 46, 0.12);
-  --glow-amber: rgba(255, 176, 46, 0.55);
-  --glow-teal: rgba(47, 224, 192, 0.5);
+  /* Match the Board: pure black surfaces + neutral hairlines; gold/mint stay for
+     TEXT, meters and accents only (no warm/brown backgrounds). */
+  --void: #0A0A0C;
+  --surface: #131316;
+  --surface-2: #1A1A1F;
+  --line: #232329;
+  --line-soft: rgba(255, 255, 255, 0.06);
+  --amber: #F2B33D;
+  --amber-hot: #FFCB6B;
+  --amber-deep: #9A7B36;
+  --teal: #5EEAD4;
+  --teal-hot: #8FF6E6;
+  --bone: #ECECEE;
+  --pdim: #9A9AA4;
+  --pdim-2: #6F6F78;
+  --seg-empty: rgba(255, 255, 255, 0.07);
+  --glow-amber: rgba(242, 179, 61, 0.5);
+  --glow-teal: rgba(94, 234, 212, 0.45);
   --pfascia: 'Chakra Petch', 'Bahnschrift', 'DIN Alternate', system-ui, sans-serif;
   --pmono: 'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
   --gut: clamp(1.1rem, 3.5vw, 2.6rem);
@@ -61,13 +63,13 @@
 .pipe .gauge__num { font-family: var(--pmono); font-weight: 600; font-size: clamp(2.5rem,5.2vw,3.4rem); line-height: 1; color: var(--amber); text-shadow: 0 0 22px var(--glow-amber); margin: .55rem 0 .75rem; font-variant-numeric: tabular-nums; }
 .pipe .gauge--teal .gauge__num { color: var(--teal); text-shadow: 0 0 22px var(--glow-teal); }
 .pipe .meter { position: relative; height: 7px; border-radius: 4px; background: var(--seg-empty); overflow: hidden; }
-.pipe .meter::after { content: ""; position: absolute; inset: 0; background-image: repeating-linear-gradient(90deg, transparent 0, transparent 5px, rgba(10,8,7,.55) 5px, rgba(10,8,7,.55) 6px); pointer-events: none; z-index: 2; }
+.pipe .meter::after { content: ""; position: absolute; inset: 0; background-image: repeating-linear-gradient(90deg, transparent 0, transparent 5px, rgba(10,10,12,.6) 5px, rgba(10,10,12,.6) 6px); pointer-events: none; z-index: 2; }
 .pipe .meter__fill { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: linear-gradient(90deg, var(--amber-deep), var(--amber) 70%, var(--amber-hot)); box-shadow: 0 0 12px var(--glow-amber); }
 .pipe .gauge--teal .meter__fill { background: linear-gradient(90deg, #16998a, var(--teal) 70%, var(--teal-hot)); box-shadow: 0 0 12px var(--glow-teal); }
 .pipe .gauge__sub { margin-top: .6rem; font-family: var(--pmono); font-size: .74rem; color: var(--pdim-2); letter-spacing: .03em; }
 
 /* ---- panels ---- */
-.pipe .panel { background: linear-gradient(180deg, rgba(26,23,16,.7), rgba(19,17,12,.75)); border: 1px solid var(--line-soft); border-radius: 14px; overflow: hidden; }
+.pipe .panel { background: var(--bg-2); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
 .pipe .panel + .panel { margin-top: clamp(1.1rem,2.6vw,1.6rem); }
 .pipe .panel__head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .95rem 1.25rem; border-bottom: 1px solid var(--line-soft); }
 .pipe .panel__label { font-family: var(--pfascia); font-size: .82rem; letter-spacing: .28em; text-transform: uppercase; color: var(--bone); display: flex; align-items: center; gap: .7rem; }
@@ -84,7 +86,7 @@
 .pipe .chan__label { font-family: var(--pfascia); font-size: .8rem; letter-spacing: .2em; text-transform: uppercase; color: var(--pdim); }
 .pipe .chan.is-on .chan__label { color: var(--bone); }
 .pipe .chan--offer.is-on .chan__label { color: var(--teal-hot); }
-.pipe .chan__track { position: relative; height: 20px; border-radius: 5px; background: rgba(255,176,46,.05); box-shadow: inset 0 0 0 1px rgba(255,176,46,.07), inset 0 1px 0 rgba(255,255,255,.03); overflow: hidden; }
+.pipe .chan__track { position: relative; height: 20px; border-radius: 5px; background: rgba(255,255,255,.04); box-shadow: inset 0 0 0 1px var(--line), inset 0 1px 0 rgba(255,255,255,.03); overflow: hidden; }
 .pipe .chan__track::before { content: ""; position: absolute; inset: 0; background-image: repeating-linear-gradient(90deg, transparent 0, transparent 7px, rgba(0,0,0,.4) 7px, rgba(0,0,0,.4) 8px); opacity: .5; z-index: 3; pointer-events: none; }
 .pipe .chan__fill { position: absolute; inset: 0 auto 0 0; border-radius: 5px; background: linear-gradient(90deg, var(--amber-deep), var(--amber) 65%, var(--amber-hot)); box-shadow: 0 0 16px var(--glow-amber); z-index: 1; }
 .pipe .chan--offer .chan__fill { background: linear-gradient(90deg, #159586, var(--teal) 65%, var(--teal-hot)); box-shadow: 0 0 16px var(--glow-teal); }
@@ -101,20 +103,20 @@
 /* ---- ledger table ---- */
 .pipe .ledger .tbl { width: 100%; border-collapse: collapse; table-layout: fixed; font-family: var(--pmono); }
 .pipe .tbl thead th { font-family: var(--pfascia); font-size: .72rem; letter-spacing: .2em; text-transform: uppercase; color: var(--pdim); text-align: left; font-weight: 500; padding: .85rem .7rem; border-bottom: 1px solid var(--line-soft); white-space: nowrap; }
-.pipe .tbl tbody td { padding: .9rem .7rem; border-bottom: 1px solid rgba(236,228,210,.05); vertical-align: middle; font-size: .88rem; }
+.pipe .tbl tbody td { padding: .9rem .7rem; border-bottom: 1px solid rgba(255,255,255,.05); vertical-align: top; font-size: .88rem; }
 .pipe .tbl tbody tr { position: relative; transition: background .2s ease; }
 .pipe .tbl tbody tr::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--amber); box-shadow: 0 0 10px var(--glow-amber); transform: scaleY(0); transform-origin: center; transition: transform .22s ease; }
-.pipe .tbl tbody tr:hover { background: rgba(255,176,46,.035); }
+.pipe .tbl tbody tr:hover { background: var(--bg-row-hover); }
 .pipe .tbl tbody tr:hover::before { transform: scaleY(1); }
 .pipe .tbl tbody tr:last-child td { border-bottom: none; }
 /* fixed column widths (sum = 100%); the <colgroup> keeps thead + tbody columns in
-   exact lockstep so the headers always sit over their data. */
+   exact lockstep so the headers always sit over their data. CV/CL docs live INSIDE
+   the Actions cell (below the controls), so there is no separate Docs column. */
 .pipe .col-id { width: 5%; }
-.pipe .col-date { width: 10%; }
-.pipe .col-co { width: 21%; }
-.pipe .col-role { width: 22%; }
-.pipe .col-status { width: 14%; }
-.pipe .col-docs { width: 8%; }
+.pipe .col-date { width: 11%; }
+.pipe .col-co { width: 24%; }
+.pipe .col-role { width: 27%; }
+.pipe .col-status { width: 13%; }
 .pipe .col-act { width: 20%; }
 .pipe .c-id { color: var(--amber); font-weight: 600; font-variant-numeric: tabular-nums; }
 .pipe .c-date { color: var(--pdim); white-space: nowrap; }
@@ -127,15 +129,16 @@
 .pipe .pill--interview { color: var(--amber-hot); }
 .pipe .pill--rejected { color: #e07a6a; }
 .pipe .pill--discarded, .pipe .pill--skip { color: var(--pdim); }
-.pipe .docs { display: flex; flex-wrap: wrap; gap: .45rem .8rem; }
-.pipe .doc { font-family: var(--pmono); font-size: .82rem; color: var(--pdim); text-decoration: none; display: inline-flex; align-items: center; gap: .2rem; border-bottom: 1px solid transparent; transition: color .2s ease, border-color .2s ease; }
-.pipe .doc:hover { color: var(--amber); border-bottom-color: var(--amber); }
-.pipe .doc .a { font-size: .72rem; }
-.pipe .act { display: flex; align-items: center; gap: .6rem; }
+/* CV/CL appear as small buttons BELOW the action controls (no separate Docs column) */
+.pipe .docs { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .55rem; }
+.pipe .doc { font-family: var(--pmono); font-size: .72rem; color: var(--amber); text-decoration: none; display: inline-flex; align-items: center; gap: .3rem; padding: .26rem .55rem; border: 1px solid var(--line); border-radius: 6px; background: rgba(255,255,255,.02); transition: border-color .2s ease, background .2s ease; }
+.pipe .doc:hover { border-color: var(--amber); background: rgba(242,179,61,.08); }
+.pipe .doc .a { font-size: .7rem; color: var(--amber); }
+.pipe .act { display: flex; align-items: center; gap: .5rem; }
 .pipe .selectw { position: relative; flex: 1; }
 .pipe .selectw select { appearance: none; -webkit-appearance: none; width: 100%; font-family: var(--pfascia); font-size: .74rem; letter-spacing: .14em; text-transform: uppercase; color: var(--bone); background: var(--surface); border: 1px solid var(--line-soft); border-radius: 7px; padding: .5rem 1.9rem .5rem .7rem; cursor: pointer; transition: border-color .2s ease; }
 .pipe .selectw select:hover { border-color: var(--line); }
-.pipe .selectw select option { background: #15130d; color: var(--bone); }
+.pipe .selectw select option { background: #131316; color: var(--bone); }
 .pipe .selectw::after { content: ""; position: absolute; right: .7rem; top: 50%; width: 7px; height: 7px; border-right: 1.5px solid var(--amber); border-bottom: 1.5px solid var(--amber); transform: translateY(-65%) rotate(45deg); pointer-events: none; }
 .pipe .remove { width: 30px; height: 30px; flex: none; display: grid; place-items: center; border-radius: 7px; border: 1px solid var(--line-soft); background: transparent; color: var(--pdim); cursor: pointer; font-size: 1.05rem; line-height: 1; transition: color .2s ease, border-color .2s ease, background .2s ease; }
 .pipe .remove:hover { color: #e07a6a; border-color: rgba(224,122,106,.5); background: rgba(224,122,106,.08); }
@@ -144,9 +147,9 @@
 @media (max-width: 780px) {
   .pipe .tbl thead { display: none; }
   .pipe .tbl, .pipe .tbl tbody { display: block; width: 100%; }
-  .pipe .tbl tbody tr { display: block; border: 1px solid var(--line-soft); border-radius: 12px; margin: .7rem 0; background: rgba(26,23,16,.5); overflow: hidden; }
+  .pipe .tbl tbody tr { display: block; border: 1px solid var(--line); border-radius: 12px; margin: .7rem 0; background: var(--bg-2); overflow: hidden; }
   .pipe .tbl tbody tr::before { top: 0; bottom: 0; left: 0; }
-  .pipe .tbl tbody td { display: flex; justify-content: space-between; align-items: center; gap: 1rem; width: auto; padding: .7rem 1rem; border-bottom: 1px solid rgba(236,228,210,.05); }
+  .pipe .tbl tbody td { display: flex; justify-content: space-between; align-items: center; gap: 1rem; width: auto; padding: .7rem 1rem; border-bottom: 1px solid rgba(255,255,255,.05); }
   .pipe .tbl tbody td::before { content: attr(data-label); font-family: var(--pfascia); font-size: .68rem; letter-spacing: .18em; text-transform: uppercase; color: var(--pdim); flex: none; }
   .pipe .c-co, .pipe .c-role { text-align: right; }
   .pipe .c-act { justify-content: space-between; }

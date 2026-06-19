@@ -27,6 +27,7 @@ export function BoardTable({
   onSelect,
   showCountry = false,
   entered = false,
+  appliedLabelFor,
 }: {
   rows: BoardRow[];
   today: string;
@@ -35,6 +36,8 @@ export function BoardTable({
   showCountry?: boolean;
   /** Step 1: true after first load — gates stagger to first paint only */
   entered?: boolean;
+  /** Pipeline status label (Applied/Interview/…) for a row already tracked, else null. */
+  appliedLabelFor?: (row: BoardRow) => string | null;
 }) {
   return (
     // Step 1: add board--static once entered to cancel the stagger replay
@@ -64,6 +67,7 @@ export function BoardTable({
           const isFresh = days !== null && days <= 3;
           // Step 1: stable key — url or jd_path WITHOUT index suffix when available
           const stableKey = r.url || r.jd_path || `row-${i}`;
+          const appliedLabel = appliedLabelFor?.(r) ?? null;
           return (
             <tr
               key={stableKey}
@@ -109,6 +113,11 @@ export function BoardTable({
                 </div>
                 <div>
                   <span className="company">{r.company || '—'}</span>
+                  {appliedLabel && (
+                    <span className="applied-badge" title={`Already in your pipeline · ${appliedLabel}`}>
+                      ✓ {appliedLabel}
+                    </span>
+                  )}
                   {r.source && <span className="src">{r.source}</span>}
                 </div>
                 {/* Step 8: inline meta visible <1100px where secondary cols are hidden */}

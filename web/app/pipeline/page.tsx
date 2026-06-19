@@ -24,7 +24,7 @@ function DocLinks({ cv, cl }: { cv?: string; cl?: string }) {
   const items: [string, string][] = [];
   if (cv && cv.toLowerCase().endsWith('.pdf')) items.push(['CV', cv]);
   if (cl && cl.toLowerCase().endsWith('.pdf')) items.push(['CL', cl]);
-  if (!items.length) return <span style={{ color: 'var(--pdim-2)' }}>—</span>;
+  if (!items.length) return null;
   return (
     <div className="docs">
       {items.map(([label, path]) => (
@@ -169,20 +169,19 @@ export default function PipelinePage() {
                 <col className="col-co" />
                 <col className="col-role" />
                 <col className="col-status" />
-                <col className="col-docs" />
                 <col className="col-act" />
               </colgroup>
               <thead>
                 <tr>
                   <th>ID</th><th>Date</th><th>Company</th><th>Role</th>
-                  <th>Status</th><th>Docs</th><th>Actions</th>
+                  <th>Status</th><th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {records == null ? (
-                  <tr><td colSpan={7} style={{ color: 'var(--pdim)' }}>loading…</td></tr>
+                  <tr><td colSpan={6} style={{ color: 'var(--pdim)' }}>loading…</td></tr>
                 ) : records.length === 0 ? (
-                  <tr><td colSpan={7} style={{ color: 'var(--pdim)' }}>No applications yet. Evaluate or mark a role Applied from the Board to start tracking.</td></tr>
+                  <tr><td colSpan={6} style={{ color: 'var(--pdim)' }}>No applications yet. Evaluate or mark a role Applied from the Board to start tracking.</td></tr>
                 ) : records.map((r) => {
                   return (
                     <tr key={r.id} data-id={r.id}>
@@ -193,7 +192,6 @@ export default function PipelinePage() {
                       <td className="c-status" data-label="Status">
                         <span className={`pill pill--${r.status}`}><i />{STATUS_LABEL[r.status] || r.status}</span>
                       </td>
-                      <td className="c-docs" data-label="Docs"><DocLinks cv={r.cv_pdf} cl={r.cl_pdf} /></td>
                       <td className="c-act" data-label="Actions">
                         <div className="act">
                           <div className="selectw">
@@ -207,6 +205,8 @@ export default function PipelinePage() {
                           </div>
                           <button className="remove" aria-label={`Remove ${r.company} from tracker`} title="Remove" onClick={() => setRemoveConfirm(r.id)}>×</button>
                         </div>
+                        {/* CV/CL as proper buttons BELOW the action controls */}
+                        <DocLinks cv={r.cv_pdf} cl={r.cl_pdf} />
                       </td>
                     </tr>
                   );
